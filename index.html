@@ -1173,7 +1173,7 @@ function renderRsvForm() {
       <div class="roster-note" data-roster-note hidden></div>
       <div data-kid-rows>${loadKids().map(k => kidRowHTML(k, grades)).join('')}</div>
       <div class="kids-tools${loadKids().length ? '' : ' hidden'}" data-kid-tools><label>전원 학년<select id="kidgradeall" aria-label="전원 학년"><option value="">선택</option>${grades.map(g => `<option value="${attr(g)}">${esc(g)}</option>`).join('')}</select></label><span class="note" data-kid-count></span></div>
-      <p class="note">같은 보호자(인솔자) 휴대폰으로 함께 예약합니다. 어린이마다 따로 접수되어 확정/대기가 각각 표시되고, 소속이 다른 어린이는 소속 칸만 고치면 됩니다. 체크를 풀면 이번 예약에서 빠집니다. 본인 포함 ${KIDS_MAX + 1}명까지.</p>
+      <p class="note">같은 보호자(학부모) 휴대폰으로 함께 예약합니다. 어린이마다 따로 접수되어 확정/대기가 각각 표시되고, 학교가 다른 어린이는 소속 칸만 고치면 됩니다. 체크를 풀면 이번 예약에서 빠집니다. 본인 포함 ${KIDS_MAX + 1}명까지.</p>
     </div>
     <label class="field"><span>소속 (학교/기관)</span><input id="rorg" name="org" type="text" autocomplete="organization" placeholder="예: 천안불당초등학교" value="${attr(me.org)}" maxlength="60" required></label>
     <label class="field"><span>학년 (2026년 11월 기준)</span><select id="rgrade" name="grade" required><option value="">선택하세요</option>${grades.map(g => `<option value="${attr(g)}"${me.grade === g ? ' selected' : ''}>${esc(g)}</option>`).join('')}<option value="__other"${other ? ' selected' : ''}>기타 (직접 입력)</option></select></label>
