@@ -525,7 +525,13 @@ button.slot-row:disabled{cursor:default}
 .retry{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--warn);background:var(--warn-soft);border-radius:10px;padding:8px 12px;margin-top:6px}
 .cta-sel{font-size:12.5px;color:var(--fg-muted);text-align:center;margin-bottom:6px}
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:16px;z-index:60}
-.modal-card{background:var(--surface);color:var(--fg);border-radius:18px;padding:24px 20px;max-width:420px;width:100%;display:grid;gap:12px;text-align:center;box-shadow:var(--shadow)}
+.modal-card{background:var(--surface);color:var(--fg);border-radius:18px;padding:24px 20px;max-width:420px;width:100%;display:grid;gap:12px;text-align:center;box-shadow:var(--shadow);max-height:calc(100vh - 32px);max-height:calc(100dvh - 32px);overflow:auto}
+.modal-card.tall{display:flex;flex-direction:column;overflow:hidden;padding-bottom:16px}
+.modal-card.tall>*{flex:none}
+.modal-card.tall .group-list{flex:1 1 auto;min-height:60px;overflow:auto;-webkit-overflow-scrolling:touch;padding-right:2px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:8px 0}
+.modal-card.tall .row{position:sticky;bottom:0;background:var(--surface);padding-top:4px}
+.modal-card .row .btn{min-height:44px}
+.group-list .g.sum{flex-direction:column;gap:4px}.group-list .g.sum .names{font-weight:400;color:var(--fg-muted);font-size:13px;line-height:1.5}.group-list .g.sum b{min-width:0}
 .modal-icon{width:64px;height:64px;border-radius:50%;margin:0 auto;display:grid;place-items:center;font-size:30px;font-weight:700;color:#fff}
 .modal-icon.ok{background:var(--ok)} .modal-icon.wait{background:var(--warn)} .modal-icon.cancel{background:var(--full)}
 .modal-card h2{font-size:21px;font-weight:700}
@@ -1407,7 +1413,13 @@ function showGroupResult(list, b, slot, wasWait, reqId) {
   const title = nFail === 0 ? (nWait ? `${nOk}명 확정 · ${nWait}명 대기` : (always ? `${nOk}명 방문 등록되었습니다` : `${nOk}명 모두 예약이 확정되었습니다`)) : nOk + nWait === 0 ? '접수되지 않았습니다' : `${nOk + nWait}명 접수 · ${nFail}명 접수 안 됨`;
   const cls = nFail === 0 ? (nWait ? 'wait' : 'ok') : nOk + nWait === 0 ? 'cancel' : 'wait';
   const icon = cls === 'ok' ? '✓' : cls === 'wait' ? '…' : '✕';
+  // 같은 사유로 접수되지 않은 어린이가 여럿이면 한 줄로 묶음 (14명이 같은 문장을 반복하지 않게)
+  const failWhat = r => (r.code === 'LIMIT' ? '1인 제한' : r.code === 'FULL' ? '마감 (자리 없음)' : r.code === 'WAITFULL' ? '접수 마감' : '접수 안 됨') + (r.message ? ' — ' + r.message : '');
+  const groups = {}; list.forEach(r => { if (r.ok) return; const k = failWhat(r); (groups[k] = groups[k] || []).push(r.name || ''); });
+  const grouped = Object.keys(groups).filter(k => groups[k].length >= 3);
+  const sumLines = grouped.map(k => `<div class="g fail sum"><b>${groups[k].length}명 ${esc(k)}</b><span class="names">${groups[k].map(esc).join(' · ')}</span></div>`).join('');
   const line = r => {
+    if (!r.ok && grouped.indexOf(failWhat(r)) > -1) return '';
     const c = r.ok ? (r.status === ST.OK ? 'ok' : 'wait') : 'fail';
     const what = r.ok ? (r.status === ST.OK ? (r.again ? '이미 예약됨' : (always ? '등록' : '확정')) + (r.no ? ' · ' + r.no : '') : '대기' + (r.waitNo ? ' ' + r.waitNo + '번째' : '')) : (r.code === 'LIMIT' ? '1인 제한' : r.code === 'FULL' ? '마감 (자리 없음)' : r.code === 'WAITFULL' ? '접수 마감' : '접수 안 됨') + (r.message ? ' — ' + r.message : '');
     return `<div class="g ${c}"><b>${esc(r.name || '')}</b><span>${esc(what)}</span></div>`;
@@ -1416,9 +1428,9 @@ function showGroupResult(list, b, slot, wasWait, reqId) {
   const buttons = (canWait ? btn('modal-wait', '자리 없는 어린이는 대기로 신청', true) : '') + btn('modal-my', '내 예약 보기', !canWait) + (always ? '' : btn('modal-more', '다른 시간대도 예약')) + btn('modal-close', '닫기');
   const old = $('#result-modal'); if (old) old.remove();
   const el = document.createElement('div'); el.id = 'result-modal'; el.className = 'modal'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true');
-  el.innerHTML = `<div class="modal-card"><div class="modal-icon ${cls}">${icon}</div><h2>${esc(title)}</h2>
+  el.innerHTML = `<div class="modal-card${list.length > 4 ? ' tall' : ''}"><div class="modal-icon ${cls}">${icon}</div><h2>${esc(title)}</h2>
     <div class="what">${b.no}. ${esc(b.name)}<br>${eventDates().length > 1 ? esc(fmtDay(S.day)) + ' · ' : ''}${esc(always ? '상시운영 · 방문 등록' : slot)}</div>
-    <div class="group-list">${list.map(line).join('')}</div>
+    <div class="group-list">${list.map(line).join('')}${sumLines}</div>
     <p class="note">${nFail && canWait ? '자리가 없는 어린이만 대기로 넣을 수 있습니다. ' : ''}${nWait ? '대기는 취소가 생기면 접수 순서대로 자동 확정되고 이 화면에서 알려 드립니다. ' : ''}내 예약에서는 어린이 이름을 바꿔 가며 각각 확인·취소할 수 있습니다.</p>
     <div class="row">${buttons}</div></div>`;
   document.body.appendChild(el);
@@ -1825,6 +1837,7 @@ function renderAdminParts() {
 }
 function renderSessionPanel(d) {
   const host = $('[data-sess-panel]'); if (!host) return;
+  if (S.admin.staff) { host.hidden = true; host.innerHTML = ''; return; } // 부스 담당자 화면(?page=admin&booth=n)에는 예약 공개 패널을 보이지 않음 — 총괄 운영자만 조작
   const ss = d.sessions;
   host.hidden = false;
   if (!ss) { host.innerHTML = `<div class="note" style="font-weight:600;color:var(--fg)">예약 공개 (총괄운영자)</div><div class="note">서버 코드(Code.gs)가 아직 이전 버전입니다. 새 Code.gs로 교체하고 [배포 관리 > 새 버전]을 하면 여기에 오전반·오후반 자동/열림/닫힘 버튼이 나타납니다.</div>`; return; }
@@ -2189,6 +2202,7 @@ function renderPreviewBar() {
 
 // ───────── 이벤트 ─────────
 document.addEventListener('click', e => {
+  if (e.target.id === 'result-modal') { closeModal(); return; } // 결과 팝업 바깥(어두운 부분)을 누르면 닫힘
   const pv = e.target.closest('[data-preview-view]');
   if (pv) { go(pv.dataset.previewView, pv.dataset.previewView === 'booth' ? (S.boothNo || 8) : null); return; }
   if (PREVIEW) {
@@ -2293,6 +2307,7 @@ document.addEventListener('click', e => {
   else if (a === 'toggle-phone') { S.phone = !S.phone; try { localStorage.setItem('phonePreview', S.phone ? '1' : '0'); } catch (x) { } renderPreviewBar(); }
 });
 document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && $('#result-modal')) { closeModal(); return; }
   if (e.key === 'Enter' && e.target.matches && e.target.matches('.booth[role="button"]')) { go('booth', e.target.dataset.no); }
 });
 document.addEventListener('submit', e => {
@@ -2381,7 +2396,7 @@ async function bootstrap() {
   if (p.page === 'admin') {
     S.view = 'admin';
     // ?page=admin&booth=12 → 부스 담당자용: 그 부스 명단(체크인)만 바로 표시
-    if (p.booth) { S.admin.f.booth = String(Number(p.booth)); S.admin.tab = 'list'; }
+    if (p.booth) { S.admin.f.booth = String(Number(p.booth)); S.admin.tab = 'list'; S.admin.staff = true; } // 담당자 모드: 예약 공개 패널(총괄 전용)은 숨김
   }
   else if (p.page === 'tv') S.view = 'tv';
   else if (p.page === 'qr') S.view = 'qr';
