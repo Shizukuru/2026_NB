@@ -375,6 +375,7 @@ tr:last-child td{border-bottom:0}
 .sess{display:inline-flex;align-items:center;gap:6px;padding:2px 10px;border-radius:999px;font-size:12.5px;font-weight:600;background:var(--surface-2);color:var(--fg-muted)}
 .sess.open{background:var(--ok-soft);color:var(--ok)} .sess.off{background:var(--full-soft);color:var(--full)}
 .sess-panel{display:grid;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-top:12px}
+.sess-day{background:var(--accent-soft);color:var(--accent);padding:1px 8px;border-radius:999px;font-weight:700}
 .sess-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .sess-row .name{font-weight:700;min-width:52px}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
@@ -1141,30 +1142,38 @@ function loadKids() { try { const k = JSON.parse(localStorage.getItem('kids') ||
 function saveKids(list, remember) { try { if (remember === false) localStorage.removeItem('kids'); else localStorage.setItem('kids', JSON.stringify((list || []).filter(x => x && x.name).slice(0, KIDS_MAX))); } catch (x) { } }
 /** 단체 명단 자동 채우기: 인솔자가 이름·휴대폰을 넣으면 시트 '단체 명단' 탭의 명단을 '함께 온 어린이'에 채운다 (한 번 채운 조합은 다시 묻지 않음) */
 let rosterAsked = {};
-async function tryRoster() {
+/**
+ * 인솔자 이름+휴대폰이 '단체 명단' 탭에 있으면 그 어린이들을 목록에 채움.
+ *  - force: 이미 물어본 이름·번호여도 다시 (명단 다시 불러오기 버튼, 어린이를 지운 뒤 [예약하기])
+ *  - 결과 { found, added, total } — found=false 면 명단 없음(가족 예약), 서버 오류면 null
+ */
+async function tryRoster(force) {
   const name = (($('#rname') || {}).value || '').trim(), phone = phoneDigits(($('#rphone') || {}).value || '');
-  if (!name || phone.length < 10) return;
+  if (!name || phone.length < 10) return { found: false, added: 0, total: 0 };
   const key = name.replace(/\s+/g, '') + '|' + phone;
-  if (rosterAsked[key]) return; rosterAsked[key] = true;
+  if (rosterAsked[key] && !force) return rosterAsked[key] === 'found' ? { found: true, added: 0, total: 0 } : { found: false, added: 0, total: 0 };
+  rosterAsked[key] = true;
   let r = null;
-  try { r = await rpc('groupRoster', name, phone); } catch (x) { rosterAsked[key] = false; return; }
-  if (!r || !r.kids || !r.kids.length) { if (S.rsv.leader && !S.rsv.rosterFound) { S.rsv.leader = false; const lc = $('#rleader'); if (lc) lc.checked = false; } return; }
-  const host = $('[data-kid-rows]'); if (!host) return;
+  try { r = await rpc('groupRoster', name, phone); } catch (x) { rosterAsked[key] = false; return null; }
+  if (!r || !r.kids || !r.kids.length) { if (S.rsv.leader && !S.rsv.rosterFound) { S.rsv.leader = false; const lc = $('#rleader'); if (lc) lc.checked = false; } return { found: false, added: 0, total: 0 }; }
+  rosterAsked[key] = 'found';
+  const host = $('[data-kid-rows]'); if (!host) return null;
   const have = $$('[data-kid] .kid-name').map(i => i.value.trim()).filter(Boolean);
   const grades = S.status.grades || [];
   let added = 0;
-  r.kids.forEach(k => { if ($$('[data-kid]').length >= KIDS_MAX || have.indexOf(k.name) > -1) return; host.insertAdjacentHTML('beforeend', kidRowHTML({ name: k.name, grade: k.grade, org: k.org, on: true }, grades)); have.push(k.name); added++; });
+  r.kids.forEach(k => { if ($$('[data-kid]').length >= KIDS_MAX || have.indexOf(k.name) > -1) return; host.insertAdjacentHTML('beforeend', kidRowHTML({ name: k.name, grade: k.grade, org: k.org, on: true, roster: true }, grades)); have.push(k.name); added++; });
   S.rsv.leader = true; S.rsv.rosterFound = true; const lc = $('#rleader'); if (lc) lc.checked = true; // 사전 명단이 있으면 위 이름은 인솔자
   syncKidTools();
-  const note = $('[data-roster-note]'); if (note) { note.hidden = false; note.innerHTML = `📋 사전 등록 명단 <b>${esc(r.group || '단체')}</b> ${r.kids.length}명을 불러왔습니다${added < r.kids.length ? ' (' + (r.kids.length - added) + '명은 이미 목록에 있음)' : ''}. 오늘 안 온 어린이는 체크를 풀어 주세요.`; }
-  if (added) toast('사전 등록 명단 ' + added + '명을 불러왔습니다');
+  const note = $('[data-roster-note]'); if (note) { note.hidden = false; note.innerHTML = `📋 사전 등록 명단 <b>${esc(r.group || '단체')}</b> ${r.kids.length}명을 불러왔습니다${added < r.kids.length ? ' (' + (r.kids.length - added) + '명은 이미 목록에 있음)' : ''}. 오늘 안 온 어린이는 체크를 풀어 주세요. <button type="button" class="btn small" data-action="roster-reload" title="명단에서 빠진 어린이를 다시 넣습니다">↺ 명단 다시 불러오기</button>`; }
+  if (added) toast((force ? '사전 명단에서 ' : '사전 등록 명단 ') + added + '명을 불러왔습니다');
+  return { found: true, added: added, total: r.kids.length };
 }
 function syncKidTools() { const rows = $$('[data-kid]'); const n = rows.length; rows.forEach((r, i) => { const el = r.querySelector('[data-kid-no]'); if (el) el.textContent = i + 1; }); const t = $('[data-kid-tools]'); if (t) t.classList.toggle('hidden', !n); const c = $('[data-kid-count]'); if (c) c.textContent = n ? '어린이 ' + n + '명' : ''; const lb = $('[data-leader-box]'); if (lb) lb.classList.toggle('hidden', !n || !S.rsv.rosterFound); } // 인솔자 체크는 사전 명단이 불러와진 경우(단체)에만 — 가족 예약에서 첫째 아이가 빠지는 실수 방지
 const KIDS_MAX = 15; // 함께 온 어린이 최대 (인솔자 제외 15명 / 보호자 본인 포함 16명)
 function kidRowHTML(k, grades) {
   k = k || {}; const on = k.on !== false;
   const known = grades.indexOf(k.grade) > -1;
-  return `<div class="kid-row${on ? '' : ' off'}" data-kid><input type="checkbox" class="kid-on"${on ? ' checked' : ''} aria-label="이번 예약에 포함"><span class="kid-no" data-kid-no></span>` +
+  return `<div class="kid-row${on ? '' : ' off'}" data-kid${k.roster ? ' data-roster' : ''}><input type="checkbox" class="kid-on"${on ? ' checked' : ''} aria-label="이번 예약에 포함"><span class="kid-no" data-kid-no></span>` +
     `<input type="text" class="kid-name" placeholder="이름" value="${attr(k.name || '')}" maxlength="30" autocomplete="off">` +
     `<button type="button" class="del" data-action="kid-del" aria-label="빼기">✕</button>` +
     `<select class="kid-grade" aria-label="학년"><option value="">학년</option>${grades.map(g => `<option value="${attr(g)}"${k.grade === g ? ' selected' : ''}>${esc(g)}</option>`).join('')}<option value="__other"${k.grade && !known ? ' selected' : ''}>기타</option></select>` +
@@ -1246,7 +1255,7 @@ function rsvProblem(v, b) {
   if (b.mode !== ALWAYS && !S.rsv.slot) return { msg: '시간대를 먼저 선택해 주세요', el: $('.slot-rows') };
   if (!v.name) return { msg: '보호자(인솔자) 이름을 입력해 주세요', el: $('#rname') };
   if (!/^01[016789]\d{7,8}$/.test(phoneDigits(v.phone))) return { msg: '휴대폰 번호를 확인해 주세요 (예: 010-1234-5678 — 하이픈은 없어도 됩니다)', el: $('#rphone') };
-  if (!v.kids.some(k => k.on && k.name)) return { msg: '참가 어린이를 한 명 이상 추가해 주세요 ([＋ 어린이 추가])', el: $('[data-kid-rows]') || $('[data-kids]') };
+  if (!v.kids.some(k => k.on && k.name)) return { kids: true, msg: '참가 어린이를 한 명 이상 추가해 주세요 ([＋ 어린이 추가])', el: $('[data-kid-rows]') || $('[data-kids]') };
   if (!v.org && v.kids.some(k => k.on && k.name && !k.org)) return { msg: '어린이 소속(학교/기관)을 입력해 주세요', el: $('#rorg') };
   const seen = {};
   for (const k of v.kids) {
@@ -1301,7 +1310,18 @@ async function submitRsv(opts) {
   opts = opts || {};
   const b = booth(S.boothNo); if (!b || S.rsv.busy) return;
   const v = rsvValues();
-  const bad = rsvProblem(v, b);
+  let bad = rsvProblem(v, b);
+  if (bad && bad.kids) {
+    // 어린이가 한 명도 없음 — 인솔자라면 사전 명단을 (다시) 불러옴. 실수로 지웠거나 명단이 아직 안 불려온 경우
+    const already = $$('[data-kid]').length;
+    toast(already ? '사전 명단을 다시 불러오는 중입니다…' : '사전 명단을 불러오는 중입니다…');
+    const r = await tryRoster(true);
+    if (r && r.found) {
+      if (r.added) { toast('사전 명단 ' + r.added + '명을 불러왔습니다. 오늘 온 어린이를 확인하고 다시 [예약하기]를 눌러 주세요'); const el = $('[data-kid-rows]'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
+      bad = { msg: '체크된 어린이가 없습니다. 오늘 온 어린이를 체크해 주세요', el: $('[data-kid-rows]') };
+    } else if (r === null) { bad = { msg: '사전 명단을 불러오지 못했습니다. 잠시 후 다시 [예약하기]를 눌러 주세요', el: null }; }
+    else { bad = { msg: bad.msg, el: bad.el }; }
+  }
   if (bad) { toast(bad.msg, 'err'); if (bad.el) { try { bad.el.classList && bad.el.classList.add('bad'); bad.el.focus && bad.el.focus({ preventScroll: true }); bad.el.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (x) { } } return; }
   $$('.rsv .bad').forEach(el => el.classList.remove('bad'));
   const now = kstNow();
@@ -1808,7 +1828,8 @@ function renderSessionPanel(d) {
   const ss = d.sessions;
   host.hidden = false;
   if (!ss) { host.innerHTML = `<div class="note" style="font-weight:600;color:var(--fg)">예약 공개 (총괄운영자)</div><div class="note">서버 코드(Code.gs)가 아직 이전 버전입니다. 새 Code.gs로 교체하고 [배포 관리 > 새 버전]을 하면 여기에 오전반·오후반 자동/열림/닫힘 버튼이 나타납니다.</div>`; return; }
-  host.innerHTML = `<div class="note" style="font-weight:600;color:var(--fg)">예약 공개 (총괄운영자)</div>` + ['am', 'pm'].map(k => {
+  const multi = eventDates().length > 1;
+  host.innerHTML = `<div class="note" style="font-weight:600;color:var(--fg)">예약 공개 (총괄운영자)${multi ? ` · <span class="sess-day">${esc(fmtDay(S.day))}</span> <small style="font-weight:400">— 날짜마다 따로 열고 닫습니다. 다른 날은 위의 날짜 탭에서</small>` : ''}</div>` + ['am', 'pm'].map(k => {
     const x = ss[k]; if (!x || !x.count) return '';
     const range = x.first.split(/[~\-–—]/)[0].trim() + '~' + x.last.split(/[~\-–—]/).pop().trim();
     return `<div class="sess-row"><span class="name">${esc(x.label)}</span><span class="note">${esc(range)} · ${x.count}개 시간대</span>
@@ -1932,8 +1953,9 @@ function downloadCsv() {
 async function setSessionMode(sess, mode, btn) {
   if (btn) btn.disabled = true;
   try {
-    const ss = await rpc('setSessionMode', S.admin.pin, sess, mode);
-    toast((ss[sess] ? ss[sess].label : sess) + ' → ' + mode + (ss[sess] ? (ss[sess].open ? ' (지금 열림)' : ' (지금 닫힘)') : ''));
+    const day = eventDates().length > 1 ? S.day : '';
+    const ss = await rpc('setSessionMode', S.admin.pin, sess, mode, day);
+    toast((day ? fmtDay(day) + ' ' : '') + (ss[sess] ? ss[sess].label : sess) + ' → ' + mode + (ss[sess] ? (ss[sess].open ? ' (지금 열림)' : ' (지금 닫힘)') : ''));
     await refresh();
   } catch (e) { toast(e.message || '변경에 실패했습니다', 'err'); if (btn) btn.disabled = false; }
 }
@@ -2213,7 +2235,19 @@ document.addEventListener('click', e => {
   if (a === 'submit-rsv') { submitRsv(); return; }
   if (a === 'day') { setDay(act.dataset.day); return; }
   if (a === 'kid-add') { const host = $('[data-kid-rows]'); if (!host) return; if ($$('[data-kid]').length >= KIDS_MAX) { toast('함께 온 어린이는 ' + KIDS_MAX + '명까지입니다', 'err'); return; } host.insertAdjacentHTML('beforeend', kidRowHTML({ on: true }, S.status.grades || [])); syncKidTools(); const last = $$('[data-kid] .kid-name').pop(); if (last) last.focus(); return; }
-  if (a === 'kid-del') { const row = act.closest('[data-kid]'); if (row) row.remove(); syncKidTools(); return; }
+  if (a === 'kid-del') {
+    const row = act.closest('[data-kid]'); if (!row) return;
+    if (row.hasAttribute('data-roster')) { // 사전 명단 어린이는 지우지 않고 체크만 풂 (실수로 지워 다시 못 찾는 일 방지)
+      const cb = row.querySelector('.kid-on'); if (cb) { cb.checked = false; row.classList.add('off'); }
+      toast('사전 명단 어린이는 체크만 풀립니다 (이번 예약에서 빠짐). 다시 넣으려면 체크'); return;
+    }
+    row.remove(); syncKidTools(); return;
+  }
+  if (a === 'roster-reload') {
+    act.disabled = true; toast('사전 명단을 불러오는 중입니다…');
+    tryRoster(true).then(r => { if (r && r.found && !r.added) toast('빠진 어린이가 없습니다 — 명단 ' + r.total + '명이 모두 목록에 있어요'); else if (r && !r.found) toast('이 이름·휴대폰으로 등록된 사전 명단이 없습니다', 'err'); else if (!r) toast('명단을 불러오지 못했습니다. 잠시 후 다시 눌러 주세요', 'err'); }).finally(() => { const b2 = $('[data-action="roster-reload"]'); if (b2) b2.disabled = false; });
+    return;
+  }
   if (a === 'kid-paste') { showKidPaste(); return; }
   if (a === 'kid-paste-add') {
     const grades = S.status.grades || [];
