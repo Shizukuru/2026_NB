@@ -166,6 +166,12 @@ h1,h2,h3{margin:0;text-wrap:balance}
 .stat .v{font-family:var(--font-display);font-size:30px;line-height:1.1;margin-top:2px}
 .stat .v small{font-family:var(--font-body);font-size:13px;color:var(--fg-muted);margin-left:4px}
 .stat .v.small{font-size:22px;margin-top:8px}
+.days{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 2px}
+.days .day{border:1.5px solid var(--line);background:var(--surface);color:var(--fg);border-radius:999px;padding:7px 14px;font-weight:700;font-size:14px;display:inline-flex;gap:6px;align-items:center}
+.days .day small{font-size:11px;font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:999px;padding:1px 6px}
+.days .day.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}.days .day.on small{background:rgba(255,255,255,.25);color:#fff}
+.admin-top .days{margin:0}.tv .days{margin-top:6px}.tv .days .day{font-size:16px}
+[data-view="qr"] .days{display:none}
 .tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:12px}
 .tab{background:none;border:0;border-bottom:3px solid transparent;padding:10px 14px;font-weight:600;color:var(--fg-muted);margin-bottom:-1px}
 .tab.on{color:var(--fg);border-color:var(--accent)}
@@ -350,6 +356,17 @@ tr:last-child td{border-bottom:0}
 .chk.big input{width:22px;height:22px}
 .chk.big.on{background:var(--ok-soft);border-color:transparent;color:var(--ok)}
 .chk.big input:disabled+span{color:var(--fg-muted)}
+/* 출결 버튼 묶음: [출석][결석] — 눌린 쪽에 색, 다시 누르면 미처리로 */
+.att{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;flex:none;background:var(--surface)}
+.att button{border:0;background:none;padding:6px 10px;font-size:13px;font-weight:700;color:var(--fg-muted);min-width:46px;cursor:pointer}
+.att button+button{border-left:1px solid var(--line)}
+.att button.on.p{background:var(--ok);color:#fff}.att button.on.a{background:var(--full);color:#fff}
+.att button:disabled{opacity:.45;cursor:default}
+.att.big button{padding:9px 14px;font-size:14px;min-width:60px}
+.att-meta{font-size:11.5px;color:var(--fg-muted);white-space:nowrap}
+.pill.absent{background:var(--full-soft);color:var(--full)}.pill.open{background:var(--warn-soft);color:var(--warn)}
+.bulk-note{font-size:13px;background:var(--full-soft);color:var(--full);padding:6px 10px;border-radius:8px;display:inline-flex;gap:8px;align-items:center;margin:0 0 8px 8px}
+.bulk-note button{background:var(--full);color:#fff;border:0;border-radius:6px;padding:3px 10px;font-weight:600}
 
 /* ── 오전반·오후반 공개 ── */
 .slot.closed{background:var(--surface-2);color:var(--fg-muted);border:2px dashed var(--line)} .slot.closed .t{color:var(--fg-muted)}
@@ -394,6 +411,7 @@ a.brand:hover .brand-name{color:var(--accent)}
 .tag.floor.big{font-size:13px;padding:3px 10px}
 .chip.link{text-decoration:none;color:var(--accent);border-color:var(--accent-soft);background:var(--accent-soft)}
 .place{margin:8px 0 0;display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;font-size:13.5px}
+.sign .desc{margin:8px 0 0;font-size:15px;line-height:1.55;color:var(--fg);background:var(--accent-soft);border-left:3px solid var(--accent);padding:8px 12px;border-radius:0 10px 10px 0;word-break:keep-all}
 .qr-card .place-line{font-size:14px;font-weight:600;color:#0E7C6B;background:#E6F3EF;border-radius:8px;padding:4px 12px}
 .map-page{max-width:900px}
 .map-tabs{margin-top:8px}
@@ -453,6 +471,23 @@ button.slot-row:disabled{cursor:default}
 .rsv select{border:1px solid var(--line);border-radius:10px;padding:11px 12px;font-size:16px;background:var(--bg);color:var(--fg);width:100%}
 .rsv .field input.bad,.rsv .field select.bad{border-color:var(--full);box-shadow:0 0 0 2px var(--full-soft)}
 .rsv .consent{align-items:flex-start;font-size:14px;line-height:1.45}
+/* 함께 온 어린이: 보호자 휴대폰 하나로 여러 어린이를 한 번에 */
+.kids{border:1px dashed var(--line);border-radius:12px;padding:10px 12px;display:grid;gap:8px;background:var(--bg)}
+.kids-head{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:14px;font-weight:700}
+.kid-row{display:grid;grid-template-columns:auto 1fr auto;grid-template-areas:"on name del" ". grade org";gap:6px;align-items:center;padding-bottom:6px;border-bottom:1px dashed var(--line)}
+.kid-row .kid-on{grid-area:on}.kid-row .kid-name{grid-area:name}.kid-row .del{grid-area:del}.kid-row .kid-grade{grid-area:grade}.kid-row .kid-org{grid-area:org}
+.kid-row .kid-grade,.kid-row .kid-org{font-size:14px;padding:8px 9px}
+.kids-btns{display:flex;gap:6px}.kids-tools{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:13px}.kids-tools select{padding:6px 8px;font-size:14px;margin-left:6px}
+.kid-row input[type="checkbox"]{width:20px;height:20px;accent-color:var(--accent)}
+.kid-row input[type="text"],.kid-row select{min-width:0;padding:9px 10px;font-size:15px}
+.kid-row .del{background:none;border:0;color:var(--fg-muted);font-size:18px;padding:4px 6px}
+.kid-row.off input[type="text"],.kid-row.off select{opacity:.45}
+.kids .note{margin:0;font-size:12.5px}
+.group-list{display:grid;gap:6px;text-align:left;margin:4px 0}
+.group-list .g{display:flex;gap:8px;align-items:flex-start;font-size:14px;line-height:1.4;padding:8px 10px;border-radius:10px;background:var(--surface-2)}
+.group-list .g b{min-width:4em}.group-list .g.ok{background:var(--ok-soft)}.group-list .g.wait{background:var(--warn-soft)}.group-list .g.fail{background:var(--full-soft)}
+.fam{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:13px;color:var(--fg-muted);margin:6px 0 2px}
+.fam button{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:3px 10px;font-size:13px;font-weight:600;color:var(--accent)}
 .rsv .consent input{margin-top:3px;flex:none}
 .rsv .consent button{background:none;border:0;color:var(--accent);text-decoration:underline;padding:0;font-size:13px}
 .privacy{font-size:12.5px;color:var(--fg-muted);background:var(--surface-2);border-radius:8px;padding:8px 10px;line-height:1.5}
@@ -474,6 +509,9 @@ button.slot-row:disabled{cursor:default}
 .my-form h2{font-size:18px;font-weight:700}
 .field{display:grid;gap:4px;font-size:13px;color:var(--fg-muted)}
 .field input{border:1px solid var(--line);border-radius:10px;padding:11px 12px;font-size:16px;background:var(--bg);color:var(--fg);width:100%}
+.field select{border:1px solid var(--line);border-radius:10px;padding:11px 12px;font-size:16px;background:var(--bg);color:var(--fg);width:100%}
+.walkin-form{display:grid;gap:10px;text-align:left;margin:6px 0 10px}.walkin-form .err{color:var(--full);font-size:13px;min-height:1.2em}
+.filter-note .walkin{margin-left:auto;background:var(--accent);color:#fff;border-radius:8px;padding:4px 10px;text-decoration:none;font-weight:700}
 .my-list{display:grid;gap:10px;margin-top:14px}
 .my-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;display:grid;gap:8px;box-shadow:var(--shadow)}
 .my-card.cancel{opacity:.6}
@@ -567,7 +605,48 @@ function formatPhoneField(el) {
 const RETRY_DELAYS = PREVIEW ? [800, 1200] : [1500, 3000, 5000, 8000, 8000, 10000, 12000, 15000];
 // 자동 갱신 간격(ms). 방문객 화면은 수백 명이 동시에 열어 두므로 길게, 운영자·TV는 소수라 짧게.
 // 실제 간격은 ±15% 흔들어(jitter) 수백 대가 같은 순간에 서버를 치지 않게 하고, 실패하면 2배씩 늘립니다(최대 3분).
-const POLL = { home: 45000, booth: 30000, map: 45000, tv: 10000, admin: 20000 };
+// ───────── 날짜 (이틀 이상 열리는 행사) ─────────
+// 서버 현황에 event.dates 가 둘 이상이면 화면 위에 날짜 탭이 생기고, 보고 있는 날짜(S.day)의 숫자·공개 상태만 보입니다.
+// 부스마다 countsByDate[날짜] 를 받아 두고 applyDay() 가 b.counts 로 옮겨 적으므로, 나머지 화면 코드는 하루 행사와 똑같이 동작합니다.
+function eventDates() { const ev = S.status.event || {}; return ev.dates && ev.dates.length ? ev.dates : (ev.date ? [ev.date] : []); }
+function fmtDay(d) { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(d || '')); if (!m) return String(d || ''); const w = ['일', '월', '화', '수', '목', '금', '토'][new Date(+m[1], +m[2] - 1, +m[3]).getDay()]; return (+m[2]) + '/' + (+m[3]) + '(' + w + ')'; }
+function todayStr() { return (S.status.event && S.status.event.today) || kstNow().date; }
+function pickDay(pref) { const ds = eventDates(); if (!ds.length) return ''; if (pref && ds.indexOf(pref) > -1) return pref; const t = todayStr(); if (ds.indexOf(t) > -1) return t; return ds.filter(d => d > t)[0] || ds[ds.length - 1]; } // 오늘 → 다음 행사일 → 마지막 날
+function applyDay(st) {
+  st = st || S.status; const ds = eventDates(); if (!ds.length) return;
+  if (!S.day || ds.indexOf(S.day) === -1) S.day = pickDay(S.day);
+  (st.booths || []).forEach(b => { if (b.countsByDate) b.counts = b.countsByDate[S.day] || {}; });
+  if (st.sessionsByDate) st.sessions = st.sessionsByDate[S.day] || st.sessions;
+  if (st.event) st.event.date = S.day; // isEventDay(now): 보는 날짜가 오늘일 때만 '진행 중 / 종료' 판정
+}
+function resDay(r) { return (r && r.date) || eventDates()[0] || ''; }
+function sameDayRes(r) { return eventDates().length < 2 || resDay(r) === S.day; }
+/** 예약 행이 끝났는지 (날짜 기준) */
+function resPast(r, now) { const d = r.date || ''; if (d && d < now.date) return true; if (d && d > now.date) return false; if (r.slot === ALWAYS) return false; const t = parseSlot(r.slot); return !!t && (d ? d === now.date : isEventDay(now)) && now.min >= t.end; }
+function dayTabsHTML() {
+  const ds = eventDates(); if (ds.length < 2) return '';
+  const t = todayStr();
+  return `<nav class="days no-print" aria-label="행사 날짜">${ds.map(d => `<button type="button" class="day${d === S.day ? ' on' : ''}" data-action="day" data-day="${attr(d)}">${esc(fmtDay(d))}${d === t ? '<small>오늘</small>' : ''}</button>`).join('')}</nav>`;
+}
+function setDay(d) {
+  if (!d || d === S.day || eventDates().indexOf(d) === -1) return;
+  S.day = d; applyDay();
+  $$('.days .day').forEach(b => b.classList.toggle('on', b.dataset.day === S.day));
+  if (S.view === 'admin' && S.admin.data) renderAdminParts();
+  else if (S.view === 'booth') { S.rsv.slot = null; updateBooth(); }
+  else updateView();
+  pushNav(true);
+  toast(fmtDay(d) + ' 현황을 보고 있습니다');
+}
+function onStatus(st) { applyPoll(st); applyDay(st); }
+const POLL = { home: 60000, booth: 45000, map: 60000, tv: 10000, admin: 20000 }; // 기본값 — 서버 현황의 poll(설정 탭 '… 화면 갱신(초)')이 오면 덮어씀
+function applyPoll(st) {
+  const p = st && st.poll; if (!p) return;
+  const v = Number(p.visitor), a = Number(p.admin), t = Number(p.tv);
+  if (v >= 5) { POLL.home = v * 1000; POLL.map = v * 1000; POLL.booth = Math.max(5000, Math.round(v * 0.75) * 1000); } // 부스 페이지는 조금 더 자주 (남은 자리 확인)
+  if (a >= 5) POLL.admin = a * 1000;
+  if (t >= 5) POLL.tv = t * 1000;
+}
 const IDLE_PAUSE_MS = 10 * 60 * 1000; // 방문객 화면: 10분간 손대지 않으면 자동 갱신을 멈춤 (탭하면 재개)
 const FIELDS = ['창의과학', '기후환경', '학교적응', '문화예술', '체육', '교과교육', '인문사회'];
 const FLOORS_DEFAULT = ['야외', '지하1층', '1층', '3층'];
@@ -592,12 +671,13 @@ const S = {
   status: BOOT.status || { booths: [], defaultSlots: [], event: {}, updatedAt: '' },
   f: { region: '', field: '', mode: '', floor: '', q: '', avail: false }, // 전체 보기 필터 (avail = 지금 예약 가능한 부스만)
   map: { key: '', hl: null, zoom: 0 }, // 층별 배치도: 보고 있는 도면, 강조할 부스, 확대 배율(0=화면 폭에 맞게 자동)
-  admin: { pin: '', data: null, tab: 'matrix', f: { q: '', status: '', booth: '', slot: '', sort: 'recent' }, err: '', lastList: [] },
+  admin: { pin: '', data: null, tab: 'matrix', f: { q: '', status: '', att: '', booth: '', slot: '', sort: 'recent' }, err: '', lastList: [] },
   qr: { target: 'status', per: '2', region: '' },
   my: { name: '', phone: '', list: null, busy: false, confirm: '' },
   rsv: { booth: null, slot: null, busy: false, reqId: '', retry: null, privacy: false }, // 부스 페이지의 예약 진행 상태
   me: { name: '', phone: '', org: '', grade: '' }, // 이 휴대폰에 기억된 예약자 정보 (localStorage 'me')
   timer: null, clock: null, online: true,
+  day: '', // 보고 있는 행사 날짜 (YYYY-MM-DD) — 이틀 이상 열리는 행사에서 날짜 탭으로 바꿈
 };
 
 // ───────── 유틸 ─────────
@@ -663,7 +743,7 @@ function slotInfo(b, slot, now) {
   else if (closed) cls = 'closed';
   else if (full) cls = 'full';
   else if (b.cap && left / b.cap <= 0.3) cls = 'warn';
-  return { ok: c.ok || 0, wait, checkin: c.checkin || 0, cap: b.cap || 0, left, rawLeft, phase, cls, full, waitFull, waitMax: wm, closed };
+  return { ok: c.ok || 0, wait, checkin: c.checkin || 0, absent: c.absent || 0, cap: b.cap || 0, left, rawLeft, phase, cls, full, waitFull, waitMax: wm, closed };
 }
 function currentSlot(slots, now) {
   const list = slots || S.status.defaultSlots || [];
@@ -715,7 +795,7 @@ function rpc(fn) {
 async function apiFetch(fn, args) {
   if (API_PROBLEM) throw new Error(API_PROBLEM);
   const ctrl = typeof AbortController === 'function' ? new AbortController() : null;
-  const timer = ctrl ? setTimeout(() => ctrl.abort(), 45000) : null; // 예약 접수는 서버 잠금 대기(최대 15초)가 있어 넉넉히
+  const timer = ctrl ? setTimeout(() => ctrl.abort(), fn === 'reserveGroup' ? 150000 : 45000) : null; // 예약 접수는 서버 잠금 대기(최대 15초)가 있어 넉넉히, 단체 접수(최대 15명)는 더 길게
   let r;
   try {
     r = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ fn: fn, args: args }), headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -764,10 +844,10 @@ async function refresh() {
     if (S.view === 'admin') {
       if (!S.admin.pin) return;
       const d = await rpc('getOperatorData', S.admin.pin);
-      S.admin.data = d; S.status = d;
+      S.admin.data = d; S.status = d; onStatus(d);
       renderAdminParts();
     } else {
-      S.status = await rpc('getPublicStatus');
+      S.status = await rpc('getPublicStatus'); onStatus(S.status);
       updateView();
     }
     failures = 0;
@@ -820,7 +900,7 @@ function headerHTML(sub) {
   return `<header class="top">
     <a class="brand" href="${attr(WEB || '#')}" data-action="home-title" title="처음 화면으로">${ANCHOR_SVG}<div><div class="brand-name">${esc(ev.name || '부스 현황판')}</div><div class="brand-sub">${sub}</div></div></a>
     <div class="live"><button type="button" class="font-toggle${bigFont() ? ' on' : ''}" data-action="font" title="글씨 크게/작게" aria-pressed="${bigFont()}">가</button><span class="dot${S.online ? '' : ' off'}" data-dot aria-hidden="true"></span><span class="clock" data-clock>--:--</span><button type="button" class="upd" data-action="refresh-now" title="지금 새로고침">업데이트 <b data-updated>${esc(S.status.updatedAt || '')}</b> <span class="rf" aria-hidden="true">↻</span></button></div>
-  </header>`;
+  </header>${dayTabsHTML()}`;
 }
 /** 큰 글씨 모드 (localStorage 'bigfont') — 조부모·어르신 방문객용 */
 function bigFont() { try { return localStorage.getItem('bigfont') === '1'; } catch (x) { return false; } }
@@ -996,12 +1076,61 @@ function updateBooth() {
   host.innerHTML = `<section class="sign">
     <div class="sign-head"><div class="no${always ? ' always' : ''}">${b.no}</div>
       <div class="booth-title"><h2>${esc(b.name)}</h2><p class="meta"><span>${esc(b.org)}</span><span class="tag">${esc(b.region)}</span><span class="tag">${esc(b.field)}</span><span class="tag ${always ? 'alw' : 'cls'}">${esc(b.mode)}${always ? '' : ' · 시간대당 ' + b.cap + '명'}</span>${b.owner ? `<span>담당 ${esc(b.owner)}</span>` : ''}</p>
+      ${b.desc ? `<p class="desc">${esc(b.desc)}</p>` : ''}
       ${b.floor || b.pos ? `<p class="place"><span class="tag floor big">📍 ${esc(placeText(b))}</span>${posOf(b) || mapOfFloor(b.floor) ? `<a href="${attr(WEB ? WEB + '?page=map&booth=' + b.no : '#')}" data-action="map" data-no="${b.no}">배치도에서 위치 보기</a>` : ''}</p>` : ''}</div></div>
     ${body}${note}<p class="note inline-link">이미 예약하셨나요? <a href="${attr(WEB ? WEB + '?page=my' : '#')}" data-action="my">내 예약 확인·취소</a></p></section>`;
   const u = $('[data-updated]'); if (u) u.textContent = S.status.updatedAt || '';
   renderCta();
 }
 /** 예약자 정보 폼 — 한 번만 그리고(입력 중 지워지지 않게), 기억된 정보로 미리 채움 */
+/** 함께 온 어린이 목록 (이 휴대폰에 기억) */
+function loadKids() { try { const k = JSON.parse(localStorage.getItem('kids') || '[]'); return Array.isArray(k) ? k.filter(x => x && x.name).slice(0, KIDS_MAX) : []; } catch (x) { return []; } }
+function saveKids(list, remember) { try { if (remember === false) localStorage.removeItem('kids'); else localStorage.setItem('kids', JSON.stringify((list || []).filter(x => x && x.name).slice(0, KIDS_MAX))); } catch (x) { } }
+function syncKidTools() { const n = $$('[data-kid]').length; const t = $('[data-kid-tools]'); if (t) t.classList.toggle('hidden', !n); const c = $('[data-kid-count]'); if (c) c.textContent = n ? '함께 ' + n + '명 (본인 포함 ' + (n + 1) + '명)' : ''; }
+const KIDS_MAX = 14; // 함께 온 어린이 최대 (본인 포함 15명 — 학급 단체 인솔자용)
+function kidRowHTML(k, grades) {
+  k = k || {}; const on = k.on !== false;
+  const known = grades.indexOf(k.grade) > -1;
+  return `<div class="kid-row${on ? '' : ' off'}" data-kid><input type="checkbox" class="kid-on"${on ? ' checked' : ''} aria-label="이번 예약에 포함">` +
+    `<input type="text" class="kid-name" placeholder="이름" value="${attr(k.name || '')}" maxlength="30" autocomplete="off">` +
+    `<button type="button" class="del" data-action="kid-del" aria-label="빼기">✕</button>` +
+    `<select class="kid-grade" aria-label="학년"><option value="">학년</option>${grades.map(g => `<option value="${attr(g)}"${k.grade === g ? ' selected' : ''}>${esc(g)}</option>`).join('')}<option value="__other"${k.grade && !known ? ' selected' : ''}>기타</option></select>` +
+    `<input type="text" class="kid-org" placeholder="소속 (비우면 위와 같음)" value="${attr(k.org || '')}" maxlength="60" autocomplete="off"></div>`;
+}
+function kidValues() {
+  return $$('[data-kid]').map(row => {
+    const g = (row.querySelector('.kid-grade') || {}).value || '';
+    return { on: !!(row.querySelector('.kid-on') || {}).checked, name: ((row.querySelector('.kid-name') || {}).value || '').trim(), grade: g === '__other' ? '기타' : g, org: ((row.querySelector('.kid-org') || {}).value || '').trim(), el: row };
+  });
+}
+/** 명단 붙여넣기: 줄마다 한 명 (이름, 또는 "이름 3학년" · "이름, 소속" 처럼 쉼표/탭/공백 뒤에 학년·소속). 학급 명단을 복사해 넣는 인솔자용 */
+function parseKidList(text, grades) {
+  const out = [];
+  String(text || '').split(/\r?\n|;/).forEach(line => {
+    let rest = String(line || '').replace(/^\s*\d+[.)]\s*/, '').trim(); // "1. 김하늘" 의 번호 제거
+    if (!rest) return;
+    let grade = '';
+    for (const g of grades) { if (rest.indexOf(g) > -1) { grade = g; rest = rest.replace(g, ' '); break; } }
+    if (!grade) { const m = rest.match(/(\S*\d\s*학년|유치원(?:\s*\d\s*세)?|\d\s*세)/); if (m) { grade = m[1].trim(); rest = rest.replace(m[1], ' '); const full = grades.find(gg => gg.indexOf(grade) > -1); if (full) grade = full; } }
+    const parts = rest.split(/[,\t]|\s+/).map(x => String(x || '').trim()).filter(Boolean);
+    if (!parts.length) return;
+    const name = parts[0]; if (!name || name.length > 30) return;
+    out.push({ name, grade, org: parts.slice(1).join(' ').slice(0, 60), on: true });
+  });
+  return out;
+}
+function showKidPaste() {
+  const grades = S.status.grades || [];
+  const old = $('#result-modal'); if (old) old.remove();
+  const el = document.createElement('div'); el.id = 'result-modal'; el.className = 'modal'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true');
+  el.innerHTML = `<div class="modal-card"><h2>명단 붙여넣기</h2>
+    <p class="note" style="text-align:left">한 줄에 한 명씩 이름을 넣으세요 (학급 명단을 복사해 붙여 넣어도 됩니다). "이름 3학년" 처럼 학년을 함께 적어도 되고, 아래에서 전원 학년을 한 번에 정할 수도 있습니다. 본인 포함 ${KIDS_MAX + 1}명까지.</p>
+    <textarea id="kidpaste" rows="7" style="width:100%;font-size:15px;padding:10px;border:1px solid var(--line);border-radius:10px" placeholder="김하늘&#10;박두리 3학년&#10;최친구, 천안초"></textarea>
+    <label class="field" style="text-align:left"><span>전원 학년 (비우면 줄마다 적은 학년)</span><select id="kidpastegrade"><option value="">선택 안 함</option>${grades.map(g => `<option value="${attr(g)}">${esc(g)}</option>`).join('')}</select></label>
+    <div class="row"><button type="button" class="btn primary" data-action="kid-paste-add">목록에 추가</button><button type="button" class="btn" data-action="modal-close">닫기</button></div></div>`;
+  document.body.appendChild(el);
+  setTimeout(() => { const t = $('#kidpaste'); if (t) t.focus(); }, 50);
+}
 function renderRsvForm() {
   const host = $('[data-rsv]'); const b = booth(S.boothNo);
   if (!host || !b) return;
@@ -1015,6 +1144,12 @@ function renderRsvForm() {
       <label class="field"><span>이름</span><input id="rname" name="name" type="text" autocomplete="name" placeholder="예: 김하늘" value="${attr(me.name)}" maxlength="30" required></label>
       <label class="field"><span>휴대폰 (보호자 연락처)</span><input id="rphone" name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="숫자만 입력 (010-1234-5678)" value="${attr(me.phone)}" maxlength="20" required></label>
     </div>
+    <div class="kids" data-kids>
+      <div class="kids-head"><span>함께 온 어린이 (형제·친구·단체)</span><span class="kids-btns"><button type="button" class="btn small" data-action="kid-add">＋ 추가</button><button type="button" class="btn small" data-action="kid-paste">명단 붙여넣기</button></span></div>
+      <div data-kid-rows>${loadKids().map(k => kidRowHTML(k, grades)).join('')}</div>
+      <div class="kids-tools${loadKids().length ? '' : ' hidden'}" data-kid-tools><label>전원 학년<select id="kidgradeall" aria-label="전원 학년"><option value="">선택</option>${grades.map(g => `<option value="${attr(g)}">${esc(g)}</option>`).join('')}</select></label><span class="note" data-kid-count></span></div>
+      <p class="note">같은 보호자(인솔자) 휴대폰으로 함께 예약합니다. 어린이마다 따로 접수되어 확정/대기가 각각 표시되고, 소속이 다른 어린이는 소속 칸만 고치면 됩니다. 체크를 풀면 이번 예약에서 빠집니다. 본인 포함 ${KIDS_MAX + 1}명까지.</p>
+    </div>
     <label class="field"><span>소속 (학교/기관)</span><input id="rorg" name="org" type="text" autocomplete="organization" placeholder="예: 천안불당초등학교" value="${attr(me.org)}" maxlength="60" required></label>
     <label class="field"><span>학년 (2026년 11월 기준)</span><select id="rgrade" name="grade" required><option value="">선택하세요</option>${grades.map(g => `<option value="${attr(g)}"${me.grade === g ? ' selected' : ''}>${esc(g)}</option>`).join('')}<option value="__other"${other ? ' selected' : ''}>기타 (직접 입력)</option></select></label>
     <label class="field${other ? '' : ' hidden'}" data-grade-other><span>학년/구분 직접 입력</span><input id="rgrade2" type="text" placeholder="예: 유치원 7세, 중학교 1학년" value="${attr(other ? me.grade : '')}" maxlength="30"></label>
@@ -1023,6 +1158,7 @@ function renderRsvForm() {
     <label class="chk"><input type="checkbox" id="rremember" checked><span>이 휴대폰에 기억해 두기 (다음 부스 예약과 '내 예약' 조회에 다시 씀)</span></label>
     ${memoryNote()}
   </form>`;
+  syncKidTools();
 }
 function rsvValues() {
   const g = ($('#rgrade') || {}).value || '';
@@ -1030,6 +1166,7 @@ function rsvValues() {
     name: (($('#rname') || {}).value || '').trim(), phone: fmtPhone(($('#rphone') || {}).value || '') || (($('#rphone') || {}).value || '').trim(), org: (($('#rorg') || {}).value || '').trim(),
     grade: g === '__other' ? (($('#rgrade2') || {}).value || '').trim() : g,
     consent: !!($('#rconsent') && $('#rconsent').checked), remember: !$('#rremember') || $('#rremember').checked,
+    kids: kidValues(),
   };
 }
 /** 화면에서 먼저 거르는 입력 검사 (서버도 같은 규칙으로 다시 검사). 문제가 있으면 그 칸으로 이동 */
@@ -1039,6 +1176,12 @@ function rsvProblem(v, b) {
   if (!/^01[016789]\d{7,8}$/.test(phoneDigits(v.phone))) return { msg: '휴대폰 번호를 확인해 주세요 (예: 010-1234-5678 — 하이픈은 없어도 됩니다)', el: $('#rphone') };
   if (!v.org) return { msg: '소속(학교/기관)을 입력해 주세요', el: $('#rorg') };
   if (!v.grade) return { msg: '학년을 선택해 주세요', el: ($('#rgrade') || {}).value === '__other' ? $('#rgrade2') : $('#rgrade') };
+  for (const k of v.kids) {
+    if (!k.on) continue;
+    if (!k.name) return { msg: '함께 온 어린이의 이름을 적거나 체크를 풀어 주세요', el: k.el.querySelector('.kid-name') };
+    if (!k.grade) return { msg: k.name + ' 어린이의 학년을 선택해 주세요', el: k.el.querySelector('.kid-grade') };
+    if (k.name.replace(/\s+/g, '') === v.name.replace(/\s+/g, '')) return { msg: '같은 이름이 두 번 적혀 있습니다: ' + k.name, el: k.el.querySelector('.kid-name') };
+  }
   if (!v.consent) return { msg: '개인정보 수집·이용에 동의해 주세요', el: $('#rconsent') };
   return null;
 }
@@ -1073,7 +1216,7 @@ function pickSlot(slot) {
 /** reserve 호출 + 자동 재시도 (같은 reqId → 서버가 한 번만 기록) */
 async function callReserve(payload) {
   for (let i = 0; ; i++) {
-    try { return await rpc('reserve', payload); }
+    try { return await rpc(payload.children ? 'reserveGroup' : 'reserve', payload); }
     catch (e) {
       if (i >= RETRY_DELAYS.length) throw e;
       S.rsv.retry = { n: i + 1, msg: e.message || '' }; renderCta();
@@ -1090,12 +1233,25 @@ async function submitRsv(opts) {
   $$('.rsv .bad').forEach(el => el.classList.remove('bad'));
   const now = kstNow();
   const wait = b.mode !== ALWAYS && (opts.wait === true || slotInfo(b, S.rsv.slot, now).full);
-  const payload = { reqId: opts.reqId || newReqId(), booth: b.no, slot: b.mode === ALWAYS ? '' : S.rsv.slot, wait: wait, name: v.name, phone: v.phone, org: v.org, grade: v.grade, consent: true };
+  const kids = v.kids.filter(k => k.on && k.name);
+  const payload = { reqId: opts.reqId || newReqId(), booth: b.no, slot: b.mode === ALWAYS ? '' : S.rsv.slot, date: S.day || '', wait: wait, name: v.name, phone: v.phone, org: v.org, grade: v.grade, consent: true };
+  if (kids.length) payload.children = [{ name: v.name, grade: v.grade }].concat(kids.map(k => ({ name: k.name, grade: k.grade, org: k.org || '' }))); // 함께 온 어린이: 한 번에 여러 명 (소속이 다르면 어린이별로)
   S.rsv.busy = true; S.rsv.retry = null; S.rsv.reqId = payload.reqId; renderCta();
   saveMe({ name: v.name, phone: v.phone, org: v.org, grade: v.grade }, v.remember);
+  saveKids(v.kids.filter(k => k.name).map(k => ({ name: k.name, grade: k.grade, org: k.org, on: k.on })), v.remember);
   let res = null, err = null;
   try { res = await callReserve(payload); } catch (e) { err = e; }
   S.rsv.busy = false; S.rsv.retry = null;
+  if (!err && res && res.group) { // 여러 어린이 결과
+    const list = res.results || [];
+    const snap = loadSnap();
+    list.forEach(r => { if (r.ok) { if (b.mode !== ALWAYS && !r.again) patchCounts(b.no, r.slot, r.status); snap[r.no] = { status: r.status, booth: r.booth, boothName: r.boothName, slot: r.slot }; } });
+    saveSnap(snap); watchStart();
+    if (list.some(r => r.ok)) { S.rsv.slot = null; updateBooth(); } else renderCta();
+    showGroupResult(list, b, payload.slot || ALWAYS, wait, payload.reqId);
+    try { S.status = await rpc('getPublicStatus'); onStatus(S.status); updateView(); } catch (x) { }
+    return;
+  }
   if (err) { renderCta(); showResult({ kind: 'error', booth: b.no, boothName: b.name, slot: payload.slot || ALWAYS, message: '서버와 연결이 계속 끊겨 접수 여부를 확인하지 못했습니다. [다시 시도]를 누르면 같은 요청으로 다시 확인합니다 (중복 접수되지 않음).', reqId: payload.reqId }); return; }
   if (res && res.ok) {
     if (b.mode !== ALWAYS && !res.again) patchCounts(b.no, res.slot, res.status);
@@ -1103,12 +1259,12 @@ async function submitRsv(opts) {
     S.rsv.slot = null;
     updateBooth();
     showResult(Object.assign({ kind: 'ok' }, res));
-    try { S.status = await rpc('getPublicStatus'); updateView(); } catch (x) { }
+    try { S.status = await rpc('getPublicStatus'); onStatus(S.status); updateView(); } catch (x) { }
     return;
   }
   renderCta();
   showResult(Object.assign({ kind: 'fail', booth: b.no, boothName: b.name, slot: payload.slot || ALWAYS, canWait: b.mode !== ALWAYS && !wait && res && res.code === 'FULL' && !!S.rsv.slot && (res.waitMax == null || (res.waiting || 0) < res.waitMax) }, res || { code: 'ERR', message: '접수되지 않았습니다.' }));
-  if (res && (res.code === 'FULL' || res.code === 'WAITFULL' || res.code === 'CLOSED' || res.code === 'PAST' || res.code === 'SLOT')) { try { S.status = await rpc('getPublicStatus'); updateView(); } catch (x) { } }
+  if (res && (res.code === 'FULL' || res.code === 'WAITFULL' || res.code === 'CLOSED' || res.code === 'PAST' || res.code === 'SLOT')) { try { S.status = await rpc('getPublicStatus'); onStatus(S.status); updateView(); } catch (x) { } }
 }
 /** 서버 반영(10초 캐시) 전에 이 화면의 숫자를 먼저 맞춤 */
 function patchCounts(no, slot, status) {
@@ -1144,12 +1300,77 @@ function showResult(r) {
   const old = $('#result-modal'); if (old) old.remove();
   const el = document.createElement('div'); el.id = 'result-modal'; el.className = 'modal'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true');
   el.innerHTML = `<div class="modal-card"><div class="modal-icon ${cls}">${icon}</div><h2>${esc(title)}</h2>
-    <div class="what">${r.booth}. ${esc(r.boothName)}<br>${esc(always ? '상시운영 · 방문 등록' : r.slot)}${r.kind === 'ok' && r.no ? ' · 예약번호 ' + esc(r.no) : ''}</div>
+    <div class="what">${r.booth}. ${esc(r.boothName)}<br>${eventDates().length > 1 ? esc(fmtDay(r.date || S.day)) + ' · ' : ''}${esc(always ? '상시운영 · 방문 등록' : r.slot)}${r.kind === 'ok' && r.no ? ' · 예약번호 ' + esc(r.no) : ''}</div>
     <p class="note">${esc(why)}</p>
     <div class="row">${buttons}</div></div>`;
   document.body.appendChild(el);
 }
+/** 함께 온 어린이 결과: 어린이마다 확정 / 대기 / 접수 불가 한 줄씩 */
+function showGroupResult(list, b, slot, wasWait, reqId) {
+  const always = slot === ALWAYS;
+  const nOk = list.filter(r => r.ok && r.status === ST.OK).length, nWait = list.filter(r => r.ok && r.status === ST.WAIT).length, nFail = list.filter(r => !r.ok).length;
+  const canWait = !always && !wasWait && list.some(r => !r.ok && r.code === 'FULL' && (r.waitMax == null || (r.waiting || 0) < r.waitMax));
+  const title = nFail === 0 ? (nWait ? `${nOk}명 확정 · ${nWait}명 대기` : (always ? `${nOk}명 방문 등록되었습니다` : `${nOk}명 모두 예약이 확정되었습니다`)) : nOk + nWait === 0 ? '접수되지 않았습니다' : `${nOk + nWait}명 접수 · ${nFail}명 접수 안 됨`;
+  const cls = nFail === 0 ? (nWait ? 'wait' : 'ok') : nOk + nWait === 0 ? 'cancel' : 'wait';
+  const icon = cls === 'ok' ? '✓' : cls === 'wait' ? '…' : '✕';
+  const line = r => {
+    const c = r.ok ? (r.status === ST.OK ? 'ok' : 'wait') : 'fail';
+    const what = r.ok ? (r.status === ST.OK ? (r.again ? '이미 예약됨' : (always ? '등록' : '확정')) + (r.no ? ' · ' + r.no : '') : '대기' + (r.waitNo ? ' ' + r.waitNo + '번째' : '')) : (r.code === 'LIMIT' ? '1인 제한' : r.code === 'FULL' ? '마감 (자리 없음)' : r.code === 'WAITFULL' ? '접수 마감' : '접수 안 됨') + (r.message ? ' — ' + r.message : '');
+    return `<div class="g ${c}"><b>${esc(r.name || '')}</b><span>${esc(what)}</span></div>`;
+  };
+  const btn = (act, label, primary, extra) => `<button type="button" class="btn${primary ? ' primary' : ''}" data-action="${act}"${extra || ''}>${label}</button>`;
+  const buttons = (canWait ? btn('modal-wait', '자리 없는 어린이는 대기로 신청', true) : '') + btn('modal-my', '내 예약 보기', !canWait) + (always ? '' : btn('modal-more', '다른 시간대도 예약')) + btn('modal-close', '닫기');
+  const old = $('#result-modal'); if (old) old.remove();
+  const el = document.createElement('div'); el.id = 'result-modal'; el.className = 'modal'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true');
+  el.innerHTML = `<div class="modal-card"><div class="modal-icon ${cls}">${icon}</div><h2>${esc(title)}</h2>
+    <div class="what">${b.no}. ${esc(b.name)}<br>${eventDates().length > 1 ? esc(fmtDay(S.day)) + ' · ' : ''}${esc(always ? '상시운영 · 방문 등록' : slot)}</div>
+    <div class="group-list">${list.map(line).join('')}</div>
+    <p class="note">${nFail && canWait ? '자리가 없는 어린이만 대기로 넣을 수 있습니다. ' : ''}${nWait ? '대기는 취소가 생기면 접수 순서대로 자동 확정되고 이 화면에서 알려 드립니다. ' : ''}내 예약에서는 어린이 이름을 바꿔 가며 각각 확인·취소할 수 있습니다.</p>
+    <div class="row">${buttons}</div></div>`;
+  document.body.appendChild(el);
+}
 function closeModal() { const m = $('#result-modal'); if (m) m.remove(); }
+/** 부스 담당자: 예약 없이 온 학생 현장 등록 → 예약목록에 확정 + 출석. 공개 시각·정원·1인 제한을 따지지 않음 (정원 초과면 메모에 남음) */
+function showWalkIn(boothNo) {
+  const b = booth(boothNo); if (!b) return;
+  const always = b.mode === ALWAYS, now = kstNow();
+  const cur = currentSlot(b.slots, now);
+  const def = S.admin.f.slot && (b.slots || []).indexOf(S.admin.f.slot) > -1 ? S.admin.f.slot : (cur.now || cur.next || (b.slots || [])[0] || '');
+  const grades = S.status.grades || [];
+  const old = $('#result-modal'); if (old) old.remove();
+  const el = document.createElement('div'); el.id = 'result-modal'; el.className = 'modal'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true');
+  el.innerHTML = `<div class="modal-card"><h2>현장 등록</h2><div class="what">${b.no}. ${esc(b.name)}${eventDates().length > 1 ? ' · ' + esc(fmtDay(S.day)) : ''}</div>
+    <p class="note">예약 없이 온 학생을 명단에 바로 넣고 <b>출석</b>으로 기록합니다. 이미 예약된 학생이면 새로 만들지 않고 그 예약을 출석 처리합니다.</p>
+    <form class="walkin-form" data-form="walkin" data-booth="${b.no}">
+      ${always ? '' : `<label class="field"><span>시간대</span><select id="wslot">${(b.slots || []).map(sl => `<option value="${attr(sl)}"${sl === def ? ' selected' : ''}>${esc(sl)}${slotInfo(b, sl, now).full ? ' (정원 참)' : ''}</option>`).join('')}</select></label>`}
+      <label class="field"><span>이름 (참가 어린이)</span><input id="wname" type="text" autocomplete="off" placeholder="예: 김하늘"></label>
+      <label class="field"><span>보호자 휴대폰</span><input id="wphone" type="tel" inputmode="tel" autocomplete="off" placeholder="숫자만 입력" maxlength="20"></label>
+      <label class="field"><span>소속 (학교)</span><input id="worg" type="text" autocomplete="off" placeholder="예: 천안초"></label>
+      <label class="field"><span>학년</span><select id="wgrade"><option value="">선택</option>${grades.map(g => `<option value="${attr(g)}">${esc(g)}</option>`).join('')}<option value="__other">기타 (직접 입력)</option></select></label>
+      <label class="field hidden" data-wgrade-other><span>학년/구분 직접 입력</span><input id="wgrade2" type="text" placeholder="예: 유치원 7세"></label>
+      <div class="err" data-werr></div>
+      <div class="row"><button class="btn primary" type="submit">등록하고 출석 처리</button><button class="btn" type="button" data-action="modal-close">닫기</button></div>
+    </form></div>`;
+  document.body.appendChild(el);
+  setTimeout(() => { const i = $('#wname'); if (i) i.focus(); }, 50);
+}
+async function submitWalkIn(form) {
+  const boothNo = Number(form.dataset.booth);
+  const g = ($('#wgrade') || {}).value || '';
+  const v = { booth: boothNo, date: S.day || '', slot: ($('#wslot') || {}).value || '', name: (($('#wname') || {}).value || '').trim(), phone: fmtPhone(($('#wphone') || {}).value || ''), org: (($('#worg') || {}).value || '').trim(), grade: g === '__other' ? (($('#wgrade2') || {}).value || '').trim() : g };
+  const err = $('[data-werr]');
+  const bad = !v.name ? '이름을 입력해 주세요' : phoneDigits(v.phone).length < 10 ? '휴대폰 번호를 확인해 주세요' : !v.org ? '소속을 입력해 주세요' : !v.grade ? '학년을 선택해 주세요' : '';
+  if (bad) { if (err) err.textContent = bad; return; }
+  const btn = form.querySelector('button[type="submit"]'); if (btn) btn.disabled = true;
+  if (err) err.textContent = '';
+  try {
+    const r = await rpc('walkIn', S.admin.pin, v);
+    if (!r || !r.ok) { if (err) err.textContent = (r && r.message) || '등록되지 않았습니다'; if (btn) btn.disabled = false; return; }
+    closeModal();
+    toast(r.name + ' · ' + (r.slot === ALWAYS ? '방문 등록' : r.slot) + ' → ' + (r.existed ? '이미 예약된 학생, 출석 처리' : '등록 + 출석') + (r.over ? ' (정원 초과로 기록됨)' : ''));
+    await refresh();
+  } catch (e) { if (err) err.textContent = e.message || '저장에 실패했습니다'; if (btn) btn.disabled = false; }
+}
 
 // ───────── 알림 감시: 이 휴대폰 예약자의 '대기'가 확정되면(취소로 자리가 나면) 팝업 — 화면이 열려 있거나 다시 열릴 때 ─────────
 const WATCH_MS = PREVIEW ? 6000 : 60000;
@@ -1243,6 +1464,7 @@ async function lookupMy() {
   try {
     S.my.list = await rpc('findMyReservations', S.my.name, S.my.phone);
     applyMyList(S.my.list); watchStart();
+    S.my.family = null; if (S.my.list.length) { try { S.my.family = await rpc('familyNames', S.my.name, S.my.phone); } catch (x) { } }
     S.my.confirm = '';
     S.my.hint = null;
     renderMyList();
@@ -1267,21 +1489,25 @@ function renderMyList() {
   const now = kstNow();
   // 시간 순(취소는 맨 뒤, 상시운영은 시간대 뒤) — 행사 당일 "다음에 어디로 가야 하나"가 바로 보이도록
   const order = r => { if (r.status === ST.CANCEL) return 1e6 + Number(String(r.no).replace(/\D/g, '')); const t = parseSlot(r.slot); return t ? t.start : 5000; };
-  const sorted = list.slice().sort((a, c) => order(a) - order(c) || a.booth - c.booth);
-  const nextUp = isEventDay(now) ? sorted.find(r => r.status === ST.OK && r.slot !== ALWAYS && phaseOf(r.slot, now) !== 'past') : null;
+  const multi = eventDates().length > 1;
+  const sorted = list.slice().sort((a, c) => (multi ? String(a.date || '').localeCompare(String(c.date || '')) : 0) || order(a) - order(c) || a.booth - c.booth);
+  const nextUp = sorted.find(r => r.status === ST.OK && r.slot !== ALWAYS && (r.date ? r.date === now.date : isEventDay(now)) && !resPast(r, now)) || null;
   const nOk = list.filter(r => r.status === ST.OK).length, nWait = list.filter(r => r.status === ST.WAIT).length;
-  host.innerHTML = `<div class="note" style="margin:4px 0 -2px">${esc(S.my.name)} 님의 예약 ${list.length}건 · 확정 ${nOk}${nWait ? ' · 대기 ' + nWait : ''} · 시간 순</div>` + sorted.map(r => {
+  const fam = (S.my.family || []).filter(n => n && n !== S.my.name);
+  host.innerHTML = `<div class="note" style="margin:4px 0 -2px">${esc(S.my.name)} 님의 예약 ${list.length}건 · 확정 ${nOk}${nWait ? ' · 대기 ' + nWait : ''} · 시간 순</div>` +
+    (fam.length ? `<div class="fam"><span>같은 휴대폰으로 예약한 어린이:</span>${fam.map(n => `<button type="button" data-action="my-switch" data-name="${attr(n)}">${esc(n)}</button>`).join('')}</div>` : '') + sorted.map(r => {
     const cls = r.status === ST.OK ? 'ok' : (r.status === ST.WAIT || r.status === ST.PENDING) ? 'wait' : 'cancel';
-    const past = r.slot !== ALWAYS && phaseOf(r.slot, now) === 'past';
-    const cancellable = r.status !== ST.CANCEL && !r.checkin && !past;
+    const past = r.slot !== ALWAYS && resPast(r, now);
+    const att = r.att || (r.checkin ? '출석' : '');
+    const cancellable = r.status !== ST.CANCEL && att !== '출석' && !past;
     const bb = booth(r.booth);
     const place = bb && (bb.floor || bb.pos) ? `<div class="my-place">📍 ${esc(placeText(bb))}${posOf(bb) || mapOfFloor(bb.floor) ? ` · <a href="${attr(WEB ? WEB + '?page=map&booth=' + r.booth : '#')}" data-action="map" data-no="${r.booth}">배치도</a>` : ''}</div>` : '';
     const actions = S.my.confirm === r.no
       ? `<div class="confirm-box"><div>${esc(r.booth + '. ' + r.boothName)} ${esc(r.slot)} 예약을 취소할까요? 취소하면 되돌릴 수 없고, 자리는 바로 다른 분에게 열립니다.</div><div class="row"><button type="button" class="btn danger" data-action="my-cancel-yes" data-res="${attr(r.no)}">네, 취소합니다</button><button type="button" class="btn" data-action="my-cancel-no">아니요</button></div></div>`
-      : `<div class="my-actions">${cancellable ? `<button type="button" class="btn small" data-action="my-cancel" data-res="${attr(r.no)}">예약 취소</button>` : ''}${r.checkin ? `<span class="pill ok">입장 완료</span>` : ''}${past && r.status !== ST.CANCEL ? `<span class="pill cancel">시간 지남</span>` : ''}<a class="btn small" href="${attr(WEB ? WEB + '?booth=' + r.booth : '#')}" data-action="open-booth" data-no="${r.booth}">부스 보기</a></div>`;
+      : `<div class="my-actions">${cancellable ? `<button type="button" class="btn small" data-action="my-cancel" data-res="${attr(r.no)}">예약 취소</button>` : ''}${att === '출석' ? `<span class="pill ok">출석</span>` : att === '결석' ? `<span class="pill absent">결석</span>` : ''}${past && r.status !== ST.CANCEL && !att ? `<span class="pill cancel">시간 지남</span>` : ''}<a class="btn small" href="${attr(WEB ? WEB + '?booth=' + r.booth : '#')}" data-action="open-booth" data-no="${r.booth}">부스 보기</a></div>`;
     return `<div class="my-card ${cls}${nextUp === r ? ' next' : ''}">
       <div class="my-head"><div class="my-title"><span class="bno">${r.booth}</span>${esc(r.boothName)}</div><span class="pill ${cls}">${nextUp === r ? '다음 일정 · ' : ''}${esc(r.status === ST.PENDING ? '처리 중' : r.status)}</span></div>
-      <div class="my-slot">${r.slot === ALWAYS ? '상시운영 · 방문 등록 (예약 없이 참여)' : esc(r.slot)}</div>${place}
+      <div class="my-slot">${multi && r.date ? '<b>' + esc(fmtDay(r.date)) + '</b> · ' : ''}${r.slot === ALWAYS ? '상시운영 · 방문 등록 (예약 없이 참여)' : esc(r.slot)}</div>${place}
       <div class="my-meta">예약번호 ${esc(r.no)} · 접수 ${esc(r.time)}${r.status === ST.WAIT ? (autoPromote() ? ' · 취소가 생기면 자동으로 확정되고 알려 드립니다' : ' · 자리가 나면 운영진이 연락드립니다') : ''}${r.status === ST.OK && /자동 확정/.test(r.memo || '') ? ' · <b style="color:var(--ok)">대기에서 확정됨 🎉</b>' : ''}</div>
       ${r.status === ST.CANCEL && r.memo ? `<div class="rc-memo">${/^(1인 제한|접수 직전|중복)/.test(r.memo) ? '접수되지 않음 · ' : ''}${esc(r.memo)}</div>` : ''}
       ${actions}</div>`;
@@ -1296,7 +1522,7 @@ async function cancelMy(resNo) {
     S.my.list = await rpc('findMyReservations', S.my.name, S.my.phone);
     { const snap = loadSnap(); S.my.list.forEach(r => { snap[r.no] = { status: r.status, booth: r.booth, boothName: r.boothName, slot: r.slot }; }); saveSnap(snap); } // 본인 취소는 알림 대상 아님
     renderMyList();
-    try { S.status = await rpc('getPublicStatus'); } catch (x) { }
+    try { S.status = await rpc('getPublicStatus'); onStatus(S.status); } catch (x) { }
   } catch (e) { toast(e.message || '취소에 실패했습니다', 'err'); S.my.confirm = ''; renderMyList(); }
 }
 
@@ -1392,6 +1618,7 @@ function renderAdmin() {
       <header class="admin-top">
         <a class="brand" href="${attr(WEB ? WEB + '?page=admin' : '#')}" data-action="admin-home" title="현황표로"><span>${ANCHOR_SVG}</span><div><div class="brand-name">${esc((S.status.event || {}).name || '')}</div><div class="brand-sub">운영자 현황판 · <span data-clock="hms">--:--:--</span> · 업데이트 <b data-updated>${esc(S.status.updatedAt || '')}</b> <span class="dot${S.online ? '' : ' off'}" data-dot style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--ok);vertical-align:middle"></span></div></div></a>
         <div class="tools no-print">
+          ${dayTabsHTML()}
           <button type="button" class="btn small" data-action="refresh">새로고침</button>
           ${links.sheet ? `<a class="btn small" href="${attr(links.sheet)}" target="_blank" rel="noopener">시트 열기</a>` : ''}
           ${WEB ? `<a class="btn small" href="${attr(WEB + '?page=tv')}" target="_blank" rel="noopener">TV 모드</a><a class="btn small" href="${attr(WEB + '?page=qr')}" target="_blank" rel="noopener">QR 인쇄</a><a class="btn small" href="${attr(WEB + '?page=map')}" target="_blank" rel="noopener">배치도</a><a class="btn small" href="${attr(WEB)}" target="_blank" rel="noopener">방문객 화면</a>` : ''}
@@ -1407,6 +1634,7 @@ function renderAdmin() {
         <div class="toolbar">
           <input id="aq" class="search" type="search" placeholder="이름 · 연락처 · 예약번호 검색" autocomplete="off" value="${attr(S.admin.f.q)}">
           <select id="astatus" aria-label="상태"><option value="">모든 상태</option><option value="${ST.OK}">확정</option><option value="${ST.WAIT}">대기</option><option value="${ST.CANCEL}">취소</option></select>
+          <select id="aatt" aria-label="출결"><option value="">출결 전체</option><option value="출석">출석</option><option value="결석">결석</option><option value="open">미처리</option><option value="openpast">미처리 (끝난 시간대)</option></select>
           <select id="abooth" aria-label="부스"></select>
           <select id="aslot" aria-label="시간대"></select>
           <select id="asort" aria-label="정렬"><option value="recent">최근 접수순</option><option value="booth">부스 · 시간대순</option><option value="name">이름순</option></select>
@@ -1424,18 +1652,21 @@ function renderAdmin() {
 function renderAdminParts() {
   const d = S.admin.data; if (!d || $('#app').dataset.view !== 'admin') return;
   const now = kstNow();
-  const booths = d.booths || [], res = d.reservations || [];
+  const booths = d.booths || [], res = (d.reservations || []).filter(sameDayRes);
   const cls = booths.filter(b => b.mode === CLASS);
   let fullSlots = 0, totalSlots = 0;
   cls.forEach(b => (b.slots || []).forEach(s => { totalSlots++; if (slotInfo(b, s, now).full) fullSlots++; }));
   const ok = res.filter(r => r.status === ST.OK || r.status === ST.PENDING), wait = res.filter(r => r.status === ST.WAIT);
-  const checkin = ok.filter(r => r.checkin).length;
+  const checkin = ok.filter(r => r.att === '출석' || (!r.att && r.checkin)).length;
+  const absent = ok.filter(r => r.att === '결석').length;
+  const openPast = ok.filter(r => !r.att && r.slot !== ALWAYS && phaseOf(r.slot, now) === 'past').length; // 끝난 시간대인데 아직 미처리
   const visits = res.filter(r => r.status === ST.OK && r.slot === ALWAYS).length;
   const cur = currentSlot(d.defaultSlots, now);
   $('[data-stats]').innerHTML =
     `<div class="stat"><div class="k">확정 예약</div><div class="v">${ok.length - visits}<small>명</small></div></div>` +
     `<div class="stat"><div class="k">대기</div><div class="v">${wait.length}<small>명</small></div></div>` +
-    `<div class="stat"><div class="k">체크인</div><div class="v">${checkin}<small>/ ${ok.length - visits}</small></div></div>` +
+    `<div class="stat"><div class="k">출석</div><div class="v">${checkin}<small>/ ${ok.length}</small></div></div>` +
+    `<div class="stat"><div class="k">결석</div><div class="v">${absent}${openPast ? `<small style="color:var(--full)">미처리 ${openPast}</small>` : ''}</div></div>` +
     `<div class="stat"><div class="k">마감 시간대</div><div class="v">${fullSlots}<small>/ ${totalSlots}</small></div></div>` +
     `<div class="stat"><div class="k">상시 방문 등록</div><div class="v">${visits}<small>명</small></div></div>` +
     `<div class="stat"><div class="k">${cur.now ? '지금 진행 중' : cur.next ? '다음 시간대' : '행사일'}</div><div class="v small">${esc(cur.now || cur.next || (d.event && d.event.date) || '-')}</div></div>`;
@@ -1471,11 +1702,20 @@ function renderMatrix(d, now) {
       if ((b.slots || []).indexOf(s) === -1) return `<td class="cell na">–</td>`;
       const i = slotInfo(b, s, now);
       const promo = i.phase !== 'past' && i.wait > 0 && i.ok < i.cap; // 자리가 비었는데 대기자가 있음 → 대기 행을 확정으로 올려야 함
-      return `<td class="cell ${i.cls}${i.phase === 'past' ? ' past' : ''}${promo ? ' promo' : ''}" data-action="pick" data-booth="${b.no}" data-slot="${attr(s)}" title="${promo ? (autoPromote() ? '자리가 비었는데 대기자가 남아 있습니다 (자동 확정이 처리하지 못한 경우) — 명단에서 대기 행을 확정으로 올리세요' : '자리가 비었는데 대기자가 있습니다 — 명단에서 대기 행을 확정으로 올리세요') : '클릭하면 명단을 봅니다'}"><span class="n">${i.ok}<span class="cap">/${i.cap}</span></span>${i.wait ? `<span class="w">대기 ${i.wait}/${i.waitMax}${promo ? ' ↑' : ''}</span>` : ''}${i.checkin ? `<span class="c">체크인 ${i.checkin}</span>` : ''}</td>`;
+      return `<td class="cell ${i.cls}${i.phase === 'past' ? ' past' : ''}${promo ? ' promo' : ''}" data-action="pick" data-booth="${b.no}" data-slot="${attr(s)}" title="${promo ? (autoPromote() ? '자리가 비었는데 대기자가 남아 있습니다 (자동 확정이 처리하지 못한 경우) — 명단에서 대기 행을 확정으로 올리세요' : '자리가 비었는데 대기자가 있습니다 — 명단에서 대기 행을 확정으로 올리세요') : '클릭하면 명단을 봅니다'}"><span class="n">${i.ok}<span class="cap">/${i.cap}</span></span>${i.wait ? `<span class="w">대기 ${i.wait}/${i.waitMax}${promo ? ' ↑' : ''}</span>` : ''}${i.checkin ? `<span class="c">출석 ${i.checkin}</span>` : ''}${(i.absent || 0) ? `<span class="c" style="color:var(--full)">결석 ${i.absent}</span>` : ''}</td>`;
     }).join('')}</tr>`;
   }).join('');
   $('[data-matrix]').innerHTML = `<table class="${slots.length > 8 ? 'many' : ''}"><thead>${head}</thead><tbody>${rows}</tbody></table>`;
 }
+/** 출결 버튼 묶음 [출석][결석]: 눌린 쪽 색칠, 같은 것을 다시 누르면 미처리로. 확정 예약만 처리 가능 */
+function attButtons(r, big) {
+  const a = r.att || (r.checkin ? '출석' : '');
+  const dis = r.status !== ST.OK ? ' disabled' : '';
+  return `<span class="att${big ? ' big' : ''}" role="group" aria-label="출결">` +
+    `<button type="button" class="p${a === '출석' ? ' on' : ''}" data-action="att" data-res="${attr(r.no)}" data-booth="${r.booth}" data-state="${a === '출석' ? '' : '출석'}"${dis} title="${a === '출석' ? '다시 누르면 미처리로' : '출석 처리'}">출석</button>` +
+    `<button type="button" class="a${a === '결석' ? ' on' : ''}" data-action="att" data-res="${attr(r.no)}" data-booth="${r.booth}" data-state="${a === '결석' ? '' : '결석'}"${dis} title="${a === '결석' ? '다시 누르면 미처리로' : '결석 처리'}">결석</button></span>`;
+}
+function attMeta(r) { const a = r.att || (r.checkin ? '출석' : ''); if (!a) return ''; return esc((r.attTime ? r.attTime + ' ' : '') + (r.attBy || '')); }
 function renderList(d, now) {
   const f = S.admin.f;
   const booths = d.booths || [];
@@ -1489,10 +1729,13 @@ function renderList(d, now) {
   }
   if (bsel) bsel.value = f.booth; if (ssel) ssel.value = f.slot;
   const st = $('#astatus'); if (st) st.value = f.status;
+  const at = $('#aatt'); if (at) at.value = f.att || '';
   const so = $('#asort'); if (so) so.value = f.sort;
   const q = f.q.trim().toLowerCase(), qd = q.replace(/\D/g, '');
-  let list = (d.reservations || []).filter(r =>
-    (!f.status || r.status === f.status) && (!f.booth || String(r.booth) === f.booth) && (!f.slot || r.slot === f.slot) &&
+  const attOf = r => r.att || (r.checkin ? '출석' : '');
+  const attMatch = r => !f.att || (f.att === 'open' ? !attOf(r) && r.status === ST.OK : f.att === 'openpast' ? !attOf(r) && r.status === ST.OK && r.slot !== ALWAYS && phaseOf(r.slot, now) === 'past' : attOf(r) === f.att);
+  let list = (d.reservations || []).filter(r => sameDayRes(r) &&
+    (!f.status || r.status === f.status) && attMatch(r) && (!f.booth || String(r.booth) === f.booth) && (!f.slot || r.slot === f.slot) &&
     (!q || r.name.toLowerCase().indexOf(q) > -1 || r.no.toLowerCase() === q || (qd.length >= 3 && r.phone.replace(/\D/g, '').indexOf(qd) > -1) || r.org.toLowerCase().indexOf(q) > -1));
   const slotOrder = s => { const t = parseSlot(s); return t ? t.start : 9999; };
   if (f.sort === 'recent') list = list.slice().reverse();
@@ -1504,9 +1747,12 @@ function renderList(d, now) {
   if (total > LIMIT) list = list.slice(0, LIMIT);
   $('[data-count]').textContent = total > LIMIT ? total + '건 중 ' + LIMIT + '건 표시 · 검색이나 필터로 좁혀 주세요' : total + '건';
   const noteHost = $('[data-filter-note]');
+  // 끝난 시간대의 미처리 확정 예약 → [일괄 결석] (부스·시간대 필터 안에서만, 실수로 전체를 결석 처리하지 않게)
+  const bulkable = (f.booth || f.slot) ? list.filter(r => r.status === ST.OK && !attOf(r) && r.slot !== ALWAYS && phaseOf(r.slot, now) === 'past') : [];
+  const bulk = bulkable.length ? `<span class="bulk-note">끝난 시간대 미처리 ${bulkable.length}건 <button type="button" data-action="bulk-absent" data-booth="${attr(f.booth)}" data-slot="${attr(f.slot)}" data-n="${bulkable.length}">모두 결석 처리</button></span>` : '';
   if (f.booth || f.slot) {
     const b = booths.find(x => String(x.no) === f.booth);
-    noteHost.innerHTML = `<div class="filter-note">${b ? esc(b.no + '. ' + b.name) : ''} ${f.slot ? esc(f.slot) : ''} 명단 <button type="button" data-action="clear-filter">전체 보기</button></div>`;
+    noteHost.innerHTML = `<div class="filter-note">${b ? esc(b.no + '. ' + b.name) : ''} ${f.slot ? esc(f.slot) : ''} 명단 <button type="button" data-action="clear-filter">전체 보기</button>${b ? `<button type="button" class="walkin" data-action="walkin" data-booth="${b.no}" title="예약 없이 온 학생을 이 부스 명단에 바로 넣고 출석 처리">＋ 현장 등록</button>` : ''}</div>` + bulk;
   } else noteHost.innerHTML = '';
   const listHost = $('[data-list]');
   if ($('#app').classList.contains('narrow')) {
@@ -1516,7 +1762,8 @@ function renderList(d, now) {
       const cls = r.status === ST.OK ? 'ok' : (r.status === ST.WAIT || r.status === ST.PENDING) ? 'wait' : 'cancel';
       return `<div class="rcard ${cls}">
         <div class="rc-top"><div class="rc-name">${esc(r.name)} <span class="pill ${cls}">${esc(r.status)}</span></div>
-          <label class="chk big${r.checkin ? ' on' : ''}"><input type="checkbox" data-action="checkin" data-res="${attr(r.no)}"${r.checkin ? ' checked' : ''}${r.status !== ST.OK ? ' disabled' : ''}><span>${r.checkin ? '체크인 완료' : '체크인'}</span></label></div>
+          ${attButtons(r, true)}</div>
+        ${attMeta(r) ? `<div class="rc-line att-meta">${attMeta(r)}</div>` : ''}
         <div class="rc-line"><b>${r.booth}</b>${esc(r.boothName)} · ${esc(r.slot)}${(booths.find(x => x.no === r.booth) || {}).floor ? ' · ' + esc(placeText(booths.find(x => x.no === r.booth))) : ''}</div>
         <div class="rc-line">${esc(r.phone)} · ${esc(r.org)} · ${esc(r.grade)}</div>
         <div class="rc-bottom"><select class="sel ${cls}" data-action="status" data-res="${attr(r.no)}" aria-label="상태">${r.status === ST.PENDING ? '<option value="" selected disabled>처리중</option>' : ''}<option value="${ST.OK}"${r.status === ST.OK ? ' selected' : ''}>확정</option><option value="${ST.WAIT}"${r.status === ST.WAIT ? ' selected' : ''}>대기</option><option value="${ST.CANCEL}"${r.status === ST.CANCEL ? ' selected' : ''}>취소</option></select><span class="rc-id">${esc(r.no)} · ${esc(r.time)}</span></div>
@@ -1532,18 +1779,18 @@ function renderList(d, now) {
       <td><span class="bno" style="font-family:var(--font-display);color:var(--accent);margin-right:4px">${r.booth}</span>${esc(r.boothName)}</td>
       <td>${esc(r.slot)}</td><td class="name">${esc(r.name)}</td><td class="mono">${esc(r.phone)}</td><td>${esc(r.org)}</td><td>${esc(r.grade)}</td>
       <td class="ctrl"><select class="sel ${cls}" data-action="status" data-res="${attr(r.no)}" aria-label="상태">${r.status === ST.PENDING ? '<option value="" selected disabled>처리중</option>' : ''}<option value="${ST.OK}"${r.status === ST.OK ? ' selected' : ''}>확정</option><option value="${ST.WAIT}"${r.status === ST.WAIT ? ' selected' : ''}>대기</option><option value="${ST.CANCEL}"${r.status === ST.CANCEL ? ' selected' : ''}>취소</option></select></td>
-      <td class="ctrl"><label class="chk"><input type="checkbox" data-action="checkin" data-res="${attr(r.no)}"${r.checkin ? ' checked' : ''}${r.status !== ST.OK ? ' disabled' : ''}><span>${r.checkin ? '완료' : ''}</span></label></td>
+      <td class="ctrl">${attButtons(r, false)}${attMeta(r) ? `<div class="att-meta">${attMeta(r)}</div>` : ''}</td>
       <td style="white-space:normal;min-width:160px;color:var(--fg-muted);font-size:12.5px">${esc(r.memo)}</td>
       <td style="white-space:normal;min-width:120px;color:var(--fg-muted);font-size:12.5px">${esc(r.notice || '')}</td></tr>`;
   }).join('');
-  listHost.innerHTML = `<table><thead><tr><th>예약번호</th><th>접수</th><th>부스</th><th>시간대</th><th>이름</th><th>연락처</th><th>소속</th><th>학년</th><th>상태</th><th>체크인</th><th>메모</th><th>알림</th></tr></thead><tbody>${rows || `<tr><td colspan="12" class="empty">조건에 맞는 예약이 없습니다.</td></tr>`}</tbody></table>`;
+  listHost.innerHTML = `<table><thead><tr><th>예약번호</th><th>접수</th><th>부스</th><th>시간대</th><th>이름</th><th>연락처</th><th>소속</th><th>학년</th><th>상태</th><th>출결</th><th>메모</th><th>알림</th></tr></thead><tbody>${rows || `<tr><td colspan="12" class="empty">조건에 맞는 예약이 없습니다.</td></tr>`}</tbody></table>`;
 }
 /** 운영자: 지금 보이는 명단을 CSV(엑셀에서 열림)로 내려받기 */
 function downloadCsv() {
   const list = S.admin.lastList || [];
   if (!list.length) { toast('내려받을 명단이 없습니다', 'err'); return; }
   if (PREVIEW) { toast('미리보기에서는 파일 저장이 막혀 있습니다. 실제 배포에서는 ' + list.length + '건이 CSV로 저장됩니다'); return; }
-  const cols = [['예약번호', r => r.no], ['접수', r => r.time], ['부스번호', r => r.booth], ['부스명', r => r.boothName], ['위치', r => placeText(booth(r.booth) || {})], ['시간대', r => r.slot], ['이름', r => r.name], ['연락처', r => r.phone], ['소속', r => r.org], ['학년', r => r.grade], ['상태', r => r.status], ['체크인', r => r.checkin ? 'Y' : ''], ['메모', r => r.memo || ''], ['알림', r => r.notice || '']];
+  const cols = [['예약번호', r => r.no], ['날짜', r => r.date || ''], ['접수', r => r.time], ['부스번호', r => r.booth], ['부스명', r => r.boothName], ['위치', r => placeText(booth(r.booth) || {})], ['시간대', r => r.slot], ['이름', r => r.name], ['연락처', r => r.phone], ['소속', r => r.org], ['학년', r => r.grade], ['상태', r => r.status], ['출결', r => r.att || (r.checkin ? '출석' : '')], ['출결시각', r => r.attTime || ''], ['출결처리', r => r.attBy || ''], ['메모', r => r.memo || ''], ['알림', r => r.notice || '']];
   const cell = v => { const t = String(v == null ? '' : v); return /[",\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t; };
   const csv = '\uFEFF' + cols.map(c => c[0]).join(',') + '\n' + list.map(r => cols.map(c => cell(c[1](r))).join(',')).join('\n');
   const f = S.admin.f; const name = '예약명단' + (f.booth ? '_부스' + f.booth : '') + (f.slot ? '_' + f.slot.replace(/[^0-9]/g, '').slice(0, 4) : '') + '_' + kstNow().hms.replace(/:/g, '') + '.csv';
@@ -1566,7 +1813,7 @@ async function loginAdmin(pin) {
   const errEl = $('[data-err]');
   try {
     const d = await rpc('getOperatorData', pin);
-    S.admin.pin = pin; S.admin.data = d; S.status = d; S.admin.err = '';
+    S.admin.pin = pin; S.admin.data = d; S.status = d; onStatus(d); S.admin.err = '';
     try { sessionStorage.setItem('pin', pin); } catch (x) { }
     render();
   } catch (e) {
@@ -1582,7 +1829,7 @@ function renderTV() {
   if (app.dataset.view !== 'tv') {
     app.dataset.view = 'tv';
     app.innerHTML = `<div class="tv">
-      <div class="tv-top"><div><div class="tv-title" data-tv-title></div><div class="tv-sub" data-tv-sub></div></div>
+      <div class="tv-top"><div><div class="tv-title" data-tv-title></div><div class="tv-sub" data-tv-sub></div>${dayTabsHTML()}</div>
         <div style="text-align:right"><div class="tv-clock" data-clock="hms">--:--:--</div><div class="tv-upd">업데이트 <b data-updated></b> · ${POLL.tv / 1000}초마다 갱신</div></div></div>
       <div class="tv-body" data-tv-body></div>
       <div class="tv-legend"><span><i style="background:var(--ok)"></i>잔여 좌석</span><span><i style="background:var(--warn)"></i>잔여 30% 이하</span><span><i style="background:var(--full)"></i>마감</span><span><i style="background:var(--surface-2)"></i>종료</span><span><i style="background:var(--mark)"></i>진행 중</span></div>
@@ -1719,7 +1966,7 @@ function updateView() {
 }
 // ───────── 뒤로가기: 화면 전환을 브라우저 기록에 남겨 휴대폰 뒤로가기가 '이전 화면'으로 가게 함 ─────────
 // 실제 배포(Apps Script)에서는 google.script.history, 미리보기에서는 window.history 사용
-function navState() { return { view: S.view, no: S.boothNo, hl: S.map.hl, key: S.map.key, adminBooth: S.admin.f.booth, adminTab: S.admin.tab }; }
+function navState() { return { view: S.view, no: S.boothNo, hl: S.map.hl, key: S.map.key, adminBooth: S.admin.f.booth, adminTab: S.admin.tab, day: S.day }; }
 function navParams(st) {
   if (st.view === 'booth' && st.no) return { booth: String(st.no) };
   if (st.view === 'map') { const p = { page: 'map' }; if (st.hl) p.booth = String(st.hl); return p; }
@@ -1731,6 +1978,7 @@ let navApplying = false;
 function pushNav(replace) {
   if (navApplying) return;
   const st = navState(), params = navParams(st);
+  if (eventDates().length > 1 && S.day && st.view !== 'qr') params.date = S.day;
   try {
     if (window.google && google.script && google.script.history) { (replace ? google.script.history.replace : google.script.history.push)(st, params, ''); return; }
     const q = Object.keys(params).map(k => k + '=' + encodeURIComponent(params[k])).join('&');
@@ -1748,6 +1996,7 @@ function applyNavState(st, params) {
   }
   navApplying = true;
   try {
+    { const d = st.day || (params && params.date); if (d && eventDates().indexOf(d) > -1 && d !== S.day) { S.day = d; applyDay(); } }
     S.view = st.view; if (st.no) S.boothNo = Number(st.no);
     if (st.view === 'map') { S.map.hl = st.hl || null; S.map.key = st.key || ''; }
     if (st.view === 'admin') { if (st.adminBooth != null) S.admin.f.booth = st.adminBooth; if (st.adminTab) S.admin.tab = st.adminTab; }
@@ -1813,9 +2062,43 @@ document.addEventListener('click', e => {
   if (a === 'clear-home-filter') { S.f = { region: '', field: '', mode: '', floor: '', q: '', avail: false }; const qi = $('#q'); if (qi) qi.value = ''; updateHome(); return; }
   if (a === 'share') { shareBooth(); return; }
   if (a === 'csv') { downloadCsv(); return; }
+  if (a === 'att') {
+    const resNo = act.dataset.res, state = act.dataset.state;
+    const by = S.admin.f.booth ? '담당자(부스 ' + S.admin.f.booth + ')' : '운영자'; // 부스 담당자 화면(?page=admin&booth=n)에서 눌렀는지 기록
+    $$('[data-action="att"][data-res="' + resNo + '"]').forEach(b => { b.disabled = true; });
+    rpc('setAttendance', S.admin.pin, resNo, state, by).then(() => { toast(resNo + (state ? ' → ' + state : ' → 미처리로 되돌림')); return refresh(); })
+      .catch(err => { toast(err.message || '저장에 실패했습니다', 'err'); return refresh(); });
+    return;
+  }
+  if (a === 'walkin') { showWalkIn(Number(act.dataset.booth)); return; }
+  if (a === 'bulk-absent') {
+    const n = act.dataset.n, bno = act.dataset.booth, slot = act.dataset.slot;
+    if (!window.confirm('끝난 시간대의 미처리 확정 예약 ' + n + '건을 모두 결석으로 처리할까요?\n(운영자 현황판에서 개별로 출석으로 되돌릴 수 있습니다)')) return;
+    act.disabled = true;
+    rpc('bulkAbsent', S.admin.pin, bno ? Number(bno) : 0, slot || '', '운영자 일괄', S.day || '').then(r => { toast((r && r.n) + '건을 결석 처리했습니다'); return refresh(); })
+      .catch(err => { toast(err.message || '처리에 실패했습니다', 'err'); act.disabled = false; });
+    return;
+  }
   if (a === 'slot-now') { const cur = currentSlot(S.status.defaultSlots, kstNow()); const slot = cur.now || cur.next; if (!slot) { toast('오늘 진행 중인 시간대가 없습니다 (행사일이 아니거나 모두 끝남)', 'err'); return; } S.admin.f.slot = slot; S.admin.f.status = ST.OK; renderList(S.admin.data, kstNow()); toast(slot + ' 확정 명단'); return; }
   if (a === 'pick-slot') { pickSlot(act.dataset.slot); return; }
   if (a === 'submit-rsv') { submitRsv(); return; }
+  if (a === 'day') { setDay(act.dataset.day); return; }
+  if (a === 'kid-add') { const host = $('[data-kid-rows]'); if (!host) return; if ($$('[data-kid]').length >= KIDS_MAX) { toast('함께 예약은 본인 포함 ' + (KIDS_MAX + 1) + '명까지입니다', 'err'); return; } host.insertAdjacentHTML('beforeend', kidRowHTML({ on: true }, S.status.grades || [])); syncKidTools(); const last = $$('[data-kid] .kid-name').pop(); if (last) last.focus(); return; }
+  if (a === 'kid-del') { const row = act.closest('[data-kid]'); if (row) row.remove(); syncKidTools(); return; }
+  if (a === 'kid-paste') { showKidPaste(); return; }
+  if (a === 'kid-paste-add') {
+    const grades = S.status.grades || [];
+    const list = parseKidList(($('#kidpaste') || {}).value || '', grades);
+    const gAll = ($('#kidpastegrade') || {}).value || '';
+    if (!list.length) { toast('이름을 한 줄에 한 명씩 적어 주세요', 'err'); return; }
+    const host = $('[data-kid-rows]'); if (!host) return;
+    const have = $$('[data-kid] .kid-name').map(i => i.value.trim()).filter(Boolean);
+    let added = 0, skipped = 0;
+    list.forEach(k => { if ($$('[data-kid]').length >= KIDS_MAX) { skipped++; return; } if (have.indexOf(k.name) > -1) { skipped++; return; } if (gAll) k.grade = gAll; host.insertAdjacentHTML('beforeend', kidRowHTML(k, grades)); have.push(k.name); added++; });
+    syncKidTools(); closeModal();
+    toast(added + '명을 목록에 넣었습니다' + (skipped ? ' (' + skipped + '명은 겹치거나 인원 초과로 제외)' : ''));
+    return;
+  }
   if (a === 'privacy') { S.rsv.privacy = !S.rsv.privacy; const pv = $('[data-privacy]'); if (pv) pv.classList.toggle('hidden', !S.rsv.privacy); act.textContent = S.rsv.privacy ? '내용 닫기' : '내용 보기'; return; }
   if (a === 'modal-close') { closeModal(); return; }
   if (a === 'notice-ack') { closeModal(); const me = loadMe(); rpc('ackNotice', me.name, me.phone, act.dataset.res).catch(() => { }); toast('확인했습니다. 부스에서 뵐게요!'); return; }
@@ -1830,6 +2113,7 @@ document.addEventListener('click', e => {
   if (a === 'open-booth') { e.preventDefault(); go('booth', act.dataset.no); }
   else if (a === 'home') { go('home'); }
   else if (a === 'my') { e.preventDefault(); go('my'); }
+  else if (a === 'my-switch') { const ni = $('#myname'); if (ni) ni.value = act.dataset.name; S.my.name = act.dataset.name; lookupMy(); }
   else if (a === 'my-cancel') { S.my.confirm = act.dataset.res; renderMyList(); }
   else if (a === 'my-cancel-no') { S.my.confirm = ''; renderMyList(); }
   else if (a === 'my-cancel-yes') { cancelMy(act.dataset.res); }
@@ -1847,6 +2131,7 @@ document.addEventListener('keydown', e => {
 });
 document.addEventListener('submit', e => {
   if (e.target.closest('[data-form="my"]')) { e.preventDefault(); lookupMy(); return; }
+  { const w = e.target.closest('[data-form="walkin"]'); if (w) { e.preventDefault(); submitWalkIn(w); return; } }
   if (e.target.closest('[data-form="rsv"]')) { e.preventDefault(); submitRsv(); return; } // 휴대폰 키보드의 '완료'로 제출
   const f = e.target.closest('[data-form="pin"]');
   if (!f) return;
@@ -1857,7 +2142,7 @@ document.addEventListener('submit', e => {
 });
 let qTimer = null;
 document.addEventListener('input', e => {
-  if (e.target.id === 'rphone' || e.target.id === 'myphone') formatPhoneField(e.target);
+  if (e.target.id === 'rphone' || e.target.id === 'myphone' || e.target.id === 'wphone') formatPhoneField(e.target);
   if (e.target.closest && e.target.closest('[data-form="rsv"]')) { e.target.classList.remove('bad'); return; }
   if (e.target.id === 'q') { S.f.q = e.target.value; clearTimeout(qTimer); qTimer = setTimeout(updateHome, 120); }
   else if (e.target.id === 'aq') { S.admin.f.q = e.target.value; clearTimeout(qTimer); qTimer = setTimeout(() => renderList(S.admin.data, kstNow()), 120); }
@@ -1866,12 +2151,16 @@ document.addEventListener('change', async e => {
   const t = e.target;
   if (t.id === 'favail') { S.f.avail = t.checked; updateHome(); return; }
   if (t.id === 'astatus') { S.admin.f.status = t.value; renderList(S.admin.data, kstNow()); return; }
+  if (t.id === 'aatt') { S.admin.f.att = t.value; renderList(S.admin.data, kstNow()); return; }
   if (t.id === 'abooth') { S.admin.f.booth = t.value; renderList(S.admin.data, kstNow()); return; }
   if (t.id === 'aslot') { S.admin.f.slot = t.value; renderList(S.admin.data, kstNow()); return; }
   if (t.id === 'asort') { S.admin.f.sort = t.value; renderList(S.admin.data, kstNow()); return; }
   if (t.id === 'qrper' || t.id === 'qrregion') { updateQR(); return; }
   if (t.id === 'rgrade') { const o = $('[data-grade-other]'); if (o) { o.classList.toggle('hidden', t.value !== '__other'); if (t.value === '__other') { const i = $('#rgrade2'); if (i) i.focus(); } } t.classList.remove('bad'); return; }
   if (t.id === 'rconsent') { t.classList.remove('bad'); return; }
+  if (t.classList && t.classList.contains('kid-on')) { const row = t.closest('[data-kid]'); if (row) row.classList.toggle('off', !t.checked); return; }
+  if (t.id === 'kidgradeall') { if (t.value) { $$('[data-kid] .kid-grade').forEach(sel => { sel.value = t.value; }); toast('함께 온 어린이 전원을 ' + t.value + '으로'); } return; }
+  if (t.id === 'wgrade') { const o = $('[data-wgrade-other]'); if (o) { o.classList.toggle('hidden', t.value !== '__other'); if (t.value === '__other') { const i = $('#wgrade2'); if (i) i.focus(); } } return; }
   if (t.dataset.fsel) { S.f[t.dataset.fsel] = t.value; updateHome(); return; }
   const a = t.dataset.action;
   if (a === 'status' || a === 'checkin') {
@@ -1905,7 +2194,7 @@ async function bootstrap() {
   renderSplash('불러오는 중…');
   let err = null;
   for (let i = 0; i < 4; i++) {
-    try { S.status = await rpc('getPublicStatus'); return true; }
+    try { S.status = await rpc('getPublicStatus'); onStatus(S.status); return true; }
     catch (e) { err = e; if (API_PROBLEM) break; await new Promise(res => setTimeout(res, 1200 * (i + 1))); }
   }
   renderSplash('서버에 연결하지 못했습니다', (err && err.message) || '');
@@ -1917,8 +2206,10 @@ async function bootstrap() {
     try { BOOT.params = await new Promise(res => google.script.url.getLocation(loc => res((loc && loc.parameter) || {}))); } catch (x) { }
   }
   if (!BOOT.status && !(await bootstrap())) return; // 방법 B: 첫 현황 받기 (실패하면 [다시 시도] 화면에서 멈춤)
+  onStatus(S.status);
   if (STATIC && S.status.event && S.status.event.name) document.title = S.status.event.name + ' · 부스 예약';
   const p = BOOT.params || {};
+  if (p.date) { S.day = String(p.date); applyDay(); }
   if (p.page === 'admin') {
     S.view = 'admin';
     // ?page=admin&booth=12 → 부스 담당자용: 그 부스 명단(체크인)만 바로 표시
@@ -1951,6 +2242,7 @@ async function bootstrap() {
   } catch (x) { }
   if (S.view === 'admin' && S.admin.pin) loginAdmin(S.admin.pin);
   watchStart();
+  window.__boothDebug = () => ({ poll: Object.assign({}, POLL), view: S.view, mode: STATIC ? 'B' : 'A' }); // 점검용 (브라우저 콘솔에서 __boothDebug())
 })();
 })();
 </script>
