@@ -476,8 +476,8 @@ button.slot-row:disabled{cursor:default}
 /* 함께 온 어린이: 보호자 휴대폰 하나로 여러 어린이를 한 번에 */
 .kids{border:1px dashed var(--line);border-radius:12px;padding:10px 12px;display:grid;gap:8px;background:var(--bg)}
 .kids-head{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:14px;font-weight:700}
-.kid-row{display:grid;grid-template-columns:auto minmax(0,1fr) minmax(0,1fr) auto;grid-template-areas:"on name name del" ". grade org .";gap:6px;align-items:center;padding-bottom:6px;border-bottom:1px dashed var(--line)}
-.kid-row .kid-on{grid-area:on}.kid-row .kid-name{grid-area:name}.kid-row .del{grid-area:del}.kid-row .kid-grade{grid-area:grade}.kid-row .kid-org{grid-area:org}
+.kid-row{display:grid;grid-template-columns:auto auto minmax(0,1fr) minmax(0,1fr) auto;grid-template-areas:"on no name name del" ". . grade org .";gap:6px;align-items:center;padding-bottom:6px;border-bottom:1px dashed var(--line)}
+.kid-row .kid-on{grid-area:on}.kid-row .kid-no{grid-area:no;min-width:1.6em;text-align:center;font-weight:700;font-size:13px;color:var(--accent);background:var(--accent-soft);border-radius:999px;padding:2px 6px}.kid-row.off .kid-no{opacity:.45}.kid-row .kid-name{grid-area:name}.kid-row .del{grid-area:del}.kid-row .kid-grade{grid-area:grade}.kid-row .kid-org{grid-area:org}
 .kid-row input[type="text"],.kid-row select{width:100%;box-sizing:border-box}
 .kid-row .kid-grade,.kid-row .kid-org{font-size:14px;padding:8px 9px}
 .kids-btns{display:flex;gap:6px}.kids-tools{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:13px}.kids-tools select{padding:6px 8px;font-size:14px;margin-left:6px}
@@ -486,6 +486,7 @@ button.slot-row:disabled{cursor:default}
 .kid-row .del{background:none;border:0;color:var(--fg-muted);font-size:18px;padding:4px 6px}
 .kid-row.off input[type="text"],.kid-row.off select{opacity:.45}
 .kids .note{margin:0;font-size:12.5px}
+.leader-box{font-size:13.5px;line-height:1.4;align-items:flex-start}.leader-box input{margin-top:2px;flex:none}
 .roster-note{font-size:13.5px;background:var(--accent-soft);color:var(--fg);border-radius:8px;padding:8px 10px;line-height:1.45}
 .group-list{display:grid;gap:6px;text-align:left;margin:4px 0}
 .group-list .g{display:flex;gap:8px;align-items:flex-start;font-size:14px;line-height:1.4;padding:8px 10px;border-radius:10px;background:var(--surface-2)}
@@ -678,7 +679,7 @@ const S = {
   admin: { pin: '', data: null, tab: 'matrix', f: { q: '', status: '', att: '', booth: '', slot: '', sort: 'recent' }, err: '', lastList: [] },
   qr: { target: 'status', per: '2', region: '' },
   my: { name: '', phone: '', list: null, busy: false, confirm: '' },
-  rsv: { booth: null, slot: null, busy: false, reqId: '', retry: null, privacy: false }, // 부스 페이지의 예약 진행 상태
+  rsv: { booth: null, slot: null, busy: false, reqId: '', retry: null, privacy: false, leader: false, rosterFound: false }, // 부스 페이지의 예약 진행 상태 (leader = 위 이름은 인솔자, 예약 명단에서 제외)
   me: { name: '', phone: '', org: '', grade: '' }, // 이 휴대폰에 기억된 예약자 정보 (localStorage 'me')
   timer: null, clock: null, online: true,
   day: '', // 보고 있는 행사 날짜 (YYYY-MM-DD) — 이틀 이상 열리는 행사에서 날짜 탭으로 바꿈
@@ -1100,22 +1101,23 @@ async function tryRoster() {
   if (rosterAsked[key]) return; rosterAsked[key] = true;
   let r = null;
   try { r = await rpc('groupRoster', name, phone); } catch (x) { rosterAsked[key] = false; return; }
-  if (!r || !r.kids || !r.kids.length) return;
+  if (!r || !r.kids || !r.kids.length) { if (S.rsv.leader && !S.rsv.rosterFound) { S.rsv.leader = false; const lc = $('#rleader'); if (lc) lc.checked = false; } return; }
   const host = $('[data-kid-rows]'); if (!host) return;
   const have = $$('[data-kid] .kid-name').map(i => i.value.trim()).filter(Boolean);
   const grades = S.status.grades || [];
   let added = 0;
   r.kids.forEach(k => { if ($$('[data-kid]').length >= KIDS_MAX || have.indexOf(k.name) > -1) return; host.insertAdjacentHTML('beforeend', kidRowHTML({ name: k.name, grade: k.grade, org: k.org, on: true }, grades)); have.push(k.name); added++; });
+  S.rsv.leader = true; S.rsv.rosterFound = true; const lc = $('#rleader'); if (lc) lc.checked = true; // 사전 명단이 있으면 위 이름은 인솔자
   syncKidTools();
-  const note = $('[data-roster-note]'); if (note) { note.hidden = false; note.innerHTML = `📋 사전 등록 명단 <b>${esc(r.group || '단체')}</b> ${r.kids.length}명을 불러왔습니다${added < r.kids.length ? ' (' + (r.kids.length - added) + '명은 이미 목록에 있음)' : ''}. 오늘 안 온 어린이는 체크를 풀어 주세요.`; }
+  const note = $('[data-roster-note]'); if (note) { note.hidden = false; note.innerHTML = `📋 사전 등록 명단 <b>${esc(r.group || '단체')}</b> ${r.kids.length}명을 불러왔습니다${added < r.kids.length ? ' (' + (r.kids.length - added) + '명은 이미 목록에 있음)' : ''}. 오늘 안 온 어린이는 체크를 풀어 주세요. 인솔자는 예약 명단에 들어가지 않습니다.`; }
   if (added) toast('사전 등록 명단 ' + added + '명을 불러왔습니다');
 }
-function syncKidTools() { const n = $$('[data-kid]').length; const t = $('[data-kid-tools]'); if (t) t.classList.toggle('hidden', !n); const c = $('[data-kid-count]'); if (c) c.textContent = n ? '함께 ' + n + '명 (본인 포함 ' + (n + 1) + '명)' : ''; }
-const KIDS_MAX = 14; // 함께 온 어린이 최대 (본인 포함 15명 — 학급 단체 인솔자용)
+function syncKidTools() { const rows = $$('[data-kid]'); const n = rows.length; rows.forEach((r, i) => { const el = r.querySelector('[data-kid-no]'); if (el) el.textContent = i + 1; }); const t = $('[data-kid-tools]'); if (t) t.classList.toggle('hidden', !n); const c = $('[data-kid-count]'); if (c) c.textContent = n ? (S.rsv.leader ? '어린이 ' + n + '명 (인솔자 제외)' : '함께 ' + n + '명 (본인 포함 ' + (n + 1) + '명)') : ''; const lb = $('[data-leader-box]'); if (lb) lb.classList.toggle('hidden', !n || !S.rsv.rosterFound); } // 인솔자 체크는 사전 명단이 불러와진 경우(단체)에만 — 가족 예약에서 첫째 아이가 빠지는 실수 방지
+const KIDS_MAX = 15; // 함께 온 어린이 최대 (인솔자 제외 15명 / 보호자 본인 포함 16명)
 function kidRowHTML(k, grades) {
   k = k || {}; const on = k.on !== false;
   const known = grades.indexOf(k.grade) > -1;
-  return `<div class="kid-row${on ? '' : ' off'}" data-kid><input type="checkbox" class="kid-on"${on ? ' checked' : ''} aria-label="이번 예약에 포함">` +
+  return `<div class="kid-row${on ? '' : ' off'}" data-kid><input type="checkbox" class="kid-on"${on ? ' checked' : ''} aria-label="이번 예약에 포함"><span class="kid-no" data-kid-no></span>` +
     `<input type="text" class="kid-name" placeholder="이름" value="${attr(k.name || '')}" maxlength="30" autocomplete="off">` +
     `<button type="button" class="del" data-action="kid-del" aria-label="빼기">✕</button>` +
     `<select class="kid-grade" aria-label="학년"><option value="">학년</option>${grades.map(g => `<option value="${attr(g)}"${k.grade === g ? ' selected' : ''}>${esc(g)}</option>`).join('')}<option value="__other"${k.grade && !known ? ' selected' : ''}>기타</option></select>` +
@@ -1148,7 +1150,7 @@ function showKidPaste() {
   const old = $('#result-modal'); if (old) old.remove();
   const el = document.createElement('div'); el.id = 'result-modal'; el.className = 'modal'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true');
   el.innerHTML = `<div class="modal-card"><h2>명단 붙여넣기</h2>
-    <p class="note" style="text-align:left">한 줄에 한 명씩 이름을 넣으세요 (학급 명단을 복사해 붙여 넣어도 됩니다). "이름 3학년" 처럼 학년을 함께 적어도 되고, 아래에서 전원 학년을 한 번에 정할 수도 있습니다. 본인 포함 ${KIDS_MAX + 1}명까지.</p>
+    <p class="note" style="text-align:left">한 줄에 한 명씩 이름을 넣으세요 (학급 명단을 복사해 붙여 넣어도 됩니다). "이름 3학년" 처럼 학년을 함께 적어도 되고, 아래에서 전원 학년을 한 번에 정할 수도 있습니다. 어린이 ${KIDS_MAX}명까지.</p>
     <textarea id="kidpaste" rows="7" style="width:100%;font-size:15px;padding:10px;border:1px solid var(--line);border-radius:10px" placeholder="김하늘&#10;박두리 3학년&#10;최친구, 천안초"></textarea>
     <label class="field" style="text-align:left"><span>전원 학년 (비우면 줄마다 적은 학년)</span><select id="kidpastegrade"><option value="">선택 안 함</option>${grades.map(g => `<option value="${attr(g)}">${esc(g)}</option>`).join('')}</select></label>
     <div class="row"><button type="button" class="btn primary" data-action="kid-paste-add">목록에 추가</button><button type="button" class="btn" data-action="modal-close">닫기</button></div></div>`;
@@ -1172,8 +1174,9 @@ function renderRsvForm() {
       <div class="kids-head"><span>함께 온 어린이 (형제·친구·단체)</span><span class="kids-btns"><button type="button" class="btn small" data-action="kid-add">＋ 추가</button><button type="button" class="btn small" data-action="kid-paste">명단 붙여넣기</button></span></div>
       <div class="roster-note" data-roster-note hidden></div>
       <div data-kid-rows>${loadKids().map(k => kidRowHTML(k, grades)).join('')}</div>
+      <label class="chk leader-box${loadKids().length && S.rsv.rosterFound ? '' : ' hidden'}" data-leader-box><input type="checkbox" id="rleader"${S.rsv.leader ? ' checked' : ''}><span><b>위 이름은 인솔자(보호자)</b> — 예약 명단에 넣지 않고 아래 어린이만 예약합니다</span></label>
       <div class="kids-tools${loadKids().length ? '' : ' hidden'}" data-kid-tools><label>전원 학년<select id="kidgradeall" aria-label="전원 학년"><option value="">선택</option>${grades.map(g => `<option value="${attr(g)}">${esc(g)}</option>`).join('')}</select></label><span class="note" data-kid-count></span></div>
-      <p class="note">같은 보호자(학부모) 휴대폰으로 함께 예약합니다. 어린이마다 따로 접수되어 확정/대기가 각각 표시되고, 학교가 다른 어린이는 소속 칸만 고치면 됩니다. 체크를 풀면 이번 예약에서 빠집니다. 본인 포함 ${KIDS_MAX + 1}명까지.</p>
+      <p class="note">같은 보호자(인솔자) 휴대폰으로 함께 예약합니다. 어린이마다 따로 접수되어 확정/대기가 각각 표시되고, 소속이 다른 어린이는 소속 칸만 고치면 됩니다. 체크를 풀면 이번 예약에서 빠집니다. 어린이 ${KIDS_MAX}명까지.</p>
     </div>
     <label class="field"><span>소속 (학교/기관)</span><input id="rorg" name="org" type="text" autocomplete="organization" placeholder="예: 천안불당초등학교" value="${attr(me.org)}" maxlength="60" required></label>
     <label class="field"><span>학년 (2026년 11월 기준)</span><select id="rgrade" name="grade" required><option value="">선택하세요</option>${grades.map(g => `<option value="${attr(g)}"${me.grade === g ? ' selected' : ''}>${esc(g)}</option>`).join('')}<option value="__other"${other ? ' selected' : ''}>기타 (직접 입력)</option></select></label>
@@ -1192,7 +1195,7 @@ function rsvValues() {
     name: (($('#rname') || {}).value || '').trim(), phone: fmtPhone(($('#rphone') || {}).value || '') || (($('#rphone') || {}).value || '').trim(), org: (($('#rorg') || {}).value || '').trim(),
     grade: g === '__other' ? (($('#rgrade2') || {}).value || '').trim() : g,
     consent: !!($('#rconsent') && $('#rconsent').checked), remember: !$('#rremember') || $('#rremember').checked,
-    kids: kidValues(),
+    kids: kidValues(), leader: !!(S.rsv.rosterFound && $('#rleader') && $('#rleader').checked),
   };
 }
 /** 화면에서 먼저 거르는 입력 검사 (서버도 같은 규칙으로 다시 검사). 문제가 있으면 그 칸으로 이동 */
@@ -1201,7 +1204,8 @@ function rsvProblem(v, b) {
   if (!v.name) return { msg: '이름을 입력해 주세요', el: $('#rname') };
   if (!/^01[016789]\d{7,8}$/.test(phoneDigits(v.phone))) return { msg: '휴대폰 번호를 확인해 주세요 (예: 010-1234-5678 — 하이픈은 없어도 됩니다)', el: $('#rphone') };
   if (!v.org) return { msg: '소속(학교/기관)을 입력해 주세요', el: $('#rorg') };
-  if (!v.grade) return { msg: '학년을 선택해 주세요', el: ($('#rgrade') || {}).value === '__other' ? $('#rgrade2') : $('#rgrade') };
+  if (!v.grade && !v.leader) return { msg: '학년을 선택해 주세요', el: ($('#rgrade') || {}).value === '__other' ? $('#rgrade2') : $('#rgrade') };
+  if (v.leader && !v.kids.some(k => k.on && k.name)) return { msg: '인솔자 예약은 어린이가 한 명 이상 체크되어 있어야 합니다', el: $('[data-kid-rows]') };
   for (const k of v.kids) {
     if (!k.on) continue;
     if (!k.name) return { msg: '함께 온 어린이의 이름을 적거나 체크를 풀어 주세요', el: k.el.querySelector('.kid-name') };
@@ -1261,7 +1265,7 @@ async function submitRsv(opts) {
   const wait = b.mode !== ALWAYS && (opts.wait === true || slotInfo(b, S.rsv.slot, now).full);
   const kids = v.kids.filter(k => k.on && k.name);
   const payload = { reqId: opts.reqId || newReqId(), booth: b.no, slot: b.mode === ALWAYS ? '' : S.rsv.slot, date: S.day || '', wait: wait, name: v.name, phone: v.phone, org: v.org, grade: v.grade, consent: true };
-  if (kids.length) payload.children = [{ name: v.name, grade: v.grade }].concat(kids.map(k => ({ name: k.name, grade: k.grade, org: k.org || '' }))); // 함께 온 어린이: 한 번에 여러 명 (소속이 다르면 어린이별로)
+  if (kids.length) payload.children = (v.leader ? [] : [{ name: v.name, grade: v.grade }]).concat(kids.map(k => ({ name: k.name, grade: k.grade, org: k.org || '' }))); // 함께 온 어린이: 한 번에 여러 명 (소속이 다르면 어린이별로). 인솔자 모드면 위 이름은 제외
   S.rsv.busy = true; S.rsv.retry = null; S.rsv.reqId = payload.reqId; renderCta();
   saveMe({ name: v.name, phone: v.phone, org: v.org, grade: v.grade }, v.remember);
   saveKids(v.kids.filter(k => k.name).map(k => ({ name: k.name, grade: k.grade, org: k.org, on: k.on })), v.remember);
@@ -1490,7 +1494,7 @@ async function lookupMy() {
   try {
     S.my.list = await rpc('findMyReservations', S.my.name, S.my.phone);
     applyMyList(S.my.list); watchStart();
-    S.my.family = null; if (S.my.list.length) { try { S.my.family = await rpc('familyNames', S.my.name, S.my.phone); } catch (x) { } }
+    S.my.family = null; try { S.my.family = await rpc('familyNames', S.my.name, S.my.phone); } catch (x) { } // 인솔자는 본인 예약이 없어도 명단의 어린이 이름이 옴
     S.my.confirm = '';
     S.my.hint = null;
     renderMyList();
@@ -1511,7 +1515,11 @@ function myEmptyHTML() {
 function renderMyList() {
   const host = $('[data-my-list]'); if (!host) return;
   const list = S.my.list || [];
-  if (!list.length) { host.innerHTML = myEmptyHTML(); return; }
+  if (!list.length) {
+    const famE = (S.my.family || []).filter(n => n && n !== S.my.name);
+    if (famE.length) { host.innerHTML = `<div class="fam" style="margin-top:10px"><span><b>${esc(S.my.name)}</b> 님 본인 예약은 없고, 같은 휴대폰으로 예약된 어린이가 있습니다. 이름을 누르면 그 어린이의 예약을 봅니다:</span>${famE.map(n => `<button type="button" data-action="my-switch" data-name="${attr(n)}">${esc(n)}</button>`).join('')}</div>`; return; }
+    host.innerHTML = myEmptyHTML(); return;
+  }
   const now = kstNow();
   // 시간 순(취소는 맨 뒤, 상시운영은 시간대 뒤) — 행사 당일 "다음에 어디로 가야 하나"가 바로 보이도록
   const order = r => { if (r.status === ST.CANCEL) return 1e6 + Number(String(r.no).replace(/\D/g, '')); const t = parseSlot(r.slot); return t ? t.start : 5000; };
@@ -2109,7 +2117,7 @@ document.addEventListener('click', e => {
   if (a === 'pick-slot') { pickSlot(act.dataset.slot); return; }
   if (a === 'submit-rsv') { submitRsv(); return; }
   if (a === 'day') { setDay(act.dataset.day); return; }
-  if (a === 'kid-add') { const host = $('[data-kid-rows]'); if (!host) return; if ($$('[data-kid]').length >= KIDS_MAX) { toast('함께 예약은 본인 포함 ' + (KIDS_MAX + 1) + '명까지입니다', 'err'); return; } host.insertAdjacentHTML('beforeend', kidRowHTML({ on: true }, S.status.grades || [])); syncKidTools(); const last = $$('[data-kid] .kid-name').pop(); if (last) last.focus(); return; }
+  if (a === 'kid-add') { const host = $('[data-kid-rows]'); if (!host) return; if ($$('[data-kid]').length >= KIDS_MAX) { toast('함께 온 어린이는 ' + KIDS_MAX + '명까지입니다', 'err'); return; } host.insertAdjacentHTML('beforeend', kidRowHTML({ on: true }, S.status.grades || [])); syncKidTools(); const last = $$('[data-kid] .kid-name').pop(); if (last) last.focus(); return; }
   if (a === 'kid-del') { const row = act.closest('[data-kid]'); if (row) row.remove(); syncKidTools(); return; }
   if (a === 'kid-paste') { showKidPaste(); return; }
   if (a === 'kid-paste-add') {
@@ -2185,6 +2193,7 @@ document.addEventListener('change', async e => {
   if (t.id === 'rgrade') { const o = $('[data-grade-other]'); if (o) { o.classList.toggle('hidden', t.value !== '__other'); if (t.value === '__other') { const i = $('#rgrade2'); if (i) i.focus(); } } t.classList.remove('bad'); return; }
   if (t.id === 'rconsent') { t.classList.remove('bad'); return; }
   if (t.id === 'rphone' || t.id === 'rname') { tryRoster(); return; }
+  if (t.id === 'rleader') { S.rsv.leader = t.checked; syncKidTools(); return; }
   if (t.classList && t.classList.contains('kid-on')) { const row = t.closest('[data-kid]'); if (row) row.classList.toggle('off', !t.checked); return; }
   if (t.id === 'kidgradeall') { if (t.value) { $$('[data-kid] .kid-grade').forEach(sel => { sel.value = t.value; }); toast('함께 온 어린이 전원을 ' + t.value + '으로'); } return; }
   if (t.id === 'wgrade') { const o = $('[data-wgrade-other]'); if (o) { o.classList.toggle('hidden', t.value !== '__other'); if (t.value === '__other') { const i = $('#wgrade2'); if (i) i.focus(); } } return; }
