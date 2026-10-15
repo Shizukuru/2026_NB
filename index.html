@@ -412,6 +412,8 @@ a.brand:hover .brand-name{color:var(--accent)}
 .chip.link{text-decoration:none;color:var(--accent);border-color:var(--accent-soft);background:var(--accent-soft)}
 .place{margin:8px 0 0;display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;font-size:13.5px}
 .sign .desc{margin:8px 0 0;font-size:15px;line-height:1.55;color:var(--fg);background:var(--accent-soft);border-left:3px solid var(--accent);padding:8px 12px;border-radius:0 10px 10px 0;word-break:keep-all}
+/* 전체 보기 카드의 한 줄 소개: 설명을 보고 부스를 고를 수 있게. 길면 2줄까지만 보이고 부스 페이지에서 전문 */
+.booth-desc{margin:6px 0 2px;font-size:13.5px;line-height:1.5;color:var(--fg);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:keep-all;padding-left:9px;border-left:3px solid var(--accent-soft)}
 .qr-card .place-line{font-size:14px;font-weight:600;color:#0E7C6B;background:#E6F3EF;border-radius:8px;padding:4px 12px}
 .map-page{max-width:900px}
 .map-tabs{margin-top:8px}
@@ -474,8 +476,9 @@ button.slot-row:disabled{cursor:default}
 /* 함께 온 어린이: 보호자 휴대폰 하나로 여러 어린이를 한 번에 */
 .kids{border:1px dashed var(--line);border-radius:12px;padding:10px 12px;display:grid;gap:8px;background:var(--bg)}
 .kids-head{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:14px;font-weight:700}
-.kid-row{display:grid;grid-template-columns:auto 1fr auto;grid-template-areas:"on name del" ". grade org";gap:6px;align-items:center;padding-bottom:6px;border-bottom:1px dashed var(--line)}
+.kid-row{display:grid;grid-template-columns:auto minmax(0,1fr) minmax(0,1fr) auto;grid-template-areas:"on name name del" ". grade org .";gap:6px;align-items:center;padding-bottom:6px;border-bottom:1px dashed var(--line)}
 .kid-row .kid-on{grid-area:on}.kid-row .kid-name{grid-area:name}.kid-row .del{grid-area:del}.kid-row .kid-grade{grid-area:grade}.kid-row .kid-org{grid-area:org}
+.kid-row input[type="text"],.kid-row select{width:100%;box-sizing:border-box}
 .kid-row .kid-grade,.kid-row .kid-org{font-size:14px;padding:8px 9px}
 .kids-btns{display:flex;gap:6px}.kids-tools{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:13px}.kids-tools select{padding:6px 8px;font-size:14px;margin-left:6px}
 .kid-row input[type="checkbox"]{width:20px;height:20px;accent-color:var(--accent)}
@@ -483,6 +486,7 @@ button.slot-row:disabled{cursor:default}
 .kid-row .del{background:none;border:0;color:var(--fg-muted);font-size:18px;padding:4px 6px}
 .kid-row.off input[type="text"],.kid-row.off select{opacity:.45}
 .kids .note{margin:0;font-size:12.5px}
+.roster-note{font-size:13.5px;background:var(--accent-soft);color:var(--fg);border-radius:8px;padding:8px 10px;line-height:1.45}
 .group-list{display:grid;gap:6px;text-align:left;margin:4px 0}
 .group-list .g{display:flex;gap:8px;align-items:flex-start;font-size:14px;line-height:1.4;padding:8px 10px;border-radius:10px;background:var(--surface-2)}
 .group-list .g b{min-width:4em}.group-list .g.ok{background:var(--ok-soft)}.group-list .g.wait{background:var(--warn-soft)}.group-list .g.fail{background:var(--full-soft)}
@@ -1006,6 +1010,7 @@ function cardHTML(b, now) {
   return `<article class="booth" data-action="open-booth" data-no="${b.no}" role="button" tabindex="0">
     <div class="booth-head"><div class="no${always ? ' always' : ''}">${b.no}</div>
       <div class="booth-title"><h3>${esc(b.name)}</h3><p class="meta"><span>${esc(b.org)}</span>${b.floor ? `<span class="tag floor">${esc(placeText(b))}</span>` : ''}<span class="tag">${esc(b.field)}</span><span class="tag ${always ? 'alw' : 'cls'}">${esc(b.mode)}</span></p></div></div>
+    ${b.desc ? `<p class="booth-desc">${esc(b.desc)}</p>` : ''}
     ${always ? `<div class="always-line">예약 없이 <b>방문 등록</b> 후 참여 · 등록 <b>${visits}</b>명</div>` : slotChipsHTML(b, now)}
     <div class="booth-foot">${always ? `<span class="avail">정원 제한 없음 · 등록 후 참여</span>` : sum.total === 0 ? `<span class="avail">${sum.closed ? esc(closedNote(b.slots)) : '오늘 운영 종료'}</span>` : `<span class="avail${sum.left === 0 ? ' full' : ''}">${sum.left === 0 ? '<b>전 시간대 마감</b>' : '잔여 <b>' + sum.left + '석</b> · ' + sum.open + '개 시간대'}${sum.closed ? ' · ' + esc(closedNote(b.slots)) : ''}</span>`}
       <span class="btn small">${always ? '방문 등록' : '예약하기'}</span></div>
@@ -1086,6 +1091,25 @@ function updateBooth() {
 /** 함께 온 어린이 목록 (이 휴대폰에 기억) */
 function loadKids() { try { const k = JSON.parse(localStorage.getItem('kids') || '[]'); return Array.isArray(k) ? k.filter(x => x && x.name).slice(0, KIDS_MAX) : []; } catch (x) { return []; } }
 function saveKids(list, remember) { try { if (remember === false) localStorage.removeItem('kids'); else localStorage.setItem('kids', JSON.stringify((list || []).filter(x => x && x.name).slice(0, KIDS_MAX))); } catch (x) { } }
+/** 단체 명단 자동 채우기: 인솔자가 이름·휴대폰을 넣으면 시트 '단체 명단' 탭의 명단을 '함께 온 어린이'에 채운다 (한 번 채운 조합은 다시 묻지 않음) */
+let rosterAsked = {};
+async function tryRoster() {
+  const name = (($('#rname') || {}).value || '').trim(), phone = phoneDigits(($('#rphone') || {}).value || '');
+  if (!name || phone.length < 10) return;
+  const key = name.replace(/\s+/g, '') + '|' + phone;
+  if (rosterAsked[key]) return; rosterAsked[key] = true;
+  let r = null;
+  try { r = await rpc('groupRoster', name, phone); } catch (x) { rosterAsked[key] = false; return; }
+  if (!r || !r.kids || !r.kids.length) return;
+  const host = $('[data-kid-rows]'); if (!host) return;
+  const have = $$('[data-kid] .kid-name').map(i => i.value.trim()).filter(Boolean);
+  const grades = S.status.grades || [];
+  let added = 0;
+  r.kids.forEach(k => { if ($$('[data-kid]').length >= KIDS_MAX || have.indexOf(k.name) > -1) return; host.insertAdjacentHTML('beforeend', kidRowHTML({ name: k.name, grade: k.grade, org: k.org, on: true }, grades)); have.push(k.name); added++; });
+  syncKidTools();
+  const note = $('[data-roster-note]'); if (note) { note.hidden = false; note.innerHTML = `📋 사전 등록 명단 <b>${esc(r.group || '단체')}</b> ${r.kids.length}명을 불러왔습니다${added < r.kids.length ? ' (' + (r.kids.length - added) + '명은 이미 목록에 있음)' : ''}. 오늘 안 온 어린이는 체크를 풀어 주세요.`; }
+  if (added) toast('사전 등록 명단 ' + added + '명을 불러왔습니다');
+}
 function syncKidTools() { const n = $$('[data-kid]').length; const t = $('[data-kid-tools]'); if (t) t.classList.toggle('hidden', !n); const c = $('[data-kid-count]'); if (c) c.textContent = n ? '함께 ' + n + '명 (본인 포함 ' + (n + 1) + '명)' : ''; }
 const KIDS_MAX = 14; // 함께 온 어린이 최대 (본인 포함 15명 — 학급 단체 인솔자용)
 function kidRowHTML(k, grades) {
@@ -1095,7 +1119,7 @@ function kidRowHTML(k, grades) {
     `<input type="text" class="kid-name" placeholder="이름" value="${attr(k.name || '')}" maxlength="30" autocomplete="off">` +
     `<button type="button" class="del" data-action="kid-del" aria-label="빼기">✕</button>` +
     `<select class="kid-grade" aria-label="학년"><option value="">학년</option>${grades.map(g => `<option value="${attr(g)}"${k.grade === g ? ' selected' : ''}>${esc(g)}</option>`).join('')}<option value="__other"${k.grade && !known ? ' selected' : ''}>기타</option></select>` +
-    `<input type="text" class="kid-org" placeholder="소속 (비우면 위와 같음)" value="${attr(k.org || '')}" maxlength="60" autocomplete="off"></div>`;
+    `<input type="text" class="kid-org" placeholder="소속 (같으면 비움)" value="${attr(k.org || '')}" maxlength="60" autocomplete="off"></div>`;
 }
 function kidValues() {
   return $$('[data-kid]').map(row => {
@@ -1146,6 +1170,7 @@ function renderRsvForm() {
     </div>
     <div class="kids" data-kids>
       <div class="kids-head"><span>함께 온 어린이 (형제·친구·단체)</span><span class="kids-btns"><button type="button" class="btn small" data-action="kid-add">＋ 추가</button><button type="button" class="btn small" data-action="kid-paste">명단 붙여넣기</button></span></div>
+      <div class="roster-note" data-roster-note hidden></div>
       <div data-kid-rows>${loadKids().map(k => kidRowHTML(k, grades)).join('')}</div>
       <div class="kids-tools${loadKids().length ? '' : ' hidden'}" data-kid-tools><label>전원 학년<select id="kidgradeall" aria-label="전원 학년"><option value="">선택</option>${grades.map(g => `<option value="${attr(g)}">${esc(g)}</option>`).join('')}</select></label><span class="note" data-kid-count></span></div>
       <p class="note">같은 보호자(인솔자) 휴대폰으로 함께 예약합니다. 어린이마다 따로 접수되어 확정/대기가 각각 표시되고, 소속이 다른 어린이는 소속 칸만 고치면 됩니다. 체크를 풀면 이번 예약에서 빠집니다. 본인 포함 ${KIDS_MAX + 1}명까지.</p>
@@ -1159,6 +1184,7 @@ function renderRsvForm() {
     ${memoryNote()}
   </form>`;
   syncKidTools();
+  tryRoster(); // 기억된 인솔자라면 바로 명단 확인
 }
 function rsvValues() {
   const g = ($('#rgrade') || {}).value || '';
@@ -2158,6 +2184,7 @@ document.addEventListener('change', async e => {
   if (t.id === 'qrper' || t.id === 'qrregion') { updateQR(); return; }
   if (t.id === 'rgrade') { const o = $('[data-grade-other]'); if (o) { o.classList.toggle('hidden', t.value !== '__other'); if (t.value === '__other') { const i = $('#rgrade2'); if (i) i.focus(); } } t.classList.remove('bad'); return; }
   if (t.id === 'rconsent') { t.classList.remove('bad'); return; }
+  if (t.id === 'rphone' || t.id === 'rname') { tryRoster(); return; }
   if (t.classList && t.classList.contains('kid-on')) { const row = t.closest('[data-kid]'); if (row) row.classList.toggle('off', !t.checked); return; }
   if (t.id === 'kidgradeall') { if (t.value) { $$('[data-kid] .kid-grade').forEach(sel => { sel.value = t.value; }); toast('함께 온 어린이 전원을 ' + t.value + '으로'); } return; }
   if (t.id === 'wgrade') { const o = $('[data-wgrade-other]'); if (o) { o.classList.toggle('hidden', t.value !== '__other'); if (t.value === '__other') { const i = $('#wgrade2'); if (i) i.focus(); } } return; }
