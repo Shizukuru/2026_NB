@@ -541,6 +541,14 @@ button.slot-row:disabled{cursor:default}
 .my-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;display:grid;gap:8px;box-shadow:var(--shadow)}
 .my-card.cancel{opacity:.6}
 .my-title .seq{display:inline-block;background:var(--mark);color:var(--mark-ink);font:800 12.5px/1 var(--font-body);padding:5px 8px;border-radius:999px;margin-right:8px;vertical-align:2px;white-space:nowrap}
+.guide-card{text-align:left;max-width:460px}.guide-card h2{text-align:center;color:var(--accent)}.guide-card .what{text-align:center;color:var(--fg-muted);font-weight:500;font-size:13.5px}
+.guide-body{overflow:auto;min-height:80px}
+.modal-card.tall>.guide-body{flex:1 1 auto}
+.guide-list{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.guide-list li{display:grid;grid-template-columns:30px 1fr;gap:8px;align-items:start;font-size:14.5px;line-height:1.55;background:var(--surface-2);border-radius:12px;padding:10px 12px}
+.guide-list .gi{font-size:20px;line-height:1.2;text-align:center}
+.guide-ok{justify-content:center;font-weight:600;padding:6px 0}
+.guide-card .row .btn.big{width:100%}
 .my-card.done{opacity:.55;filter:grayscale(.7);background:var(--surface-2);box-shadow:none}
 .my-sep{display:flex;align-items:center;gap:10px;margin:14px 0 2px;color:var(--fg-muted);font-size:13px;font-weight:600}
 .my-sep::before,.my-sep::after{content:'';flex:1;border-top:1px dashed var(--line)}
@@ -1018,7 +1026,7 @@ function renderHome() {
       <section class="grid" data-grid aria-live="polite"></section>
       ${legendHTML()}
       ${sponsorsHTML()}
-      <footer class="foot"><span>수업형 부스는 시간대당 정원이 있어 접수 순서대로 확정됩니다. 상시운영 부스는 예약 없이 <b>방문 등록</b> 후 부스에서 선착순으로 참여할 수 있어요. ${esc(limitText())}</span><span class="foot-links"><a href="${attr(WEB ? WEB + '?page=admin&staff=1' : '#')}" data-action="go-staff">부스 담당자</a> · <a href="${attr(WEB ? WEB + '?page=admin' : '#')}" data-action="go-admin">운영자</a></span></footer>
+      <footer class="foot"><span>수업형 부스는 시간대당 정원이 있어 접수 순서대로 확정됩니다. 상시운영 부스는 예약 없이 <b>방문 등록</b> 후 부스에서 선착순으로 참여할 수 있어요. ${esc(limitText())}</span><span class="foot-links"><a href="#" data-action="guide-open">이용 안내</a> · <a href="${attr(WEB ? WEB + '?page=admin&staff=1' : '#')}" data-action="go-staff">부스 담당자</a> · <a href="${attr(WEB ? WEB + '?page=admin' : '#')}" data-action="go-admin">운영자</a></span></footer>
     </div>`;
   }
   updateHome();
@@ -1347,6 +1355,7 @@ async function callReserve(payload) {
 async function submitRsv(opts) {
   opts = opts || {};
   const b = booth(S.boothNo); if (!b || S.rsv.busy) return;
+  if (!guideAgreed()) { showGuide(false); return; } // 이용 안내에 동의해야 예약 가능
   const v = rsvValues();
   let bad = rsvProblem(v, b);
   if (bad && bad.kids) {
@@ -2181,6 +2190,39 @@ function updateQR() {
 }
 
 // ───────── 라우팅·렌더 ─────────
+// ───────── 방문객 이용 안내 (처음 한 번 · 동의해야 사용) ─────────
+const GUIDE_VER = '2026-10-a'; // 안내 내용을 바꾸면 이 값을 바꿔 모두에게 다시 보이게
+function guideAgreed() { try { return localStorage.getItem('guideOk') === GUIDE_VER; } catch (x) { return !!S.guideOk; } }
+function setGuideAgreed() { S.guideOk = true; try { localStorage.setItem('guideOk', GUIDE_VER); } catch (x) { } }
+function guideItemsHTML() {
+  const L = S.status.limits || {}, per = L.perSlot || 1, tot = L.total || 0, wm = waitMax();
+  const items = [
+    ['👨‍👩‍👧', '<b>보호자(인솔자) 이름·휴대폰</b>으로 예약하고, 참가 어린이를 추가해요. 한 번에 여러 명도 됩니다.'],
+    ['🕘', '<b>수업형 부스</b>는 시간대를 골라 예약해요. 정원이 차면 ' + (wm ? '<b>대기</b>(시간대당 ' + wm + '명)로 신청할 수 있고, 취소가 생기면 순서대로 자동 확정되어 이 화면에 알려 드려요.' : '마감됩니다.')],
+    ['✋', '한 어린이당 <b>같은 시간대 ' + per + '개</b>' + (tot ? ', <b>동시에 ' + tot + '개</b>까지 예약할 수 있어요. 앞 수업에 출석하거나 수업이 끝나면 다음 예약이 가능해요.' : '까지 예약할 수 있어요.')],
+    ['🚶', '<b>상시운영 부스</b>는 예약 없이 방문 등록만 하면 돼요. 부스에 <b>온 순서대로(선착순)</b> 입장해요.'],
+    ['🙋', '수업 시작 전에 부스에서 <b>어린이 이름</b>을 말해 주세요. 못 오게 되면 <b>내 예약</b>에서 꼭 취소해 주세요 — 기다리는 다른 어린이에게 자리가 갑니다.'],
+    ['🎫', '예약이 꽉 찼다면 부스 강사에게 <b>현장 등록</b>을 요청할 수 있어요. 강사가 자리를 보고 정하므로 참여하지 못할 수도 있어요.'],
+  ];
+  return '<ol class="guide-list">' + items.map(x => `<li><span class="gi" aria-hidden="true">${x[0]}</span><span>${x[1]}</span></li>`).join('') + '</ol>';
+}
+/** force=true: 하단 [이용 안내] 로 다시 보기 (닫기 가능). 아니면 처음 방문 때 동의해야 닫힘 */
+function showGuide(force) {
+  if ($('#guide-modal')) return;
+  const must = !force && !guideAgreed();
+  if (!force && !must) return;
+  const el = document.createElement('div'); el.id = 'guide-modal'; el.className = 'modal'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true'); el.setAttribute('aria-labelledby', 'guide-title');
+  el.innerHTML = `<div class="modal-card tall guide-card">
+    <h2 id="guide-title">예약 전에 꼭 읽어 주세요</h2>
+    <div class="what">${esc((S.status.event || {}).name || '')} 부스 예약 이용 안내</div>
+    <div class="guide-body">${guideItemsHTML()}</div>
+    ${must ? `<label class="chk guide-ok"><input type="checkbox" id="guideok"><span>위 안내를 확인했고 동의합니다</span></label>
+      <div class="row"><button type="button" class="btn primary big" data-action="guide-agree" disabled>동의하고 시작하기</button></div>`
+      : `<div class="row"><button type="button" class="btn primary" data-action="guide-close">닫기</button></div>`}
+  </div>`;
+  document.body.appendChild(el);
+}
+function maybeShowGuide() { if ((S.view === 'home' || S.view === 'booth' || S.view === 'map' || S.view === 'my') && !guideAgreed()) showGuide(false); }
 function render() {
   if (S.view !== 'tv') document.documentElement.removeAttribute('data-theme');
   applyBigFont();
@@ -2192,6 +2234,7 @@ function render() {
   else if (S.view === 'map') renderMap();
   else renderHome();
   if (PREVIEW) renderPreviewBar();
+  maybeShowGuide();
   schedule();
 }
 function updateView() {
@@ -2275,7 +2318,8 @@ function renderPreviewBar() {
 
 // ───────── 이벤트 ─────────
 document.addEventListener('click', e => {
-  if (e.target.id === 'result-modal') { closeModal(); return; } // 결과 팝업 바깥(어두운 부분)을 누르면 닫힘
+  if (e.target.id === 'result-modal') { closeModal(); return; }
+  if (e.target.id === 'guide-modal' && guideAgreed()) { e.target.remove(); return; } // 다시 보기일 때만 바깥 눌러 닫힘 // 결과 팝업 바깥(어두운 부분)을 누르면 닫힘
   const pv = e.target.closest('[data-preview-view]');
   if (pv) { go(pv.dataset.previewView, pv.dataset.previewView === 'booth' ? (S.boothNo || 8) : null); return; }
   if (PREVIEW) {
@@ -2335,6 +2379,9 @@ document.addEventListener('click', e => {
     tryRoster(true).then(r => { if (r && r.found && !r.added) toast('빠진 어린이가 없습니다 — 명단 ' + r.total + '명이 모두 목록에 있어요'); else if (r && !r.found) toast('이 이름·휴대폰으로 등록된 사전 명단이 없습니다', 'err'); else if (!r) toast('명단을 불러오지 못했습니다. 잠시 후 다시 눌러 주세요', 'err'); }).finally(() => { const b2 = $('[data-action="roster-reload"]'); if (b2) b2.disabled = false; });
     return;
   }
+  if (a === 'guide-agree') { if (!($('#guideok') || {}).checked) return; setGuideAgreed(); const g = $('#guide-modal'); if (g) g.remove(); return; }
+  if (a === 'guide-close') { const g = $('#guide-modal'); if (g) g.remove(); return; }
+  if (a === 'guide-open') { e.preventDefault(); showGuide(true); return; }
   if (a === 'kid-paste') { showKidPaste(); return; }
   if (a === 'tag') { e.stopPropagation(); S.f.q = '#' + act.dataset.tag; if (S.view !== 'home') go('home'); else { const qi = $('#q'); if (qi) qi.value = S.f.q; updateHome(); } setTimeout(() => { const qi = $('#q'); if (qi) { qi.value = S.f.q; qi.scrollIntoView({ block: 'center' }); } }, 0); return; }
   if (a === 'kid-paste-add') {
@@ -2425,6 +2472,7 @@ document.addEventListener('change', async e => {
   if (t.id === 'qrper' || t.id === 'qrregion') { updateQR(); return; }
   if (t.id === 'rgrade') { const o = $('[data-grade-other]'); if (o) { o.classList.toggle('hidden', t.value !== '__other'); if (t.value === '__other') { const i = $('#rgrade2'); if (i) i.focus(); } } t.classList.remove('bad'); return; }
   if (t.id === 'rconsent') { t.classList.remove('bad'); return; }
+  if (t.id === 'guideok') { const btn = $('[data-action="guide-agree"]'); if (btn) btn.disabled = !t.checked; return; }
   if (t.id === 'rphone' || t.id === 'rname') { tryRoster(); return; }
   if (t.id === 'rleader') { S.rsv.leader = t.checked; syncKidTools(); return; }
   if (t.classList && t.classList.contains('kid-on')) { const row = t.closest('[data-kid]'); if (row) row.classList.toggle('off', !t.checked); return; }
