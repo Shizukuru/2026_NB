@@ -522,6 +522,7 @@ button.slot-row:disabled{cursor:default}
 .modal-icon.ok{background:var(--ok)} .modal-icon.wait{background:var(--warn)} .modal-icon.cancel{background:var(--full)}
 .modal-card h2{font-size:21px;font-weight:700}
 .modal-card .what{font-size:15px;font-weight:600}
+.modal-card .note,.group-list .g span{white-space:pre-line}
 .modal-card .row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:4px}
 
 /* ── 내 예약 (방문객 본인 확인·취소) ── */
@@ -953,8 +954,8 @@ function limitText() {
   const L = S.status.limits || {};
   const parts = [];
   if (L.perSlot) parts.push('같은 시간대 ' + L.perSlot + '개');
-  if (L.total) parts.push('전체(오전, 오후 구분없이) ' + L.total + '개');
-  return parts.length ? '한 어린이(이름+연락처)당 ' + parts.join(', ') + '까지 접수됩니다.' : '';
+  if (L.total) parts.push('동시에 ' + L.total + '개');
+  return parts.length ? '한 어린이(이름+연락처)당 ' + parts.join(', ') + '까지 예약할 수 있어요.' + (L.total ? ' 앞 수업에 출석하거나 수업이 끝나면 다음 예약이 가능합니다.' : '') : '';
 }
 function legendHTML() {
   return `<div class="legend"><span><i style="background:var(--ok)"></i>여유</span><span><i style="background:var(--warn)"></i>잔여 30% 이하</span><span><i style="background:var(--full)"></i>마감 (대기 = 대기 신청 가능${waitMax() ? ', 최대 ' + waitMax() + '명' : ''})</span><span><i style="background:var(--neutral)"></i>종료·상시운영</span><span><i style="background:var(--mark)"></i>지금 진행 중인 시간대</span></div>`;
@@ -1025,7 +1026,7 @@ function updateHome() {
     `<span>수업형 <b>${cls.length}</b> · 상시운영 <b>${booths.length - cls.length}</b> 부스</span>` +
     `<span>예약 가능 시간대 <b>${open}</b> / ${total}</span>` + sessionPillsHTML() +
     (cur.now ? `<span class="now">지금 ${esc(cur.now)} 진행 중</span>` : cur.next ? `<span>다음 시간대 <b>${esc(cur.next)}</b></span>` : S.status.event && S.status.event.date ? `<span>행사일 <b>${esc(S.status.event.date)}</b></span>` : '') +
-    `<span style="margin-left:auto;display:inline-flex;gap:6px;flex-wrap:wrap"><a class="btn small" href="${attr(WEB ? WEB + '?page=map' : '#')}" data-action="map">층별 배치도</a><a class="btn small" href="${attr(WEB ? WEB + '?page=my' : '#')}" data-action="my">내 예약 확인·취소${myActiveCount() ? ' <b class="badge">' + myActiveCount() + '</b>' : ''}</a></span>`;
+    `<span style="margin-left:auto;display:inline-flex;gap:6px;flex-wrap:wrap"><a class="btn small" href="${attr(WEB ? WEB + '?page=map' : '#')}" data-action="map">층별 배치도</a><a class="btn small" href="${attr(WEB ? WEB + '?page=my' : '#')}" data-action="my" data-my-badge>내 예약 확인·취소${myActiveCount() ? ' <b class="badge">' + myActiveCount() + '</b>' : ''}</a></span>`;
   $$('[data-filter]').forEach(c => c.classList.toggle('on', S.f[c.dataset.filter] === c.dataset.value));
   $$('[data-fsel]').forEach(s => { s.value = S.f[s.dataset.fsel]; });
   const fa = $('#favail'); if (fa) fa.checked = !!S.f.avail;
@@ -1043,7 +1044,22 @@ function updateHome() {
 /** 전체 보기 필터를 이 휴대폰에 기억 (검색어 제외) */
 function saveFilters() { try { localStorage.setItem('filters', JSON.stringify({ region: S.f.region, field: S.f.field, mode: S.f.mode, floor: S.f.floor, avail: !!S.f.avail })); } catch (x) { } }
 function loadFilters() { try { const f = JSON.parse(localStorage.getItem('filters') || 'null'); if (f) ['region', 'field', 'mode', 'floor', 'avail'].forEach(k => { if (f[k] != null) S.f[k] = f[k]; }); } catch (x) { } }
-function myActiveCount() { const snap = loadSnap(); return Object.keys(snap).filter(k => k !== '_t' && snap[k] && (snap[k].status === ST.OK || snap[k].status === ST.WAIT || snap[k].status === ST.PENDING)).length; }
+/** '내 예약' 배지: 이 휴대폰의 예약 중 아직 남은 것(확정·대기, 오늘 끝나지 않은 시간대 + 다가오는 날). 지난 날·끝난 시간대·취소는 세지 않음 */
+function myActiveCount() {
+  const snap = loadSnap(), now = kstNow(), today = todayStr();
+  return Object.keys(snap).filter(k => {
+    const x = snap[k]; if (k === '_t' || !x) return false;
+    if (!(x.status === ST.OK || x.status === ST.WAIT || x.status === ST.PENDING)) return false;
+    const d = x.date || eventDates()[0] || '';
+    if (d && d < today) return false;
+    if (d === today && x.slot && x.slot !== ALWAYS) { try { if (resPast({ date: d, slot: x.slot }, now)) return false; } catch (e) { } }
+    return true;
+  }).length;
+}
+function updateMyBadge() {
+  const n = myActiveCount();
+  $$('[data-my-badge]').forEach(a => { let b = a.querySelector('.badge'); if (!n) { if (b) b.remove(); return; } if (!b) { b = document.createElement('b'); b.className = 'badge'; a.appendChild(b); } b.textContent = n; });
+}
 /** 상시운영 부스 인원: 누적 참여(출석) · 등록 대기(입장 전). 입장 확인을 끈 행사면 등록 = 참여 */
 function alwaysCheck() { return !S.status || S.status.alwaysCheck !== false; }
 function alwaysCounts(b) {
@@ -1342,7 +1358,7 @@ async function submitRsv(opts) {
   if (!err && res && res.group) { // 여러 어린이 결과
     const list = res.results || [];
     const snap = loadSnap();
-    list.forEach(r => { if (r.ok) { if (b.mode !== ALWAYS && !r.again) patchCounts(b.no, r.slot, r.status); snap[r.no] = { status: r.status, booth: r.booth, boothName: r.boothName, slot: r.slot }; } });
+    list.forEach(r => { if (r.ok) { if (b.mode !== ALWAYS && !r.again) patchCounts(b.no, r.slot, r.status); snap[r.no] = { status: r.status, booth: r.booth, boothName: r.boothName, slot: r.slot, date: r.date || '' }; } });
     saveSnap(snap); watchStart();
     if (list.some(r => r.ok)) { S.rsv.slot = null; updateBooth(); } else renderCta();
     showGroupResult(list, b, payload.slot || ALWAYS, wait, payload.reqId);
@@ -1352,7 +1368,7 @@ async function submitRsv(opts) {
   if (err) { renderCta(); showResult({ kind: 'error', booth: b.no, boothName: b.name, slot: payload.slot || ALWAYS, message: '서버와 연결이 계속 끊겨 접수 여부를 확인하지 못했습니다. [다시 시도]를 누르면 같은 요청으로 다시 확인합니다 (중복 접수되지 않음).', reqId: payload.reqId }); return; }
   if (res && res.ok) {
     if (b.mode !== ALWAYS && !res.again) patchCounts(b.no, res.slot, res.status);
-    { const snap = loadSnap(); snap[res.no] = { status: res.status, booth: res.booth, boothName: res.boothName, slot: res.slot }; saveSnap(snap); watchStart(); }
+    { const snap = loadSnap(); snap[res.no] = { status: res.status, booth: res.booth, boothName: res.boothName, slot: res.slot, date: res.date || '' }; saveSnap(snap); watchStart(); }
     S.rsv.slot = null;
     updateBooth();
     showResult(Object.assign({ kind: 'ok' }, res));
@@ -1403,6 +1419,8 @@ function showResult(r) {
   document.body.appendChild(el);
 }
 /** 함께 온 어린이 결과: 어린이마다 확정 / 대기 / 접수 불가 한 줄씩 */
+/** 1인 제한 사유 이름: 같은 시간대 중복 / 예약 한도 초과 (하루 n개) */
+function limitLabel(r) { return /같은 시간대/.test((r && r.message) || '') ? '같은 시간대 중복' : '예약 한도 초과'; }
 function showGroupResult(list, b, slot, wasWait, reqId) {
   const always = slot === ALWAYS;
   const nOk = list.filter(r => r.ok && r.status === ST.OK).length, nWait = list.filter(r => r.ok && r.status === ST.WAIT).length, nFail = list.filter(r => !r.ok).length;
@@ -1411,14 +1429,14 @@ function showGroupResult(list, b, slot, wasWait, reqId) {
   const cls = nFail === 0 ? (nWait ? 'wait' : 'ok') : nOk + nWait === 0 ? 'cancel' : 'wait';
   const icon = cls === 'ok' ? '✓' : cls === 'wait' ? '…' : '✕';
   // 같은 사유로 접수되지 않은 어린이가 여럿이면 한 줄로 묶음 (14명이 같은 문장을 반복하지 않게)
-  const failWhat = r => (r.code === 'LIMIT' ? '1인 제한' : r.code === 'FULL' ? '마감 (자리 없음)' : r.code === 'WAITFULL' ? '접수 마감' : '접수 안 됨') + (r.message ? ' — ' + r.message : '');
+  const failWhat = r => (r.code === 'LIMIT' ? limitLabel(r) : r.code === 'FULL' ? '마감 (자리 없음)' : r.code === 'WAITFULL' ? '접수 마감' : '접수 안 됨') + (r.message ? ' — ' + r.message : '');
   const groups = {}; list.forEach(r => { if (r.ok) return; const k = failWhat(r); (groups[k] = groups[k] || []).push(r.name || ''); });
   const grouped = Object.keys(groups).filter(k => groups[k].length >= 3);
   const sumLines = grouped.map(k => `<div class="g fail sum"><b>${groups[k].length}명 ${esc(k)}</b><span class="names">${groups[k].map(esc).join(' · ')}</span></div>`).join('');
   const line = r => {
     if (!r.ok && grouped.indexOf(failWhat(r)) > -1) return '';
     const c = r.ok ? (r.status === ST.OK ? 'ok' : 'wait') : 'fail';
-    const what = r.ok ? (r.status === ST.OK ? (r.again ? '이미 예약됨' : (always ? '등록' : '확정')) + (r.no ? ' · ' + r.no : '') : '대기' + (r.waitNo ? ' ' + r.waitNo + '번째' : '')) : (r.code === 'LIMIT' ? '1인 제한' : r.code === 'FULL' ? '마감 (자리 없음)' : r.code === 'WAITFULL' ? '접수 마감' : '접수 안 됨') + (r.message ? ' — ' + r.message : '');
+    const what = r.ok ? (r.status === ST.OK ? (r.again ? '이미 예약됨' : (always ? '등록' : '확정')) + (r.no ? ' · ' + r.no : '') : '대기' + (r.waitNo ? ' ' + r.waitNo + '번째' : '')) : (r.code === 'LIMIT' ? limitLabel(r) : r.code === 'FULL' ? '마감 (자리 없음)' : r.code === 'WAITFULL' ? '접수 마감' : '접수 안 됨') + (r.message ? ' — ' + r.message : '');
     return `<div class="g ${c}"><b>${esc(r.name || '')}</b><span>${esc(what)}</span></div>`;
   };
   const btn = (act, label, primary, extra) => `<button type="button" class="btn${primary ? ' primary' : ''}" data-action="${act}"${extra || ''}>${label}</button>`;
@@ -1488,17 +1506,19 @@ const noticeShown = {}; // 이번 화면에서 이미 띄운 알림 (예약번�
  *  · 대기에서 확정: 서버 기록(메모 '자동 확정')에 '앱 확인'이 아직 없으면 띄움 — 휴대폰 저장소가 지워졌거나 다른 브라우저로 열어도 동작
  *  · 운영자 취소: 이 휴대폰이 기억하던 '확정'이 '취소'로 바뀐 경우
  */
-function applyMyList(list) {
+function applyMyList(list, full) {
   const snap = loadSnap(), notices = [];
+  if (full) { const keep = {}; (list || []).forEach(r => { keep[r.no] = true; }); Object.keys(snap).forEach(k => { if (k !== '_t' && !keep[k]) delete snap[k]; }); } // 서버 목록이 이 휴대폰 예약의 전부 — 없는 것은 취소·삭제된 것
   (list || []).forEach(r => {
     const prev = snap[r.no];
     const promotedUnseen = r.status === ST.OK && /자동 확정/.test(r.memo || '') && !/앱 확인/.test(r.notice || '') && !noticeShown[r.no];
     if (promotedUnseen || (prev && prev.status === ST.WAIT && r.status === ST.OK && !noticeShown[r.no])) notices.push({ kind: 'promoted', r });
     else if (prev && prev.status === ST.OK && r.status === ST.CANCEL && !/본인 취소/.test(r.memo || '') && !noticeShown[r.no]) notices.push({ kind: 'dropped', r });
-    snap[r.no] = { status: r.status, booth: r.booth, boothName: r.boothName, slot: r.slot };
+    snap[r.no] = { status: r.status, booth: r.booth, boothName: r.boothName, slot: r.slot, date: r.date || '' };
   });
   snap._t = Date.now();
   saveSnap(snap);
+  updateMyBadge();
   if (notices.length) { noticeShown[notices[0].r.no] = true; showNotice(notices[0]); }
   return notices;
 }
@@ -1528,7 +1548,7 @@ async function watchTick(force) {
   if (document.hidden || watchBusy) { watchSchedule(); return; }
   if (!force && !hasWaiting(loadSnap())) return; // 대기 중인 예약이 없으면 주기 확인은 하지 않음 (대기가 생기면 다시 시작)
   watchBusy = true;
-  try { const g = await rpc('findPhoneReservations', me.name, me.phone); applyMyList((g && g.list) || []); } catch (e) { /* 다음에 */ }
+  try { const g = await rpc('findPhoneReservations', me.name, me.phone); applyMyList((g && g.list) || [], true); } catch (e) { /* 다음에 */ }
   finally { watchBusy = false; }
   watchSchedule();
 }
@@ -1677,7 +1697,7 @@ async function cancelMy(resNo) {
     toast(res && res.already ? '이미 취소된 예약입니다' : '예약이 취소되었습니다');
     S.my.confirm = '';
     S.my.list = await rpc('findMyReservations', S.my.name, S.my.phone);
-    { const snap = loadSnap(); S.my.list.forEach(r => { snap[r.no] = { status: r.status, booth: r.booth, boothName: r.boothName, slot: r.slot }; }); saveSnap(snap); } // 본인 취소는 알림 대상 아님
+    { const snap = loadSnap(); S.my.list.forEach(r => { snap[r.no] = { status: r.status, booth: r.booth, boothName: r.boothName, slot: r.slot, date: r.date || '' }; }); saveSnap(snap); } // 본인 취소는 알림 대상 아님
     renderMyList();
     try { S.status = await rpc('getPublicStatus'); onStatus(S.status); } catch (x) { }
   } catch (e) { toast(e.message || '취소에 실패했습니다', 'err'); S.my.confirm = ''; renderMyList(); }
@@ -1789,7 +1809,7 @@ function renderAdmin() {
       <section data-panel="matrix"${S.admin.tab === 'matrix' ? '' : ' hidden'}><div class="scroll matrix" data-matrix></div></section>
       <section data-panel="list"${S.admin.tab === 'list' ? '' : ' hidden'}>
         <div class="toolbar">
-          <input id="aq" class="search" type="search" placeholder="이름 · 연락처 · 예약번호 검색" autocomplete="off" value="${attr(S.admin.f.q)}">
+          <input id="aq" class="search" type="search" placeholder="이름 · 연락처 · 예약번호(6오전-08-01) 검색" autocomplete="off" value="${attr(S.admin.f.q)}">
           <select id="astatus" aria-label="상태"><option value="">모든 상태</option><option value="${ST.OK}">확정</option><option value="${ST.WAIT}">대기</option><option value="${ST.CANCEL}">취소</option></select>
           <select id="aatt" aria-label="출결"><option value="">출결 전체</option><option value="출석">출석</option><option value="결석">결석</option><option value="open">미처리</option><option value="openpast">미처리 (끝난 시간대)</option></select>
           <select id="abooth" aria-label="부스"></select>
@@ -1890,12 +1910,12 @@ function renderList(d, now) {
   const st = $('#astatus'); if (st) st.value = f.status;
   const at = $('#aatt'); if (at) at.value = f.att || '';
   const so = $('#asort'); if (so) so.value = f.sort;
-  const q = f.q.trim().toLowerCase(), qd = q.replace(/\D/g, '');
+  const q = f.q.trim().toLowerCase(), qd = q.replace(/\D/g, ''), qn = /(오전|오후|상시)/.test(q) ? q.replace(/[\s-]/g, '') : ''; // 예약번호는 하이픈 없이·앞부분만 쳐도 (6오전08 → 6일 오전 8번 부스 전부)
   const attOf = r => r.att || (r.checkin ? '출석' : '');
   const attMatch = r => !f.att || (f.att === 'open' ? !attOf(r) && r.status === ST.OK : f.att === 'openpast' ? !attOf(r) && r.status === ST.OK && r.slot !== ALWAYS && phaseOf(r.slot, now) === 'past' : attOf(r) === f.att);
   let list = (d.reservations || []).filter(r => sameDayRes(r) &&
     (!f.status || r.status === f.status) && attMatch(r) && (!f.booth || String(r.booth) === f.booth) && (!f.slot || r.slot === f.slot) &&
-    (!q || r.name.toLowerCase().indexOf(q) > -1 || (r.guardian || '').toLowerCase().indexOf(q) > -1 || r.no.toLowerCase() === q || (qd.length >= 3 && r.phone.replace(/\D/g, '').indexOf(qd) > -1) || r.org.toLowerCase().indexOf(q) > -1));
+    (!q || r.name.toLowerCase().indexOf(q) > -1 || (r.guardian || '').toLowerCase().indexOf(q) > -1 || r.no.toLowerCase() === q || (qn && r.no.replace(/-/g, '').indexOf(qn) === 0) || (!qn && qd.length >= 3 && r.phone.replace(/\D/g, '').indexOf(qd) > -1) || r.org.toLowerCase().indexOf(q) > -1));
   const slotOrder = s => { const t = parseSlot(s); return t ? t.start : 9999; };
   if (f.sort === 'recent') list = list.slice().reverse();
   else if (f.sort === 'booth') list.sort((a, b) => a.booth - b.booth || slotOrder(a.slot) - slotOrder(b.slot) || a.no.localeCompare(b.no));
