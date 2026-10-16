@@ -15,40 +15,23 @@
 <style>
 /* 레이아웃: 행사장 시간표 보드 — 고정 헤더 + 필터 칩 + '부스 간판' 카드 격자. 운영자는 부스×시간대 매트릭스, TV는 2열 전광판. */
 :root{
-  --bg:#F3F7F5; --surface:#FFFFFF; --surface-2:#E8EEEB; --fg:#15231F; --fg-muted:#5C6C66; --line:#D3DDD8;
-  --accent:#0E7C6B; --accent-ink:#FFFFFF; --accent-soft:#D7EFE9;
-  --mark:#F2B134; --mark-ink:#3A2A05;
-  --ok:#1E8A5B; --ok-soft:#DBF2E5; --warn:#B86A05; --warn-soft:#FBE9CF; --full:#BE3F3A; --full-soft:#F8DEDC;
-  --neutral:#66756F; --neutral-soft:#E4EAE7;
+  /* 밝은 초등 행사풍: 크림 바탕 + 하늘색 포인트 + 해바라기 노랑 + 무지개 띠. 다크 모드 없음 (휴대폰이 다크 모드여도 항상 밝게) */
+  --bg:#FFF9EC; --surface:#FFFFFF; --surface-2:#F4EFE3; --fg:#1E2A44; --fg-muted:#5E6780; --line:#EADFC8;
+  --accent:#1F78D1; --accent-ink:#FFFFFF; --accent-soft:#DDEBFB;
+  --mark:#FFC93C; --mark-ink:#3A2A05;
+  --ok:#1C9A5A; --ok-soft:#DDF4E6; --warn:#D9730D; --warn-soft:#FFEBD2; --full:#E0453A; --full-soft:#FDE1DE;
+  --neutral:#6E7488; --neutral-soft:#EEEAF6;
+  --fun1:#FF6B6B; --fun2:#FFC93C; --fun3:#3CCB8B; --fun4:#4DA3FF; --fun5:#A98BFF;
   --font-display:'Do Hyeon','IBM Plex Sans KR','Apple SD Gothic Neo','Malgun Gothic',sans-serif;
   --font-body:'IBM Plex Sans KR','Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',sans-serif;
-  --radius:12px;
-  --shadow:0 1px 2px rgba(21,35,31,.06),0 8px 20px -14px rgba(21,35,31,.3);
-}
-@media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){
-    --bg:#0F1716; --surface:#172120; --surface-2:#1F2B28; --fg:#E6EFEC; --fg-muted:#9AAAA4; --line:#2B3936;
-    --accent:#3FB5A0; --accent-ink:#0B1513; --accent-soft:#163B35;
-    --mark:#F5C04A; --mark-ink:#2A1E03;
-    --ok:#4CC58A; --ok-soft:#173A2B; --warn:#F0A24A; --warn-soft:#3E2A10; --full:#F0776F; --full-soft:#44201E;
-    --neutral:#93A39E; --neutral-soft:#263330;
-    --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 24px -14px rgba(0,0,0,.7);
-    color-scheme:dark;
-  }
-}
-:root[data-theme="dark"]{
-  --bg:#0F1716; --surface:#172120; --surface-2:#1F2B28; --fg:#E6EFEC; --fg-muted:#9AAAA4; --line:#2B3936;
-  --accent:#3FB5A0; --accent-ink:#0B1513; --accent-soft:#163B35;
-  --mark:#F5C04A; --mark-ink:#2A1E03;
-  --ok:#4CC58A; --ok-soft:#173A2B; --warn:#F0A24A; --warn-soft:#3E2A10; --full:#F0776F; --full-soft:#44201E;
-  --neutral:#93A39E; --neutral-soft:#263330;
-  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 24px -14px rgba(0,0,0,.7);
-  color-scheme:dark;
+  --radius:16px;
+  --shadow:0 1px 2px rgba(30,42,68,.06),0 10px 22px -16px rgba(30,42,68,.35);
+  color-scheme:light;
 }
 
 *{box-sizing:border-box}
 html,body{height:100%}
-body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 var(--font-body);-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums;word-break:keep-all;overflow-wrap:break-word}
+body{margin:0;background-color:var(--bg);background-image:radial-gradient(circle at 12% 18%,rgba(255,107,107,.10) 0 6px,transparent 7px),radial-gradient(circle at 78% 8%,rgba(77,163,255,.12) 0 8px,transparent 9px),radial-gradient(circle at 42% 64%,rgba(255,201,60,.14) 0 5px,transparent 6px),radial-gradient(circle at 88% 72%,rgba(60,203,139,.12) 0 7px,transparent 8px),radial-gradient(circle at 26% 92%,rgba(169,139,255,.12) 0 6px,transparent 7px);background-size:420px 420px;color:var(--fg);font:15px/1.5 var(--font-body);-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums;word-break:keep-all;overflow-wrap:break-word}
 button,input,select{font:inherit;color:inherit}
 button{cursor:pointer}
 a{color:var(--accent)}
@@ -57,11 +40,13 @@ h1,h2,h3{margin:0;text-wrap:balance}
 .page{max-width:1180px;margin:0 auto;padding-inline:16px;padding-block:0 48px}
 .mono{font-variant-numeric:tabular-nums;letter-spacing:.01em}
 .hidden{display:none !important}
-:focus-visible{outline:2px solid var(--mark);outline-offset:2px}
+:focus-visible{outline:3px solid var(--mark);outline-offset:2px}
+body::before{content:'';position:fixed;top:0;left:0;right:0;height:5px;z-index:70;pointer-events:none;background:linear-gradient(90deg,var(--fun1) 0 20%,var(--fun2) 20% 40%,var(--fun3) 40% 60%,var(--fun4) 60% 80%,var(--fun5) 80% 100%)}
+@media print{body::before{display:none}body{background-image:none}}
 @media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
 
 /* ── 상단 헤더 ── */
-.top{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding-block:14px 10px;border-bottom:1px solid var(--line)}
+.top{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding-block:18px 12px;border-bottom:2px dashed var(--line)}
 .brand{display:flex;align-items:center;gap:12px;min-width:0}
 .brand svg{width:34px;height:34px;flex:none;color:var(--accent)}
 .brand img.logo{height:40px;width:auto;flex:none;display:block}
@@ -69,7 +54,7 @@ h1,h2,h3{margin:0;text-wrap:balance}
 .qr-card .qr-logo{height:34px;width:auto;display:block;margin:-4px auto 0}
 .qr-card.sample{position:relative;overflow:hidden}
 .qr-card .sample-mark{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%) rotate(-24deg);font:700 26px var(--font-display);color:rgba(190,63,58,.28);border:3px solid rgba(190,63,58,.28);border-radius:10px;padding:6px 16px;white-space:nowrap;pointer-events:none}
-.brand-name{font-family:var(--font-display);font-size:22px;line-height:1.15;letter-spacing:.01em}
+.brand-name{font-family:var(--font-display);color:var(--accent);font-size:24px;line-height:1.15;letter-spacing:.01em}
 .brand-sub{font-size:12.5px;color:var(--fg-muted);margin-top:2px}
 .live{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--fg-muted);white-space:nowrap}
 .live .clock{font-family:var(--font-display);font-size:24px;color:var(--fg);letter-spacing:.02em}
@@ -94,11 +79,11 @@ h1,h2,h3{margin:0;text-wrap:balance}
 
 /* ── 부스 카드 격자 ── */
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
-.booth{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px 14px 12px;display:flex;flex-direction:column;gap:12px;text-align:left;min-width:0;box-shadow:var(--shadow);transition:transform .12s ease}
+.booth{background:var(--surface);border:2px solid var(--line);border-radius:var(--radius);padding:14px 14px 12px;display:flex;flex-direction:column;gap:12px;text-align:left;min-width:0;box-shadow:var(--shadow);transition:transform .12s ease}
 .booth:hover{transform:translateY(-1px)}
 .booth-head{display:flex;gap:12px;align-items:flex-start;min-width:0}
 .no{font-family:var(--font-display);font-size:26px;line-height:1;width:50px;height:50px;flex:none;display:grid;place-items:center;border-radius:10px;background:var(--accent);color:var(--accent-ink)}
-.no.always{background:var(--neutral-soft);color:var(--fg)}
+.no.always{background:var(--mark);color:var(--mark-ink)}
 .booth-title{min-width:0;flex:1}
 .booth-title h3{font-size:16px;font-weight:600;line-height:1.3;overflow-wrap:anywhere}
 .meta{margin:3px 0 0;font-size:12.5px;color:var(--fg-muted);display:flex;flex-wrap:wrap;gap:4px 8px}
@@ -114,7 +99,7 @@ h1,h2,h3{margin:0;text-wrap:balance}
 .slot.full{background:var(--full-soft);color:var(--full)} .slot.full .t{color:var(--full)}
 .slot.past{background:var(--surface-2);color:var(--fg-muted)}
 .slot.now{border-color:var(--mark)}
-.always-line{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--fg-muted);background:var(--surface-2);border-radius:8px;padding:9px 10px}
+.always-line{display:block;font-size:13px;line-height:1.55;color:var(--fg-muted);background:var(--mark-soft,#FFF4D1);border:1px dashed #F2CF6B;border-radius:10px;padding:9px 12px}
 .always-line b{color:var(--fg)}
 .booth-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:auto}
 .avail{font-size:13px;color:var(--fg-muted)}
@@ -221,7 +206,7 @@ tr:last-child td{border-bottom:0}
 /* ── TV ── */
 .tv{height:calc(100vh - var(--chrome,0px));display:flex;flex-direction:column;padding:1vh 1.4vw;gap:.8vh;overflow:hidden;font-size:clamp(11px,1.55vh,22px)}
 .tv-top{display:flex;align-items:flex-end;justify-content:space-between;gap:2vw;border-bottom:2px solid var(--line);padding-bottom:.8vh}
-.tv-title{font-family:var(--font-display);font-size:2.6em;line-height:1.05}
+.tv-title{font-family:var(--font-display);color:var(--accent);font-size:2.6em;line-height:1.05}
 .tv-sub{color:var(--fg-muted);font-size:1.05em;margin-top:.3em;display:flex;gap:1.5em;flex-wrap:wrap}
 .tv-sub .now{background:var(--mark);color:var(--mark-ink);padding:.1em .7em;border-radius:999px;font-weight:600}
 .tv-clock{font-family:var(--font-display);font-size:4.2em;line-height:1;letter-spacing:.02em}
@@ -241,6 +226,7 @@ tr:last-child td{border-bottom:0}
 .tc.now{outline:2px solid var(--mark);outline-offset:-2px}
 .tv-always{grid-column:3/-1;background:var(--neutral-soft);color:var(--fg-muted);border-radius:.4em;padding:.1em .8em;align-self:stretch;display:flex;align-items:center;justify-content:space-between;font-size:.9em}
 .tv-always b{color:var(--fg)}
+.tv-alw-n{display:flex;gap:1em;white-space:nowrap}.tv-alw-n .w b{color:var(--warn)}.tv-alw-n .j b{color:var(--ok)}
 .tv-legend{display:flex;gap:1.6em;color:var(--fg-muted);font-size:.9em;justify-content:center}
 .tv-legend i{display:inline-block;width:.9em;height:.9em;border-radius:.2em;vertical-align:-.1em;margin-right:.35em}
 @media (max-width:900px){.tv{height:auto;overflow:visible}.tv-body{grid-template-columns:1fr}.tv-col{grid-template-rows:none}.tv-row{min-height:2.2em}}
@@ -1017,7 +1003,7 @@ function renderHome() {
       <section class="grid" data-grid aria-live="polite"></section>
       ${legendHTML()}
       ${sponsorsHTML()}
-      <footer class="foot"><span>수업형 부스는 시간대당 정원이 있어 접수 순서대로 확정됩니다. 상시운영 부스는 예약 없이 <b>방문 등록</b>만 하면 바로 참여할 수 있어요. ${esc(limitText())}</span><span><a href="${attr(WEB ? WEB + '?page=admin' : '#')}" data-action="go-admin">운영자</a></span></footer>
+      <footer class="foot"><span>수업형 부스는 시간대당 정원이 있어 접수 순서대로 확정됩니다. 상시운영 부스는 예약 없이 <b>방문 등록</b> 후 부스에서 선착순으로 참여할 수 있어요. ${esc(limitText())}</span><span><a href="${attr(WEB ? WEB + '?page=admin' : '#')}" data-action="go-admin">운영자</a></span></footer>
     </div>`;
   }
   updateHome();
@@ -1058,15 +1044,25 @@ function updateHome() {
 function saveFilters() { try { localStorage.setItem('filters', JSON.stringify({ region: S.f.region, field: S.f.field, mode: S.f.mode, floor: S.f.floor, avail: !!S.f.avail })); } catch (x) { } }
 function loadFilters() { try { const f = JSON.parse(localStorage.getItem('filters') || 'null'); if (f) ['region', 'field', 'mode', 'floor', 'avail'].forEach(k => { if (f[k] != null) S.f[k] = f[k]; }); } catch (x) { } }
 function myActiveCount() { const snap = loadSnap(); return Object.keys(snap).filter(k => k !== '_t' && snap[k] && (snap[k].status === ST.OK || snap[k].status === ST.WAIT || snap[k].status === ST.PENDING)).length; }
+/** 상시운영 부스 인원: 누적 참여(출석) · 등록 대기(입장 전). 입장 확인을 끈 행사면 등록 = 참여 */
+function alwaysCheck() { return !S.status || S.status.alwaysCheck !== false; }
+function alwaysCounts(b) {
+  const c = (b && b.counts && b.counts[ALWAYS]) || {}; const total = c.ok || 0;
+  if (!alwaysCheck()) return { total: total, joined: total, wait: 0 };
+  const joined = c.checkin || 0; return { total: total, joined: joined, wait: Math.max(0, total - joined - (c.absent || 0)) };
+}
+function alwaysCountText(b, html) {
+  const a = alwaysCounts(b); const B = v => html ? '<b>' + v + '</b>' : String(v);
+  return alwaysCheck() ? '대기 ' + B(a.wait) + '명 · 누적 참여 ' + B(a.joined) + '명' : '누적 참여 ' + B(a.joined) + '명';
+}
 function cardHTML(b, now) {
   const always = b.mode === ALWAYS;
   const sum = boothSummary(b, now);
-  const visits = always ? ((b.counts && b.counts[ALWAYS] && b.counts[ALWAYS].ok) || 0) : 0;
   return `<article class="booth" data-action="open-booth" data-no="${b.no}" role="button" tabindex="0">
     <div class="booth-head"><div class="no${always ? ' always' : ''}">${b.no}</div>
       <div class="booth-title"><h3>${esc(b.name)}</h3><p class="meta"><span>${esc(b.org)}</span>${b.floor ? `<span class="tag floor">${esc(placeText(b))}</span>` : ''}<span class="tag">${esc(b.field)}</span><span class="tag ${always ? 'alw' : 'cls'}">${esc(b.mode)}</span></p></div></div>
     ${b.desc ? `<p class="booth-desc">${esc(b.desc)}</p>` : ''}
-    ${always ? `<div class="always-line">예약 없이 <b>방문 등록</b> 후 참여 · 등록 <b>${visits}</b>명</div>` : slotChipsHTML(b, now)}
+    ${always ? `<div class="always-line">예약 없이 <b>방문 등록</b> 후 참여 · ${alwaysCountText(b, true)}</div>` : slotChipsHTML(b, now)}
     <div class="booth-foot">${always ? `<span class="avail">정원 제한 없음 · 등록 후 참여</span>` : sum.total === 0 ? `<span class="avail">${sum.closed ? esc(closedNote(b.slots)) : '오늘 운영 종료'}</span>` : `<span class="avail${sum.left === 0 ? ' full' : ''}">${sum.left === 0 ? '<b>전 시간대 마감</b>' : '잔여 <b>' + sum.left + '석</b> · ' + sum.open + '개 시간대'}${sum.closed ? ' · ' + esc(closedNote(b.slots)) : ''}</span>`}
       <span class="btn small">${always ? '방문 등록' : '예약하기'}</span></div>
   </article>`;
@@ -1113,9 +1109,10 @@ function updateBooth() {
   const always = b.mode === ALWAYS;
   let body = '', note = '';
   if (always) {
-    const visits = (b.counts && b.counts[ALWAYS] && b.counts[ALWAYS].ok) || 0;
-    body = `<div class="always-line" style="font-size:15px">이 부스는 <b>예약 없이</b> 아래에서 <b>방문 등록</b>만 하면 바로 참여할 수 있어요. · 오늘 등록 <b>${visits}</b>명</div>`;
-    note = `<p class="note">정원이 없어 시간대를 고를 필요가 없습니다. 이름·연락처·소속·학년을 적고 [방문 등록하기]를 누른 뒤 부스로 가시면 됩니다. 등록 기록은 행사 참여 확인에 쓰입니다.</p>`;
+    body = alwaysCheck()
+      ? `<div class="always-line" style="font-size:15px"><b>예약 없이</b> 방문 등록 후 <b>선착순 입장</b> · 오늘 ${alwaysCountText(b, true)}</div>`
+      : `<div class="always-line" style="font-size:15px">이 부스는 <b>예약 없이</b> 아래에서 <b>방문 등록</b>만 하면 바로 참여할 수 있어요. · 오늘 ${alwaysCountText(b, true)}</div>`;
+    note = `<p class="note">정원·시간대가 없습니다. 아래에 적고 [방문 등록하기]를 누른 뒤 부스로 오세요. <b>등록 순서가 아니라 부스에 온 순서(선착순)</b>로 입장합니다${alwaysCheck() ? ", 담당자가 입장을 확인하면 참여로 기록됩니다" : ""}.</p>`;
   } else {
     const sum = boothSummary(b, now);
     if (S.rsv.slot && (b.slots || []).indexOf(S.rsv.slot) === -1) S.rsv.slot = null;
@@ -1282,7 +1279,7 @@ function renderCta() {
     html = `<button type="button" class="btn big" disabled><span class="spin" aria-hidden="true"></span> 접수 중… 잠시만요</button>` +
       (S.rsv.retry ? `<div class="retry"><span class="spin" aria-hidden="true"></span><span>접속이 많아 다시 시도 중입니다 (${S.rsv.retry.n}/${RETRY_DELAYS.length}) — 화면을 닫지 마세요</span></div>` : '');
   } else if (b.mode === ALWAYS) {
-    html = `<button type="button" class="btn big primary" data-action="submit-rsv">방문 등록하기 · 등록 후 바로 참여</button>`;
+    html = `<button type="button" class="btn big primary" data-action="submit-rsv">${alwaysCheck() ? '방문 등록하기 · 부스에서 선착순 입장' : '방문 등록하기 · 등록 후 바로 참여'}</button>`;
   } else {
     const sum = boothSummary(b, now);
     if (sum.total === 0) html = `<span class="btn big" aria-disabled="true">${esc(sum.closed ? closedNote(b.slots) : '오늘 운영 종료')}</span>`;
@@ -1380,7 +1377,7 @@ function showResult(r) {
   if (r.kind === 'ok' && r.status === ST.OK) {
     cls = 'ok'; icon = '✓';
     title = always ? (r.again ? '이미 등록되어 있습니다' : '방문 등록되었습니다') : (r.again ? '이미 예약되어 있습니다' : '예약이 확정되었습니다');
-    why = always ? (r.again ? '같은 이름·연락처로 이미 등록되어 있습니다. ' : '') + '이제 부스로 가서 바로 참여하세요. 등록 기록은 행사 참여 확인에 쓰입니다.' : (r.again ? '같은 이름·연락처로 이 시간대에 이미 접수된 예약이 있어 그대로 두었습니다. ' : '') + '수업 시작 전에 부스에서 담당자에게 이름을 말씀하시면 입장 확인이 됩니다.';
+    why = always ? (r.again ? '같은 이름·연락처로 이미 등록되어 있습니다. ' : '') + (alwaysCheck() ? '부스로 가서 담당자에게 이름을 말하세요. 부스에 온 순서대로(선착순) 입장하고, 입장하면 참여로 기록됩니다.' : '이제 부스로 가서 바로 참여하세요. 등록 기록은 행사 참여 확인에 쓰입니다.') : (r.again ? '같은 이름·연락처로 이 시간대에 이미 접수된 예약이 있어 그대로 두었습니다. ' : '') + '수업 시작 전에 부스에서 담당자에게 이름을 말씀하시면 입장 확인이 됩니다.';
     buttons = btn('modal-my', '내 예약 보기', true) + (always ? '' : btn('modal-more', '다른 시간대도 예약')) + btn('modal-close', '닫기');
   } else if (r.kind === 'ok') {
     cls = 'wait'; icon = '…'; title = r.again ? '이미 대기로 접수되어 있습니다' : '대기로 접수되었습니다' + (r.waitNo ? ' (대기 ' + r.waitNo + '번째)' : '');
@@ -1821,6 +1818,7 @@ function renderAdminParts() {
   const absent = ok.filter(r => r.att === '결석').length;
   const openPast = ok.filter(r => !r.att && r.slot !== ALWAYS && phaseOf(r.slot, now) === 'past').length; // 끝난 시간대인데 아직 미처리
   const visits = res.filter(r => r.status === ST.OK && r.slot === ALWAYS).length;
+  const visitsIn = res.filter(r => r.status === ST.OK && r.slot === ALWAYS && r.att === '출석').length, visitsAbs = res.filter(r => r.status === ST.OK && r.slot === ALWAYS && r.att === '결석').length;
   const cur = currentSlot(d.defaultSlots, now);
   $('[data-stats]').innerHTML =
     `<div class="stat"><div class="k">확정 예약</div><div class="v">${ok.length - visits}<small>명</small></div></div>` +
@@ -1828,7 +1826,7 @@ function renderAdminParts() {
     `<div class="stat"><div class="k">출석</div><div class="v">${checkin}<small>/ ${ok.length}</small></div></div>` +
     `<div class="stat"><div class="k">결석</div><div class="v">${absent}${openPast ? `<small style="color:var(--full)">미처리 ${openPast}</small>` : ''}</div></div>` +
     `<div class="stat"><div class="k">마감 시간대</div><div class="v">${fullSlots}<small>/ ${totalSlots}</small></div></div>` +
-    `<div class="stat"><div class="k">상시 방문 등록</div><div class="v">${visits}<small>명</small></div></div>` +
+    (alwaysCheck() ? `<div class="stat"><div class="k">상시운영 누적 참여</div><div class="v">${visitsIn}<small>명 · 대기 ${Math.max(0, visits - visitsIn - visitsAbs)}</small></div></div>` : `<div class="stat"><div class="k">상시운영 누적 참여</div><div class="v">${visits}<small>명</small></div></div>`) +
     `<div class="stat"><div class="k">${cur.now ? '지금 진행 중' : cur.next ? '다음 시간대' : '행사일'}</div><div class="v small">${esc(cur.now || cur.next || (d.event && d.event.date) || '-')}</div></div>`;
   const u = $('[data-updated]'); if (u) u.textContent = d.updatedAt || '';
   renderSessionPanel(d);
@@ -1857,8 +1855,7 @@ function renderMatrix(d, now) {
   const rows = booths.map(b => {
     const name = `<td><span class="bno">${b.no}</span><span class="bname">${esc(b.name)}</span><span class="org">${esc(b.org)}${b.floor ? ' · ' + esc(placeText(b)) : ''}</span></td>`;
     if (b.mode === ALWAYS) {
-      const v = (b.counts && b.counts[ALWAYS] && b.counts[ALWAYS].ok) || 0;
-      return `<tr>${name}<td class="cell always" colspan="${slots.length}" data-action="pick" data-booth="${b.no}" data-slot="${ALWAYS}">상시운영 · 방문 등록 <b>${v}</b>명</td></tr>`;
+      return `<tr>${name}<td class="cell always" colspan="${slots.length}" data-action="pick" data-booth="${b.no}" data-slot="${ALWAYS}">상시운영 · ${alwaysCountText(b, true)}</td></tr>`;
     }
     return `<tr>${name}${slots.map(s => {
       if ((b.slots || []).indexOf(s) === -1) return `<td class="cell na">–</td>`;
@@ -1988,7 +1985,7 @@ async function loginAdmin(pin) {
 // ───────── TV ─────────
 function renderTV() {
   const app = $('#app');
-  document.documentElement.setAttribute('data-theme', 'dark');
+  document.documentElement.setAttribute('data-theme', 'light');
   if (app.dataset.view !== 'tv') {
     app.dataset.view = 'tv';
     app.innerHTML = `<div class="tv">
@@ -2021,7 +2018,7 @@ function updateTV() {
   const rowsPerCol = Math.max(half, 1);
   $('[data-tv-body]').innerHTML = cols.map(col => `<div class="tv-col" style="--rows:${rowsPerCol};--cols:${slots.length}">
     <div class="tv-row head"><span></span><span>부스</span>${slots.map(s => `<span class="tc${phaseOf(s, now) === 'now' ? ' now' : ''}">${esc(shortTime(s))}</span>`).join('')}</div>
-    ${col.map(b => `<div class="tv-row"><span class="tv-no">${b.no}</span><span class="tv-name">${esc(b.name)}<small>${esc(b.org)}${b.pos ? ' · ' + esc(b.pos) : b.floor ? ' · ' + esc(b.floor) : ''}</small></span>${b.mode === ALWAYS ? `<span class="tv-always"><span>상시운영 · 방문 등록 후 참여</span><b>${(b.counts && b.counts[ALWAYS] && b.counts[ALWAYS].ok) || 0}명</b></span>` : slots.map(s => {
+    ${col.map(b => `<div class="tv-row"><span class="tv-no">${b.no}</span><span class="tv-name">${esc(b.name)}<small>${esc(b.org)}${b.pos ? ' · ' + esc(b.pos) : b.floor ? ' · ' + esc(b.floor) : ''}</small></span>${b.mode === ALWAYS ? `<span class="tv-always"><span>상시운영 · 방문 등록 후 입장</span><span class="tv-alw-n">${alwaysCheck() ? `<span class="w">대기 <b>${alwaysCounts(b).wait}</b></span>` : ''}<span class="j">누적 참여 <b>${alwaysCounts(b).joined}</b></span></span></span>` : slots.map(s => {
       if ((b.slots || []).indexOf(s) === -1) return `<span class="tc na">·</span>`;
       const i = slotInfo(b, s, now);
       return `<span class="tc ${i.cls}${i.phase === 'now' ? ' now' : ''}">${i.phase === 'past' ? '종료' : i.closed ? '공개전' : i.waitFull ? '마감' : i.full ? '대기' : i.left}</span>`;
@@ -2090,7 +2087,7 @@ function updateQR() {
   $('[data-count]').textContent = list.length + '개 부스';
   grid.innerHTML = list.map(b => {
     const url = boothPageUrl(b.no);
-    const how = b.mode === ALWAYS ? 'QR을 찍어 방문 등록을 하면 바로 참여할 수 있어요 (예약 불필요)' : 'QR을 찍어 시간대를 고르고 바로 예약하세요';
+    const how = b.mode === ALWAYS ? 'QR을 찍어 방문 등록 후 부스에서 선착순 입장 (예약 불필요)' : 'QR을 찍어 시간대를 고르고 바로 예약하세요';
     return `<article class="qr-card${PREVIEW ? ' sample' : ''}">
       ${PREVIEW ? '<div class="sample-mark">예시 · 실제 QR 아님</div>' : ''}
       ${LOGO_FULL ? `<img class="qr-logo" src="${LOGO_FULL}" alt="충남 ANCHOR 늘봄학교">` : ''}
