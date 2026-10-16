@@ -667,7 +667,13 @@ function setDay(d) {
   pushNav(true);
   toast(fmtDay(d) + ' 현황을 보고 있습니다');
 }
-function onStatus(st) { applyPoll(st); applyDay(st); }
+function onStatus(st) { applyPoll(st); applyDay(st); reapplyPatches(st); }
+/** 서버가 현황을 읽기 시작한 시각(builtAt)보다 나중에 적힌 내 예약(at)은 그 현황에 없을 수 있음(직전본) → 그만큼 더해 둠 */
+function reapplyPatches(st) {
+  const built = st && st.builtAt; if (!built) return;
+  for (let i = PATCHES.length - 1; i >= 0; i--) if (Date.now() - PATCHES[i].t > 60000) PATCHES.splice(i, 1);
+  PATCHES.forEach(p => { if (p.at && built < p.at) applyPatch(p.no, p.slot, p.status); }); // 둘 다 서버 시각이라 휴대폰 시계와 무관
+}
 const POLL = { home: 60000, booth: 45000, map: 60000, tv: 10000, admin: 20000 }; // 기본값 — 서버 현황의 poll(설정 탭 '… 화면 갱신(초)')이 오면 덮어씀
 function applyPoll(st) {
   const p = st && st.poll; if (!p) return;
@@ -1371,7 +1377,7 @@ async function submitRsv(opts) {
   if (!err && res && res.group) { // 여러 어린이 결과
     const list = res.results || [];
     const snap = loadSnap();
-    list.forEach(r => { if (r.ok) { if (b.mode !== ALWAYS && !r.again) patchCounts(b.no, r.slot, r.status); snap[r.no] = { status: r.status, booth: r.booth, boothName: r.boothName, slot: r.slot, date: r.date || '' }; } });
+    list.forEach(r => { if (r.ok) { if (b.mode !== ALWAYS && !r.again) patchCounts(b.no, r.slot, r.status, r.at); snap[r.no] = { status: r.status, booth: r.booth, boothName: r.boothName, slot: r.slot, date: r.date || '' }; } });
     saveSnap(snap); watchStart();
     if (list.some(r => r.ok)) { S.rsv.slot = null; updateBooth(); } else renderCta();
     showGroupResult(list, b, payload.slot || ALWAYS, wait, payload.reqId);
@@ -1380,7 +1386,7 @@ async function submitRsv(opts) {
   }
   if (err) { renderCta(); showResult({ kind: 'error', booth: b.no, boothName: b.name, slot: payload.slot || ALWAYS, message: '서버와 연결이 계속 끊겨 접수 여부를 확인하지 못했습니다. [다시 시도]를 누르면 같은 요청으로 다시 확인합니다 (중복 접수되지 않음).', reqId: payload.reqId }); return; }
   if (res && res.ok) {
-    if (b.mode !== ALWAYS && !res.again) patchCounts(b.no, res.slot, res.status);
+    if (b.mode !== ALWAYS && !res.again) patchCounts(b.no, res.slot, res.status, res.at);
     { const snap = loadSnap(); snap[res.no] = { status: res.status, booth: res.booth, boothName: res.boothName, slot: res.slot, date: res.date || '' }; saveSnap(snap); watchStart(); }
     S.rsv.slot = null;
     updateBooth();
@@ -1393,7 +1399,12 @@ async function submitRsv(opts) {
   if (res && (res.code === 'FULL' || res.code === 'WAITFULL' || res.code === 'CLOSED' || res.code === 'PAST' || res.code === 'SLOT')) { try { S.status = await rpc('getPublicStatus'); onStatus(S.status); updateView(); } catch (x) { } }
 }
 /** 서버 반영(10초 캐시) 전에 이 화면의 숫자를 먼저 맞춤 */
-function patchCounts(no, slot, status) {
+const PATCHES = []; // 이 화면에서 방금 한 예약(시각·부스·시간대·상태) — 서버 현황이 그보다 오래된 직전본이면 다시 얹음
+function patchCounts(no, slot, status, at) {
+  PATCHES.push({ t: Date.now(), at: at || 0, no, slot, status }); while (PATCHES.length > 50) PATCHES.shift();
+  applyPatch(no, slot, status);
+}
+function applyPatch(no, slot, status) {
   const b = booth(no); if (!b) return;
   b.counts = b.counts || {}; const c = b.counts[slot] || (b.counts[slot] = { ok: 0, wait: 0, checkin: 0 });
   if (status === ST.OK) c.ok = (c.ok || 0) + 1; else if (status === ST.WAIT) c.wait = (c.wait || 0) + 1;
@@ -1508,7 +1519,8 @@ async function submitWalkIn(form) {
 }
 
 // ───────── 알림 감시: 이 휴대폰 예약자의 '대기'가 확정되면(취소로 자리가 나면) 팝업 — 화면이 열려 있거나 다시 열릴 때 ─────────
-const WATCH_MS = PREVIEW ? 6000 : 60000;
+const WATCH_MS = PREVIEW ? 6000 : 120000; // 대기 예약이 있는 휴대폰의 확정 확인 주기 (서버 부담을 줄이려 2분)
+const WATCH_OPEN_MIN_MS = PREVIEW ? 0 : 2 * 60 * 1000; // 화면을 다시 열 때의 확인은 마지막 확인 뒤 2분이 지났을 때만
 let watchTimer = null, watchBusy = false;
 function loadSnap() { try { return JSON.parse(localStorage.getItem('mystat') || '{}') || {}; } catch (x) { return {}; } }
 function saveSnap(snap) { try { localStorage.setItem('mystat', JSON.stringify(snap)); } catch (x) { } }
@@ -1567,7 +1579,7 @@ async function watchTick(force) {
 }
 function watchSchedule() { if (watchTimer) return; if (!hasWaiting(loadSnap())) return; watchTimer = setTimeout(() => watchTick(false), WATCH_MS * (0.8 + Math.random() * 0.4)); }
 /** 화면을 열 때: 이 휴대폰에 예약자 정보가 기억되어 있으면 바로 한 번 확인 (닫아 둔 사이에 확정된 것을 놓치지 않게) */
-function watchStart() { const me = loadMe(); if (me.name && me.phone) { clearTimeout(watchTimer); watchTimer = setTimeout(() => watchTick(true), PREVIEW ? 1000 : 1200); } }
+function watchStart() { const me = loadMe(); if (!me.name || !me.phone) return; const snap = loadSnap(); if (!hasWaiting(snap) && snap._t && Date.now() - snap._t < WATCH_OPEN_MIN_MS) { updateMyBadge(); watchSchedule(); return; } clearTimeout(watchTimer); watchTimer = setTimeout(() => watchTick(true), PREVIEW ? 1000 : 1200); }
 
 // ───────── 방문객: 내 예약 확인·취소 ─────────
 function renderMy() {
