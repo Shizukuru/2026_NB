@@ -417,6 +417,10 @@ a.brand:hover .brand-name{color:var(--accent)}
 .tv .sponsors-compact .sp-item{height:3.4vh;padding:0}
 .tv .sponsors-compact .sp-item img{height:2.7vh;max-width:9vw}
 @media (max-width:900px){.tv .sponsors-compact{gap:6px}.tv .sponsors-compact .sp-list{flex-wrap:wrap;justify-content:center}.tv .sponsors-compact .sp-item{height:30px}.tv .sponsors-compact .sp-item img{height:22px;max-width:110px}}
+.htags{display:flex;flex-wrap:wrap;gap:4px 6px;margin:6px 0 0;padding:0}
+.htag{border:0;background:var(--accent-soft);color:var(--accent);font:600 12.5px/1.2 var(--font-body);padding:4px 9px;border-radius:999px;cursor:pointer}
+.htag:hover{filter:brightness(.96)}
+.sign .htags{margin-top:8px}.sign .htag{font-size:13.5px}
 .booth-desc{margin:6px 0 2px;font-size:13.5px;line-height:1.5;color:var(--fg);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:keep-all;padding-left:9px;border-left:3px solid var(--accent-soft)}
 .qr-card .place-line{font-size:14px;font-weight:600;color:#0E7C6B;background:#E6F3EF;border-radius:8px;padding:4px 12px}
 .map-page{max-width:900px}
@@ -1034,7 +1038,7 @@ function updateHome() {
   const list = booths.filter(b =>
     (!S.f.region || b.region === S.f.region) && (!S.f.field || b.field === S.f.field) && (!S.f.mode || b.mode === S.f.mode) && (!S.f.floor || b.floor === S.f.floor) &&
     (!S.f.avail || b.mode === ALWAYS || boothSummary(b, now).left > 0) &&
-    (!q || String(b.no) === q || (b.name + ' ' + b.org + ' ' + b.field + ' ' + (b.floor || '') + ' ' + (b.pos || '')).toLowerCase().indexOf(q) > -1));
+    (!q || String(b.no) === q || (q.charAt(0) === '#' ? (b.tags || []).some(t => ('#' + t).toLowerCase() === q) : (b.name + ' ' + b.org + ' ' + b.field + ' ' + (b.floor || '') + ' ' + (b.pos || '') + ' ' + (b.desc || '') + ' ' + (b.tags || []).join(' ')).toLowerCase().indexOf(q) > -1)));
   const anyFilter = S.f.region || S.f.field || S.f.mode || S.f.floor || S.f.avail || q;
   $('[data-grid]').innerHTML = (list.length ? list.map(b => cardHTML(b, now)).join('') : `<div class="empty">조건에 맞는 부스가 없습니다.</div>`) +
     (anyFilter ? `<div class="empty" style="padding:14px 12px 0"><span class="note">${list.length}개 부스 표시 중 · </span><button type="button" class="btn small" data-action="clear-home-filter">필터 지우기</button></div>` : '');
@@ -1071,13 +1075,18 @@ function alwaysCountText(b, html) {
   const a = alwaysCounts(b); const B = v => html ? '<b>' + v + '</b>' : String(v);
   return alwaysCheck() ? '대기 ' + B(a.wait) + '명 · 누적 참여 ' + B(a.joined) + '명' : '누적 참여 ' + B(a.joined) + '명';
 }
+/** 해시태그 줄. 누르면 첫 화면 검색에 그 태그를 넣어 같은 태그 부스만 봄 */
+function tagsHTML(b) {
+  const t = (b && b.tags) || []; if (!t.length) return '';
+  return `<p class="htags">${t.map(x => `<button type="button" class="htag" data-action="tag" data-tag="${attr(x)}">#${esc(x)}</button>`).join('')}</p>`;
+}
 function cardHTML(b, now) {
   const always = b.mode === ALWAYS;
   const sum = boothSummary(b, now);
   return `<article class="booth" data-action="open-booth" data-no="${b.no}" role="button" tabindex="0">
     <div class="booth-head"><div class="no${always ? ' always' : ''}">${b.no}</div>
       <div class="booth-title"><h3>${esc(b.name)}</h3><p class="meta"><span>${esc(b.org)}</span>${b.floor ? `<span class="tag floor">${esc(placeText(b))}</span>` : ''}<span class="tag">${esc(b.field)}</span><span class="tag ${always ? 'alw' : 'cls'}">${esc(b.mode)}</span></p></div></div>
-    ${b.desc ? `<p class="booth-desc">${esc(b.desc)}</p>` : ''}
+    ${tagsHTML(b)}${b.desc ? `<p class="booth-desc">${esc(b.desc)}</p>` : ''}
     ${always ? `<div class="always-line">예약 없이 <b>방문 등록</b> 후 참여 · ${alwaysCountText(b, true)}</div>` : slotChipsHTML(b, now)}
     <div class="booth-foot">${always ? `<span class="avail">정원 제한 없음 · 등록 후 참여</span>` : sum.total === 0 ? `<span class="avail">${sum.closed ? esc(closedNote(b.slots)) : '오늘 운영 종료'}</span>` : `<span class="avail${sum.left === 0 ? ' full' : ''}">${sum.left === 0 ? '<b>전 시간대 마감</b>' : '잔여 <b>' + sum.left + '석</b> · ' + sum.open + '개 시간대'}${sum.closed ? ' · ' + esc(closedNote(b.slots)) : ''}</span>`}
       <span class="btn small">${always ? '방문 등록' : '예약하기'}</span></div>
@@ -1149,7 +1158,7 @@ function updateBooth() {
   host.innerHTML = `<section class="sign">
     <div class="sign-head"><div class="no${always ? ' always' : ''}">${b.no}</div>
       <div class="booth-title"><h2>${esc(b.name)}</h2><p class="meta"><span>${esc(b.org)}</span><span class="tag">${esc(b.region)}</span><span class="tag">${esc(b.field)}</span><span class="tag ${always ? 'alw' : 'cls'}">${esc(b.mode)}${always ? '' : ' · 시간대당 ' + b.cap + '명'}</span>${b.owner ? `<span>담당 ${esc(b.owner)}</span>` : ''}</p>
-      ${b.desc ? `<p class="desc">${esc(b.desc)}</p>` : ''}
+      ${tagsHTML(b)}${b.desc ? `<p class="desc">${esc(b.desc)}</p>` : ''}
       ${b.floor || b.pos ? `<p class="place"><span class="tag floor big">📍 ${esc(placeText(b))}</span>${posOf(b) || mapOfFloor(b.floor) ? `<a href="${attr(WEB ? WEB + '?page=map&booth=' + b.no : '#')}" data-action="map" data-no="${b.no}">배치도에서 위치 보기</a>` : ''}</p>` : ''}</div></div>
     ${body}${note}<p class="note inline-link">이미 예약하셨나요? <a href="${attr(WEB ? WEB + '?page=my' : '#')}" data-action="my">내 예약 확인·취소</a></p></section>`;
   const u = $('[data-updated]'); if (u) u.textContent = S.status.updatedAt || '';
@@ -2280,6 +2289,7 @@ document.addEventListener('click', e => {
     return;
   }
   if (a === 'kid-paste') { showKidPaste(); return; }
+  if (a === 'tag') { e.stopPropagation(); S.f.q = '#' + act.dataset.tag; if (S.view !== 'home') go('home'); else { const qi = $('#q'); if (qi) qi.value = S.f.q; updateHome(); } setTimeout(() => { const qi = $('#q'); if (qi) { qi.value = S.f.q; qi.scrollIntoView({ block: 'center' }); } }, 0); return; }
   if (a === 'kid-paste-add') {
     const grades = S.status.grades || [];
     const list = parseKidList(($('#kidpaste') || {}).value || '', grades);
