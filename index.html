@@ -540,6 +540,10 @@ button.slot-row:disabled{cursor:default}
 .my-list{display:grid;gap:10px;margin-top:14px}
 .my-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;display:grid;gap:8px;box-shadow:var(--shadow)}
 .my-card.cancel{opacity:.6}
+.my-title .seq{display:inline-block;background:var(--mark);color:var(--mark-ink);font:800 12.5px/1 var(--font-body);padding:5px 8px;border-radius:999px;margin-right:8px;vertical-align:2px;white-space:nowrap}
+.my-card.done{opacity:.55;filter:grayscale(.7);background:var(--surface-2);box-shadow:none}
+.my-sep{display:flex;align-items:center;gap:10px;margin:14px 0 2px;color:var(--fg-muted);font-size:13px;font-weight:600}
+.my-sep::before,.my-sep::after{content:'';flex:1;border-top:1px dashed var(--line)}
 .my-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
 .my-title{font-weight:700;font-size:16px;min-width:0}
 .my-title .bno{font-family:var(--font-display);color:var(--accent);font-size:18px;margin-right:6px}
@@ -1008,7 +1012,7 @@ function renderHome() {
       <section class="grid" data-grid aria-live="polite"></section>
       ${legendHTML()}
       ${sponsorsHTML()}
-      <footer class="foot"><span>수업형 부스는 시간대당 정원이 있어 접수 순서대로 확정됩니다. 상시운영 부스는 예약 없이 <b>방문 등록</b> 후 부스에서 선착순으로 참여할 수 있어요. ${esc(limitText())}</span><span><a href="${attr(WEB ? WEB + '?page=admin' : '#')}" data-action="go-admin">운영자</a></span></footer>
+      <footer class="foot"><span>수업형 부스는 시간대당 정원이 있어 접수 순서대로 확정됩니다. 상시운영 부스는 예약 없이 <b>방문 등록</b> 후 부스에서 선착순으로 참여할 수 있어요. ${esc(limitText())}</span><span class="foot-links"><a href="${attr(WEB ? WEB + '?page=admin&staff=1' : '#')}" data-action="go-staff">부스 담당자</a> · <a href="${attr(WEB ? WEB + '?page=admin' : '#')}" data-action="go-admin">운영자</a></span></footer>
     </div>`;
   }
   updateHome();
@@ -1637,14 +1641,17 @@ async function renderGroupView() {
   const now = kstNow(), multi = eventDates().length > 1;
   const groups = {};
   list.forEach(x => { const k = [x.date || '', x.slot === ALWAYS ? 'zzz' : x.slot, x.booth].join('|'); (groups[k] = groups[k] || { date: x.date, slot: x.slot, booth: x.booth, boothName: x.boothName, items: [] }).items.push(x); });
-  const keys = Object.keys(groups).sort();
+  const gDone = k => groups[k].items.every(x => resFinished(x, now));
+  const keys = Object.keys(groups).sort((a, b) => (gDone(a) - gDone(b)) || a.localeCompare(b)); // 남은 예약 먼저, 모두 끝난 묶음은 맨 아래
+  const firstDoneKey = keys.find(gDone), nDoneG = keys.filter(gDone).length;
+  const gSeq = k => gDone(k) ? 0 : keys.filter(x => !gDone(x)).indexOf(k) + 1;
   const nOk = list.filter(x => x.status === ST.OK).length, nWait = list.filter(x => x.status === ST.WAIT).length;
   host.innerHTML = `<div class="note" style="margin:4px 0 2px"><b>${esc(S.my.name)}</b> 님 휴대폰의 어린이 <b>${(r.kids || []).length}</b>명 · 예약 ${list.length}건 (확정 ${nOk}${nWait ? ' · 대기 ' + nWait : ''}) ${(r.kids || []).length > 1 ? `<span class="fam" style="display:inline-flex;margin:0 0 0 6px">${(r.kids || []).map(n => `<button type="button" data-action="my-switch" data-name="${attr(n)}">${esc(n)}</button>`).join('')}</span>` : ''}</div>` +
     keys.map(k => {
       const g = groups[k]; const bb = booth(g.booth);
       const past = g.slot !== ALWAYS && resPast({ date: g.date, slot: g.slot }, now);
-      return `<div class="my-card group${past ? ' past' : ''}">
-        <div class="my-head"><div class="my-title"><span class="bno">${g.booth}</span>${esc(g.boothName)}</div><span class="pill ${past ? 'cancel' : 'ok'}">${g.items.length}명</span></div>
+      return (k === firstDoneKey ? doneSepHTML(nDoneG) : '') + `<div class="my-card group${past ? ' past' : ''}${gDone(k) ? ' done' : ''}">
+        <div class="my-head"><div class="my-title">${gSeq(k) ? `<span class="seq" title="갈 순서">${gSeq(k)}번째</span>` : ''}<span class="bno">${g.booth}</span>${esc(g.boothName)}</div><span class="pill ${past ? 'cancel' : 'ok'}">${g.items.length}명</span></div>
         <div class="my-slot">${multi && g.date ? '<b>' + esc(fmtDay(g.date)) + '</b> · ' : ''}${g.slot === ALWAYS ? '상시운영 · 방문 등록' : esc(g.slot)}${bb && (bb.floor || bb.pos) ? ' · 📍 ' + esc(placeText(bb)) : ''}</div>
         <div class="group-kids">${g.items.sort((a, b) => a.name.localeCompare(b.name, 'ko')).map(x => {
           const cls = x.status === ST.OK ? 'ok' : x.status === ST.WAIT ? 'wait' : 'cancel';
@@ -1664,6 +1671,15 @@ async function cancelGroupItem(resNo, name) {
     try { S.status = await rpc('getPublicStatus'); onStatus(S.status); } catch (x) { }
   } catch (e) { toast(e.message || '취소에 실패했습니다', 'err'); }
 }
+/** 진행이 끝난 예약: 취소됨 · 출석/결석 처리됨 · 수업 시간이 지남 → 내 예약 목록에서 흐리게, 맨 아래로 */
+function resFinished(r, now) {
+  if (!r) return false;
+  if (r.status === ST.CANCEL) return true;
+  const att = r.att || (r.checkin ? '출석' : '');
+  if (att === '출석' || att === '결석') return true;
+  return r.slot !== ALWAYS && resPast(r, now || kstNow());
+}
+function doneSepHTML(n) { return n ? `<div class="my-sep"><span>지난 · 완료된 예약 ${n}건</span></div>` : ''; }
 function renderMyList() {
   const host = $('[data-my-list]'); if (!host) return;
   const list = S.my.list || [];
@@ -1676,7 +1692,9 @@ function renderMyList() {
   // 시간 순(취소는 맨 뒤, 상시운영은 시간대 뒤) — 행사 당일 "다음에 어디로 가야 하나"가 바로 보이도록
   const order = r => { if (r.status === ST.CANCEL) return 1e6 + Number(String(r.no).replace(/\D/g, '')); const t = parseSlot(r.slot); return t ? t.start : 5000; };
   const multi = eventDates().length > 1;
-  const sorted = list.slice().sort((a, c) => (multi ? String(a.date || '').localeCompare(String(c.date || '')) : 0) || order(a) - order(c) || a.booth - c.booth);
+  const sorted = list.slice().sort((a, c) => (resFinished(a, now) - resFinished(c, now)) || (multi ? String(a.date || '').localeCompare(String(c.date || '')) : 0) || order(a) - order(c) || a.booth - c.booth); // 남은 예약 먼저, 끝난 예약은 맨 아래
+  const firstDone = sorted.findIndex(r => resFinished(r, now)), nDone = sorted.filter(r => resFinished(r, now)).length;
+  const seqOf = r => resFinished(r, now) ? 0 : sorted.filter(x => !resFinished(x, now)).indexOf(r) + 1; // 갈 순서 ①②③ (남은 예약만)
   const nextUp = sorted.find(r => r.status === ST.OK && r.slot !== ALWAYS && (r.date ? r.date === now.date : isEventDay(now)) && !resPast(r, now)) || null;
   const nOk = list.filter(r => r.status === ST.OK).length, nWait = list.filter(r => r.status === ST.WAIT).length;
   const fam = (S.my.family || []).filter(n => n && n !== S.my.name);
@@ -1691,8 +1709,8 @@ function renderMyList() {
     const actions = S.my.confirm === r.no
       ? `<div class="confirm-box"><div>${esc(r.booth + '. ' + r.boothName)} ${esc(r.slot)} 예약을 취소할까요? 취소하면 되돌릴 수 없고, 자리는 바로 다른 분에게 열립니다.</div><div class="row"><button type="button" class="btn danger" data-action="my-cancel-yes" data-res="${attr(r.no)}">네, 취소합니다</button><button type="button" class="btn" data-action="my-cancel-no">아니요</button></div></div>`
       : `<div class="my-actions">${cancellable ? `<button type="button" class="btn small" data-action="my-cancel" data-res="${attr(r.no)}">예약 취소</button>` : ''}${att === '출석' ? `<span class="pill ok">출석</span>` : att === '결석' ? `<span class="pill absent">결석</span>` : ''}${past && r.status !== ST.CANCEL && !att ? `<span class="pill cancel">시간 지남</span>` : ''}<a class="btn small" href="${attr(WEB ? WEB + '?booth=' + r.booth : '#')}" data-action="open-booth" data-no="${r.booth}">부스 보기</a></div>`;
-    return `<div class="my-card ${cls}${nextUp === r ? ' next' : ''}">
-      <div class="my-head"><div class="my-title"><span class="bno">${r.booth}</span>${esc(r.boothName)}</div><span class="pill ${cls}">${nextUp === r ? '다음 일정 · ' : ''}${esc(r.status === ST.PENDING ? '처리 중' : r.status)}</span></div>
+    return (sorted.indexOf(r) === firstDone ? doneSepHTML(nDone) : '') + `<div class="my-card ${cls}${nextUp === r ? ' next' : ''}${resFinished(r, now) ? ' done' : ''}">
+      <div class="my-head"><div class="my-title">${seqOf(r) ? `<span class="seq" title="갈 순서">${seqOf(r)}번째</span>` : ''}<span class="bno">${r.booth}</span>${esc(r.boothName)}</div><span class="pill ${cls}">${nextUp === r ? '다음 일정 · ' : ''}${esc(r.status === ST.PENDING ? '처리 중' : r.status)}</span></div>
       <div class="my-slot">${multi && r.date ? '<b>' + esc(fmtDay(r.date)) + '</b> · ' : ''}${r.slot === ALWAYS ? '상시운영 · 방문 등록 (예약 없이 참여)' : esc(r.slot)}</div>${place}
       <div class="my-meta">예약번호 ${esc(r.no)} · 접수 ${esc(r.time)}${r.status === ST.WAIT ? (autoPromote() ? ' · 취소가 생기면 자동으로 확정되고 알려 드립니다' : ' · 자리가 나면 운영진이 연락드립니다') : ''}${r.status === ST.OK && /자동 확정/.test(r.memo || '') ? ' · <b style="color:var(--ok)">대기에서 확정됨 🎉</b>' : ''}</div>
       ${r.status === ST.CANCEL && r.memo ? `<div class="rc-memo">${/^(1인 제한|접수 직전|중복)/.test(r.memo) ? '접수되지 않음 · ' : ''}${esc(r.memo)}</div>` : ''}
@@ -1782,10 +1800,26 @@ function zoomMap(delta) {
 }
 
 // ───────── 운영자 ─────────
+/** 부스 담당자 입구: 내 부스 고르기 + PIN → 그 부스 명단(?page=admin&booth=번호)으로 */
+function renderStaffGate(app) {
+  let last = ''; try { last = localStorage.getItem('staffBooth') || ''; } catch (x) { }
+  const booths = (S.status.booths || []).slice().sort((a, b) => a.no - b.no);
+  app.innerHTML = `<div class="page"><form class="gate" data-form="staff">
+      <div class="brand">${ANCHOR_SVG}<div><div class="brand-name">${esc((S.status.event || {}).name || '')}</div><div class="brand-sub">부스 담당자</div></div></div>
+      <h2>부스 담당자 입장</h2>
+      <label class="field" style="text-align:left"><span>내 부스</span><select id="sbooth" aria-label="내 부스"><option value="">부스를 고르세요</option>${booths.map(b => `<option value="${b.no}"${String(b.no) === last ? ' selected' : ''}>${b.no}. ${esc(b.name)}${b.mode === ALWAYS ? ' (상시운영)' : ''}</option>`).join('')}</select></label>
+      <input id="spin" type="password" inputmode="numeric" autocomplete="off" placeholder="PIN" aria-label="PIN" value="${attr(S.admin.pin || '')}">
+      <div class="err" data-err>${esc(S.admin.err)}</div>
+      <button class="btn primary big" type="submit">내 부스 명단 열기</button>
+      <p class="note">운영본부에서 받은 PIN을 넣으세요. 이 휴대폰에 내 부스가 기억되어 다음에는 PIN만 넣으면 됩니다. 명단·[출석][결석]·[＋ 현장 등록]이 내 부스만 보입니다.</p>
+    </form></div>`;
+  setTimeout(() => { const i = $(last ? '#spin' : '#sbooth'); if (i) i.focus(); }, 50);
+}
 function renderAdmin() {
   const app = $('#app');
-  if (!S.admin.pin) {
+  if (!S.admin.pin || S.admin.staffPick) {
     app.dataset.view = 'gate';
+    if (S.admin.staffPick) { renderStaffGate(app); return; }
     app.innerHTML = `<div class="page"><form class="gate" data-form="pin">
       <div class="brand">${ANCHOR_SVG}<div><div class="brand-name">${esc((S.status.event || {}).name || '')}</div><div class="brand-sub">운영자 현황판</div></div></div>
       <h2>운영자 PIN</h2>
@@ -1834,6 +1868,7 @@ function renderAdmin() {
     </div>`;
   }
   renderAdminParts();
+  if (S.admin.pin && !S.admin.data) refresh(); // 기억된 PIN 으로 들어왔는데 아직 데이터가 없으면 바로 불러옴 (다음 자동 갱신까지 빈 화면 방지)
 }
 function renderAdminParts() {
   const d = S.admin.data; if (!d || $('#app').dataset.view !== 'admin') return;
@@ -2324,7 +2359,8 @@ document.addEventListener('click', e => {
   else if (a === 'my-cancel') { S.my.confirm = act.dataset.res; renderMyList(); }
   else if (a === 'my-cancel-no') { S.my.confirm = ''; renderMyList(); }
   else if (a === 'my-cancel-yes') { cancelMy(act.dataset.res); }
-  else if (a === 'go-admin') { if (PREVIEW || !WEB || STATIC) { e.preventDefault(); go('admin'); } } // 방법 B 는 같은 페이지 안에서 이동 (주소는 pushNav 가 바꿈)
+  else if (a === 'go-staff') { e.preventDefault(); S.admin.staffPick = true; S.admin.staff = true; S.admin.f.booth = ''; S.admin.err = ''; go('admin'); }
+  else if (a === 'go-admin') { S.admin.staffPick = false; S.admin.staff = false; S.admin.f.booth = ''; if (PREVIEW || !WEB || STATIC) { e.preventDefault(); go('admin'); } } // 방법 B 는 같은 페이지 안에서 이동 (주소는 pushNav 가 바꿈)
   else if (a === 'refresh') { refresh(); toast('새로고침 중…'); }
   else if (a === 'logout') { S.admin.pin = ''; S.admin.data = null; try { sessionStorage.removeItem('pin'); } catch (x) { } render(); }
   else if (a === 'pick') { S.admin.f.booth = act.dataset.booth; S.admin.f.slot = act.dataset.slot; S.admin.f.status = ''; S.admin.tab = 'list'; $$('[data-tab]').forEach(t => t.classList.toggle('on', t.dataset.tab === 'list')); $$('[data-panel]').forEach(p => { p.hidden = p.dataset.panel !== 'list'; }); renderList(S.admin.data, kstNow()); }
@@ -2341,6 +2377,17 @@ document.addEventListener('submit', e => {
   if (e.target.closest('[data-form="my"]')) { e.preventDefault(); lookupMy(); return; }
   { const w = e.target.closest('[data-form="walkin"]'); if (w) { e.preventDefault(); submitWalkIn(w); return; } }
   if (e.target.closest('[data-form="rsv"]')) { e.preventDefault(); submitRsv(); return; } // 휴대폰 키보드의 '완료'로 제출
+  const sf = e.target.closest('[data-form="staff"]');
+  if (sf) {
+    e.preventDefault();
+    const no = ($('#sbooth') || {}).value || '', pin = (($('#spin') || {}).value || '').trim();
+    if (!no) { $('[data-err]').textContent = '내 부스를 골라 주세요'; return; }
+    if (!pin) { $('[data-err]').textContent = 'PIN을 입력해 주세요'; return; }
+    try { localStorage.setItem('staffBooth', no); } catch (x) { }
+    S.admin.f.booth = String(no); S.admin.tab = 'list'; S.admin.staff = true; S.admin.staffPick = false;
+    loginAdmin(pin).then(() => { if (S.admin.pin) pushNav(true); else S.admin.staffPick = true; }); // PIN 이 틀리면 부스 고르기 화면 유지 · 맞으면 주소를 ?page=admin&booth=번호 로 → 새로고침·즐겨찾기해도 내 부스
+    return;
+  }
   const f = e.target.closest('[data-form="pin"]');
   if (!f) return;
   e.preventDefault();
@@ -2424,6 +2471,7 @@ async function bootstrap() {
     S.view = 'admin';
     // ?page=admin&booth=12 → 부스 담당자용: 그 부스 명단(체크인)만 바로 표시
     if (p.booth) { S.admin.f.booth = String(Number(p.booth)); S.admin.tab = 'list'; S.admin.staff = true; } // 담당자 모드: 예약 공개 패널(총괄 전용)은 숨김
+    else if (p.staff) { S.admin.staffPick = true; S.admin.staff = true; } // ?page=admin&staff=1 → 부스 고르기 + PIN
   }
   else if (p.page === 'tv') S.view = 'tv';
   else if (p.page === 'qr') S.view = 'qr';
