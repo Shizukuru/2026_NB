@@ -967,7 +967,7 @@ function limitText() {
   const L = S.status.limits || {};
   const parts = [];
   if (L.perSlot) parts.push('같은 시간대 ' + L.perSlot + '개');
-  if (L.total) parts.push('전체 ' + L.total + '개');
+  if (L.total) parts.push('전체(오전, 오후 구분없이) ' + L.total + '개');
   return parts.length ? '한 어린이(이름+연락처)당 ' + parts.join(', ') + '까지 접수됩니다.' : '';
 }
 function legendHTML() {
