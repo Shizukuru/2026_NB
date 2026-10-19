@@ -1454,7 +1454,7 @@ function showResult(r) {
     buttons = btn('modal-my', '내 예약 보기', true) + (always ? '' : btn('modal-more', '다른 시간대도 예약')) + btn('modal-close', '닫기');
   } else if (r.kind === 'ok') {
     cls = 'wait'; icon = '…'; title = r.again ? '이미 대기로 접수되어 있습니다' : '대기로 접수되었습니다' + (r.waitNo ? ' (대기 ' + r.waitNo + '번째)' : '');
-    why = autoPromote() ? '정원이 차 있어 대기 순번으로 들어갔습니다. 취소가 생기면 접수 순서대로 자동 확정되고, 이 화면을 열어 두거나 다시 열면 바로 알려 드립니다(문자 알림이 설정된 행사는 문자도). 다른 시간대를 함께 예약해 두셔도 됩니다.'
+    why = autoPromote() ? '정원이 차 있어 대기 순번으로 들어갔습니다. 취소가 생기면 접수 순서대로 자동 확정되고, 이 화면을 열어 두거나 다시 열면 팝업으로 알려 드립니다. 다른 시간대를 함께 예약해 두셔도 됩니다.'
       : '정원이 차 있어 대기 순번으로 들어갔습니다. 취소가 생기면 운영진이 접수 순서대로 연락드립니다. 다른 시간대를 함께 예약해 두셔도 됩니다.';
     buttons = btn('modal-my', '내 예약 보기', true) + btn('modal-more', '다른 시간대 예약') + btn('modal-close', '닫기');
   } else if (r.kind === 'error') {
