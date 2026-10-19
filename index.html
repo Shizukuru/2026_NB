@@ -687,7 +687,13 @@ function setDay(d) {
   pushNav(true);
   toast(fmtDay(d) + ' 현황을 보고 있습니다');
 }
-function onStatus(st) { applyPoll(st); applyDay(st); reapplyPatches(st); }
+function onStatus(st) { applyPoll(st); applyDay(st); reapplyPatches(st); checkPromoted(st); }
+/** 현황에 실린 '대기→자동 확정' 예약번호에 내 대기 예약이 있으면 그때만 내 예약을 다시 받아 알림 (대기자 휴대폰이 2분마다 서버에 묻던 것을 대신) */
+function checkPromoted(st) {
+  const pr = st && st.promoted; if (!pr || !pr.length || typeof loadSnap !== 'function') return;
+  const snap = loadSnap(); const set = new Set(pr);
+  if (Object.keys(snap).some(k => k !== '_t' && snap[k] && snap[k].status === ST.WAIT && set.has(k))) watchTick(true);
+}
 /** 서버가 현황을 읽기 시작한 시각(builtAt)보다 나중에 적힌 내 예약(at)은 그 현황에 없을 수 있음(직전본) → 그만큼 더해 둠 */
 function reapplyPatches(st) {
   const built = st && st.builtAt; if (!built) return;
@@ -918,7 +924,7 @@ async function refresh() {
   try {
     if (S.view === 'admin') {
       if (!S.admin.pin) return;
-      const d = await rpc('getOperatorData', S.admin.pin);
+      const d = await adminFetch(S.admin.pin);
       S.admin.data = d; S.status = d; onStatus(d);
       renderAdminParts();
     } else {
@@ -1546,7 +1552,7 @@ async function submitWalkIn(form) {
 }
 
 // ───────── 알림 감시: 이 휴대폰 예약자의 '대기'가 확정되면(취소로 자리가 나면) 팝업 — 화면이 열려 있거나 다시 열릴 때 ─────────
-const WATCH_MS = PREVIEW ? 6000 : 120000; // 대기 예약이 있는 휴대폰의 확정 확인 주기 (서버 부담을 줄이려 2분)
+const WATCH_MS = PREVIEW ? 6000 : 600000; // 대기 예약이 있는 휴대폰의 확정 '보조' 확인 주기 (10분) — 평소에는 현황의 promoted 목록으로 바로 알아챔
 const WATCH_OPEN_MIN_MS = PREVIEW ? 0 : 2 * 60 * 1000; // 화면을 다시 열 때의 확인은 마지막 확인 뒤 2분이 지났을 때만
 let watchTimer = null, watchBusy = false;
 function loadSnap() { try { return JSON.parse(localStorage.getItem('mystat') || '{}') || {}; } catch (x) { return {}; } }
@@ -2133,10 +2139,23 @@ async function setSessionMode(sess, mode, btn) {
     await refresh();
   } catch (e) { toast(e.message || '변경에 실패했습니다', 'err'); if (btn) btn.disabled = false; }
 }
+/** 운영자 = 전체 명단(getOperatorData) · 부스 담당자 = 내 부스 명단만(getBoothData, 서버 캐시 — 52개 부스 화면이 20초마다 시트를 통째로 읽지 않게) */
+async function adminFetch(pin) {
+  const staffBooth = S.admin.staff && S.admin.f.booth ? Number(S.admin.f.booth) : 0;
+  const d = await rpc(staffBooth ? 'getBoothData' : 'getOperatorData', pin, staffBooth || undefined);
+  applyAttPatches(d);
+  return d;
+}
+/** 방금 누른 출석·결석: 서버 현황이 그 뒤에 만들어지기 전까지는 화면에서 누른 값을 유지 (되돌아가 보이지 않게) */
+const ATT_PATCH = {};
+function applyAttPatches(d) {
+  const built = (d && d.builtAt) || 0;
+  ((d && d.reservations) || []).forEach(r => { const p = ATT_PATCH[r.no]; if (!p) return; if (built < p.at) { r.att = p.state; r.checkin = p.state === '출석'; } else delete ATT_PATCH[r.no]; });
+}
 async function loginAdmin(pin) {
   const errEl = $('[data-err]');
   try {
-    const d = await rpc('getOperatorData', pin);
+    const d = await adminFetch(pin);
     S.admin.pin = pin; S.admin.data = d; S.status = d; onStatus(d); S.admin.err = '';
     try { sessionStorage.setItem('pin', pin); } catch (x) { }
     render();
@@ -2438,7 +2457,7 @@ document.addEventListener('click', e => {
     const resNo = act.dataset.res, state = act.dataset.state;
     const by = S.admin.f.booth ? '담당자(부스 ' + S.admin.f.booth + ')' : '운영자'; // 부스 담당자 화면(?page=admin&booth=n)에서 눌렀는지 기록
     $$('[data-action="att"][data-res="' + resNo + '"]').forEach(b => { b.disabled = true; });
-    rpc('setAttendance', S.admin.pin, resNo, state, by).then(() => { toast(resNo + (state ? ' → ' + state : ' → 미처리로 되돌림')); return refresh(); })
+    rpc('setAttendance', S.admin.pin, resNo, state, by).then((x) => { if (x && x.at) ATT_PATCH[resNo] = { state: state, at: x.at }; toast(resNo + (state ? ' → ' + state : ' → 미처리로 되돌림')); return refresh(); })
       .catch(err => { toast(err.message || '저장에 실패했습니다', 'err'); return refresh(); });
     return;
   }
