@@ -2130,6 +2130,24 @@ function writeCsv(list, logId, fileName) {
     toast(list.length + '건을 ' + name + ' 로 내려받습니다 (기록 ' + logId + ')');
   } catch (e) { toast('내려받기에 실패했습니다: ' + (e.message || e), 'err'); }
 }
+/** 예약 공개 변경 전 확인 — 방문객 화면에 바로 영향이 가므로 실수로 누르지 않게 한 번 더 묻는다 */
+function confirmSessionMode(sess, mode) {
+  const ss = ((S.admin.data || S.status || {}).sessions) || {}, x = ss[sess] || {};
+  const label = (eventDates().length > 1 ? fmtDay(S.day) + ' ' : '') + (x.label || (sess === 'am' ? '오전반' : '오후반'));
+  if (x.mode === mode) { toast(label + '은(는) 이미 \'' + mode + '\'입니다'); return; }
+  const nowTxt = x.open ? '지금 <b>열림</b>(예약 받는 중)' : '지금 <b>닫힘</b>';
+  const what = mode === '열림' ? `공개 시각(${esc(x.opensAt || '')})과 상관없이 <b>지금 바로 방문객이 예약할 수 있게</b> 됩니다.`
+    : mode === '닫힘' ? `방문객의 <b>예약 접수가 바로 멈춥니다</b>. 이미 받은 예약은 그대로이고, 부스 담당자의 현장 등록은 계속 됩니다.`
+    : `공개 시각 <b>${esc(x.opensAt || '')}</b>(행사일)이 되면 자동으로 열리고, 그 전에는 닫혀 있습니다.`;
+  const old = $('#result-modal'); if (old) old.remove();
+  const el = document.createElement('div'); el.id = 'result-modal'; el.className = 'modal'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true');
+  el.innerHTML = `<div class="modal-card"><div class="modal-icon ${mode === '닫힘' ? 'cancel' : mode === '열림' ? 'ok' : 'wait'}">!</div><h2>예약 공개를 바꿀까요?</h2>
+    <div class="what">${esc(label)} : '${esc(x.mode || '')}' → <b>'${esc(mode)}'</b></div>
+    <p class="note" style="text-align:left">${nowTxt}. ${what}</p>
+    <div class="row"><button type="button" class="btn primary" data-action="sess-confirm" data-sess="${attr(sess)}" data-mode="${attr(mode)}">'${esc(mode)}'으로 바꾸기</button><button type="button" class="btn" data-action="modal-close">취소</button></div></div>`;
+  document.body.appendChild(el);
+  setTimeout(() => { const c = el.querySelector('[data-action="modal-close"]'); if (c) c.focus(); }, 30); // 엔터 한 번에 바뀌지 않게 기본 초점은 [취소]
+}
 async function setSessionMode(sess, mode, btn) {
   if (btn) btn.disabled = true;
   try {
@@ -2534,7 +2552,8 @@ document.addEventListener('click', e => {
   else if (a === 'pick') { S.admin.f.booth = act.dataset.booth; S.admin.f.slot = act.dataset.slot; S.admin.f.status = ''; S.admin.tab = 'list'; $$('[data-tab]').forEach(t => t.classList.toggle('on', t.dataset.tab === 'list')); $$('[data-panel]').forEach(p => { p.hidden = p.dataset.panel !== 'list'; }); renderList(S.admin.data, kstNow()); }
   else if (a === 'clear-filter') { S.admin.f.booth = ''; S.admin.f.slot = ''; renderList(S.admin.data, kstNow()); }
   else if (a === 'print') { try { window.print(); } catch (x) { toast('브라우저 메뉴에서 인쇄(Ctrl+P)해 주세요'); } }
-  else if (a === 'sess-mode') { setSessionMode(act.dataset.sess, act.dataset.mode, act); }
+  else if (a === 'sess-mode') { confirmSessionMode(act.dataset.sess, act.dataset.mode); }
+  else if (a === 'sess-confirm') { const sess = act.dataset.sess, mode = act.dataset.mode; closeModal(); const b = $('[data-action="sess-mode"][data-sess="' + sess + '"][data-mode="' + mode + '"]'); setSessionMode(sess, mode, b); }
   else if (a === 'toggle-phone') { S.phone = !S.phone; try { localStorage.setItem('phonePreview', S.phone ? '1' : '0'); } catch (x) { } renderPreviewBar(); }
 });
 document.addEventListener('keydown', e => {
