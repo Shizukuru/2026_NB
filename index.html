@@ -229,7 +229,13 @@ tr:last-child td{border-bottom:0}
 .tc.now{outline:2px solid var(--mark);outline-offset:-2px}
 .tv-always{grid-column:3/-1;background:var(--neutral-soft);color:var(--fg-muted);border-radius:.4em;padding:.1em .8em;align-self:stretch;display:flex;align-items:center;justify-content:space-between;font-size:.9em}
 .tv-always b{color:var(--fg)}
-.tv-alw-n{display:flex;gap:1em;white-space:nowrap}.tv-alw-n .w b{color:var(--warn)}.tv-alw-n .j b{color:var(--ok)}
+.tv-alw-t{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-right:.8em}
+.tv-alw-n{display:flex;gap:1em;white-space:nowrap;align-items:center}.tv-alw-n .w b{color:var(--warn)}.tv-alw-n .j b{color:var(--ok)}
+.cong{display:inline-block;font-weight:800;font-size:.86em;border-radius:999px;padding:.05em .7em;margin-left:.4em;white-space:nowrap;vertical-align:baseline}
+.cong.ok{background:var(--ok-soft);color:var(--ok)}.cong.warn{background:var(--warn-soft);color:var(--warn)}.cong.full{background:var(--full-soft);color:var(--full)}
+.cap-note{font-size:.86em;color:var(--fg-muted);margin-left:.4em;white-space:nowrap}
+.foot .copy{flex-basis:100%;text-align:center;font-size:12px;color:var(--fg-muted);padding-top:8px;border-top:1px dashed var(--line,#e3dccb);margin-top:6px}
+.tv-copy{text-align:center;font-size:.72em;color:var(--fg-muted);margin-top:.4em}
 .tv-legend{display:flex;gap:1.6em;color:var(--fg-muted);font-size:.9em;justify-content:center}
 .tv-legend i{display:inline-block;width:.9em;height:.9em;border-radius:.2em;vertical-align:-.1em;margin-right:.35em}
 @media (max-width:900px){.tv{height:auto;overflow:visible}.tv-body{grid-template-columns:1fr}.tv-col{grid-template-rows:none}.tv-row{min-height:2.2em}}
@@ -623,6 +629,7 @@ const PREVIEW = !!BOOT.preview;
 // /u/4/ 나 /a/macros/도메인/ 이 남은 주소는 시크릿 탭·방문객 휴대폰에서 열리지 않는다)
 const WEB = STATIC && !PREVIEW ? ownUrl() : guestUrl(BOOT.webAppUrl);
 const WEB_PROBLEM = STATIC ? API_PROBLEM : String(BOOT.webAppUrlProblem || '');
+const COPYRIGHT = '© 2026 호서대학교 앵커늘봄총괄센터 · 만든이 이지훈';
 const CLASS = '수업형', ALWAYS = '상시운영', ONSITE = '현장접수'; // 현장접수: 예약 없이 부스에서 직접 접수 — 화면에는 보이되 예약 버튼이 없음
 const noSlot = s => s === ALWAYS || s === ONSITE; // 시간대가 없는 예약 행(상시운영 방문 등록 · 현장접수 등록)
 const slotText = s => s === ALWAYS ? '상시운영 · 방문 등록' : s === ONSITE ? '현장접수 · 부스에서 등록' : s;
@@ -1044,7 +1051,7 @@ function renderHome() {
       <section class="grid" data-grid aria-live="polite"></section>
       ${legendHTML()}
       ${sponsorsHTML()}
-      <footer class="foot"><span>수업형 부스는 시간대당 정원이 있어 접수 순서대로 확정됩니다. 상시운영 부스는 예약 없이 <b>방문 등록</b> 후 부스에서 선착순으로 참여할 수 있어요. ${esc(limitText())}</span><span class="foot-links"><a href="#" data-action="guide-open">이용 안내</a> · <a href="${attr(WEB ? WEB + '?page=admin&staff=1' : '#')}" data-action="go-staff">부스 담당자</a> · <a href="${attr(WEB ? WEB + '?page=admin' : '#')}" data-action="go-admin">운영자</a></span></footer>
+      <footer class="foot"><span>수업형 부스는 시간대당 정원이 있어 접수 순서대로 확정됩니다. 상시운영 부스는 예약 없이 <b>방문 등록</b> 후 부스에서 선착순으로 참여할 수 있어요. ${esc(limitText())}</span><span class="foot-links"><a href="#" data-action="guide-open">이용 안내</a> · <a href="${attr(WEB ? WEB + '?page=admin&staff=1' : '#')}" data-action="go-staff">부스 담당자</a> · <a href="${attr(WEB ? WEB + '?page=admin' : '#')}" data-action="go-admin">운영자</a></span><span class="copy">${COPYRIGHT}</span></footer>
     </div>`;
   }
   updateHome();
@@ -1100,7 +1107,7 @@ function updateMyBadge() {
   const n = myActiveCount();
   $$('[data-my-badge]').forEach(a => { let b = a.querySelector('.badge'); if (!n) { if (b) b.remove(); return; } if (!b) { b = document.createElement('b'); b.className = 'badge'; a.appendChild(b); } b.textContent = n; });
 }
-/** 상시운영 부스 인원: 누적 참여(출석) · 등록 대기(입장 전). 입장 확인을 끈 행사면 등록 = 참여 */
+/** 상시운영 부스 인원: 누적 참여(출석) · 예약자(방문 등록 후 입장 전). 입장 확인을 끈 행사면 등록 = 참여 */
 function alwaysCheck() { return !S.status || S.status.alwaysCheck !== false; }
 function alwaysCounts(b) {
   const c = (b && b.counts && b.counts[b.mode === ONSITE ? ONSITE : ALWAYS]) || {}; const total = c.ok || 0;
@@ -1109,7 +1116,21 @@ function alwaysCounts(b) {
 }
 function alwaysCountText(b, html) {
   const a = alwaysCounts(b); const B = v => html ? '<b>' + v + '</b>' : String(v);
-  return alwaysCheck() ? '대기 ' + B(a.wait) + '명 · 누적 참여 ' + B(a.joined) + '명' : '누적 참여 ' + B(a.joined) + '명';
+  return alwaysCheck() ? '예약자 ' + B(a.wait) + '명 · 누적 참여 ' + B(a.joined) + '명' : '누적 참여 ' + B(a.joined) + '명';
+}
+/**
+ * 상시운영 혼잡도 (실시간): 지금 입장을 기다리는 예약자 수 ÷ 동시 수용 인원(부스 탭 '정원' 칸)
+ *  절반 미만 = 여유 · 수용 인원 미만 = 보통 · 수용 인원 이상 = 혼잡 (한 차례 이상 기다림). 수용 인원이 비어 있으면 표시하지 않음
+ */
+function alwaysLevel(b) {
+  const cap = Number(b && b.cap) || 0;
+  if (!b || b.mode !== ALWAYS || !cap || !alwaysCheck()) return null;
+  const w = alwaysCounts(b).wait, r = w / cap;
+  return r < 0.5 ? { k: 'ok', t: '여유', cap, w } : r < 1 ? { k: 'warn', t: '보통', cap, w } : { k: 'full', t: '혼잡', cap, w };
+}
+function congHTML(b, withCap) {
+  const L = alwaysLevel(b); if (!L) return '';
+  return `<span class="cong ${L.k}" title="입장 기다리는 예약자 ${L.w}명 / 동시 수용 ${L.cap}명">혼잡도 ${L.t}</span>${withCap ? `<span class="cap-note">수용 ${L.cap}명</span>` : ''}`;
 }
 /** 해시태그 줄. 누르면 첫 화면 검색에 그 태그를 넣어 같은 태그 부스만 봄 */
 function tagsHTML(b) {
@@ -1123,8 +1144,8 @@ function cardHTML(b, now) {
     <div class="booth-head"><div class="no${always ? ' always' : onsite ? ' onsite' : ''}">${b.no}</div>
       <div class="booth-title"><h3>${esc(b.name)}</h3><p class="meta"><span>${esc(b.org)}</span>${b.floor ? `<span class="tag floor">${esc(placeText(b))}</span>` : ''}<span class="tag">${esc(b.field)}</span><span class="tag ${always ? 'alw' : onsite ? 'ons' : 'cls'}">${esc(b.mode)}</span></p></div></div>
     ${tagsHTML(b)}${b.desc ? `<p class="booth-desc">${esc(b.desc)}</p>` : ''}
-    ${onsite ? `<div class="onsite-line"><b>현장접수 프로그램</b> · 예약 없이 부스에 가서 직접 접수해요</div>` : always ? `<div class="always-line">예약 없이 <b>방문 등록</b> 후 참여 · ${alwaysCountText(b, true)}</div>` : slotChipsHTML(b, now)}
-    <div class="booth-foot">${onsite ? `<span class="avail">예약 없음 · 부스에서 현장접수</span>` : always ? `<span class="avail">정원 제한 없음 · 등록 후 참여</span>` : sum.total === 0 ? `<span class="avail">${sum.closed ? esc(closedNote(b.slots)) : '오늘 운영 종료'}</span>` : `<span class="avail${sum.left === 0 ? ' full' : ''}">${sum.left === 0 ? '<b>전 시간대 마감</b>' : '잔여 <b>' + sum.left + '석</b> · ' + sum.open + '개 시간대'}${sum.closed ? ' · ' + esc(closedNote(b.slots)) : ''}</span>`}
+    ${onsite ? `<div class="onsite-line"><b>현장접수 프로그램</b> · 예약 없이 부스에 가서 직접 접수해요</div>` : always ? `<div class="always-line">예약 없이 <b>방문 등록</b> 후 참여 · ${alwaysCountText(b, true)}${congHTML(b, true)}</div>` : slotChipsHTML(b, now)}
+    <div class="booth-foot">${onsite ? `<span class="avail">예약 없음 · 부스에서 현장접수</span>` : always ? `<span class="avail">${alwaysLevel(b) ? '동시 수용 ' + alwaysLevel(b).cap + '명 · 부스 도착 순 입장' : '정원 제한 없음 · 등록 후 참여'}</span>` : sum.total === 0 ? `<span class="avail">${sum.closed ? esc(closedNote(b.slots)) : '오늘 운영 종료'}</span>` : `<span class="avail${sum.left === 0 ? ' full' : ''}">${sum.left === 0 ? '<b>전 시간대 마감</b>' : '잔여 <b>' + sum.left + '석</b> · ' + sum.open + '개 시간대'}${sum.closed ? ' · ' + esc(closedNote(b.slots)) : ''}</span>`}
       <span class="btn small">${onsite ? '부스 안내 보기' : always ? '방문 등록' : '예약하기'}</span></div>
   </article>`;
 }
@@ -1174,7 +1195,7 @@ function updateBooth() {
     note = `<p class="note">이 화면에서는 예약·방문 등록을 받지 않습니다${b.floor || b.pos ? ' — 위치는 위의 📍 표시와 배치도를 참고하세요' : ''}. 접수 방법·정원은 부스 운영기관(${esc(b.org)})이 현장에서 안내합니다.</p>`;
   } else if (always) {
     body = alwaysCheck()
-      ? `<div class="always-line" style="font-size:15px"><b>예약 없이</b> 방문 등록 후 <b>선착순 입장</b> · 오늘 ${alwaysCountText(b, true)}</div>`
+      ? `<div class="always-line" style="font-size:15px"><b>예약 없이</b> 방문 등록 후 <b>선착순 입장</b> · 오늘 ${alwaysCountText(b, true)}${congHTML(b, true)}</div>`
       : `<div class="always-line" style="font-size:15px">이 부스는 <b>예약 없이</b> 아래에서 <b>방문 등록</b>만 하면 바로 참여할 수 있어요. · 오늘 ${alwaysCountText(b, true)}</div>`;
     note = `<p class="note">정원·시간대가 없습니다. 아래에 적고 [방문 등록하기]를 누른 뒤 부스로 오세요. <b>등록 순서가 아니라 부스에 온 순서(선착순)</b>로 입장합니다${alwaysCheck() ? ", 담당자가 입장을 확인하면 참여로 기록됩니다" : ""}.</p>`;
   } else {
@@ -1820,14 +1841,14 @@ function updateMap() {
   const pinPx = p => { const wpx = canvasPx * (p[3] || 5) / 100, hpx = canvasPx * (m.h / m.w) * (p[4] || 5) / 100; return Math.max(26, Math.round(Math.min(wpx, hpx) * 0.86)); };
   wrap.innerHTML = `<div class="map-canvas" style="aspect-ratio:${m.w}/${m.h};width:${(S.map.zoom || 1) * 100}%"><div class="fp">${m.svg || ''}</div>${placed.map(b => {
     const p = posOf(b); const cls = markerClass(b, now); const sum = b.mode !== CLASS ? null : boothSummary(b, now);
-    const tip = b.no + '. ' + b.name + ' (' + (b.pos || '') + ') · ' + (b.mode === ONSITE ? '현장접수 · 예약 없이 부스에서 접수' : b.mode === ALWAYS ? '상시운영' : sum.total === 0 ? (sum.closed ? '공개 전' : '운영 종료') : sum.left === 0 ? '전 시간대 마감' : '잔여 ' + sum.left + '석');
+    const tip = b.no + '. ' + b.name + ' (' + (b.pos || '') + ') · ' + (b.mode === ONSITE ? '현장접수 · 예약 없이 부스에서 접수' : b.mode === ALWAYS ? '상시운영' + (alwaysLevel(b) ? ' · 혼잡도 ' + alwaysLevel(b).t : '') : sum.total === 0 ? (sum.closed ? '공개 전' : '운영 종료') : sum.left === 0 ? '전 시간대 마감' : '잔여 ' + sum.left + '석');
     const px = pinPx(p), hl = S.map.hl === b.no;
     return `<button type="button" class="pin ${cls}${hl ? ' hl' : ''}" style="left:${p[1]}%;top:${p[2]}%;width:${px}px;height:${px}px;font-size:${Math.round(px * 0.42)}px" data-action="open-booth" data-no="${b.no}" title="${attr(tip)}" aria-label="${attr(tip)}"><span>${b.no}</span></button>`;
   }).join('')}</div>`;
   const list = $('[data-map-list]');
   if (list) {
     const row = b => { const cls = markerClass(b, now); const sum = b.mode !== CLASS ? null : boothSummary(b, now);
-      const st = b.mode === ONSITE ? '현장접수 · 예약 없이 부스에서 접수' : b.mode === ALWAYS ? '상시운영 · 방문 등록 후 참여' : sum.total === 0 ? (sum.closed ? esc(closedNote(b.slots)) : '오늘 운영 종료') : sum.left === 0 ? '전 시간대 마감' : '잔여 ' + sum.left + '석 · ' + sum.open + '개 시간대';
+      const st = b.mode === ONSITE ? '현장접수 · 예약 없이 부스에서 접수' : b.mode === ALWAYS ? '상시운영 · 방문 등록 후 참여' + (alwaysLevel(b) ? ' · 혼잡도 ' + alwaysLevel(b).t + ' (수용 ' + alwaysLevel(b).cap + '명)' : '') : sum.total === 0 ? (sum.closed ? esc(closedNote(b.slots)) : '오늘 운영 종료') : sum.left === 0 ? '전 시간대 마감' : '잔여 ' + sum.left + '석 · ' + sum.open + '개 시간대';
       return `<button type="button" class="map-row${S.map.hl === b.no ? ' hl' : ''}" data-action="open-booth" data-no="${b.no}"><span class="pin ${cls}"><span>${b.no}</span></span><span class="mr-name">${esc(b.name)}<small>${esc(b.org)}${b.pos ? ' · ' + esc(b.pos) : ' · 자리 추후 안내'}</small></span><span class="mr-st ${cls}">${st}</span></button>`; };
     const groups = (m.floors || []).map(f => { const bs = placed.concat(unplaced).filter(b => b.floor === f).sort((a, b) => a.no - b.no); return bs.length ? `<h3>${esc(f)} <small>${bs.length}개 부스</small></h3>${bs.map(row).join('')}` : ''; }).join('');
     list.innerHTML = groups || `<div class="empty">이 층에 배정된 부스가 없습니다.</div>`;
@@ -1936,7 +1957,7 @@ function renderAdminParts() {
     `<div class="stat"><div class="k">출석</div><div class="v">${checkin}<small>/ ${ok.length}</small></div></div>` +
     `<div class="stat"><div class="k">결석</div><div class="v">${absent}${openPast ? `<small style="color:var(--full)">미처리 ${openPast}</small>` : ''}</div></div>` +
     `<div class="stat"><div class="k">마감 시간대</div><div class="v">${fullSlots}<small>/ ${totalSlots}</small></div></div>` +
-    (alwaysCheck() ? `<div class="stat"><div class="k">상시운영 누적 참여</div><div class="v">${visitsIn}<small>명 · 대기 ${Math.max(0, visits - visitsIn - visitsAbs)}</small></div></div>` : `<div class="stat"><div class="k">상시운영 누적 참여</div><div class="v">${visits}<small>명</small></div></div>`) +
+    (alwaysCheck() ? `<div class="stat"><div class="k">상시운영 누적 참여</div><div class="v">${visitsIn}<small>명 · 예약자 ${Math.max(0, visits - visitsIn - visitsAbs)}</small></div></div>` : `<div class="stat"><div class="k">상시운영 누적 참여</div><div class="v">${visits}<small>명</small></div></div>`) +
     `<div class="stat"><div class="k">${cur.now ? '지금 진행 중' : cur.next ? '다음 시간대' : '행사일'}</div><div class="v small">${esc(cur.now || cur.next || (d.event && d.event.date) || '-')}</div></div>`;
   const u = $('[data-updated]'); if (u) u.textContent = d.updatedAt || '';
   renderSessionPanel(d);
@@ -1965,7 +1986,7 @@ function renderMatrix(d, now) {
   const rows = booths.map(b => {
     const name = `<td><span class="bno">${b.no}</span><span class="bname">${esc(b.name)}</span><span class="org">${esc(b.org)}${b.floor ? ' · ' + esc(placeText(b)) : ''}</span></td>`;
     if (b.mode === ALWAYS) {
-      return `<tr>${name}<td class="cell always" colspan="${slots.length}" data-action="pick" data-booth="${b.no}" data-slot="${ALWAYS}">상시운영 · ${alwaysCountText(b, true)}</td></tr>`;
+      return `<tr>${name}<td class="cell always" colspan="${slots.length}" data-action="pick" data-booth="${b.no}" data-slot="${ALWAYS}">상시운영 · ${alwaysCountText(b, true)}${congHTML(b, true)}</td></tr>`;
     }
     if (b.mode === ONSITE) {
       return `<tr>${name}<td class="cell always" colspan="${slots.length}" data-action="pick" data-booth="${b.no}" data-slot="${ONSITE}">현장접수 (예약 없음) · 현장 등록 <b>${alwaysCounts(b).joined}</b>명</td></tr>`;
@@ -2195,6 +2216,7 @@ function renderTV() {
       <div class="tv-body" data-tv-body></div>
       <div class="tv-legend"><span><i style="background:var(--ok)"></i>잔여 좌석</span><span><i style="background:var(--warn)"></i>잔여 30% 이하</span><span><i style="background:var(--full)"></i>마감</span><span><i style="background:var(--surface-2)"></i>종료</span><span><i style="background:var(--mark)"></i>진행 중</span></div>
       ${sponsorsHTML(true)}
+      <div class="tv-copy">${COPYRIGHT}</div>
     </div>`;
   }
   updateTV();
@@ -2219,7 +2241,7 @@ function updateTV() {
   const rowsPerCol = Math.max(half, 1);
   $('[data-tv-body]').innerHTML = cols.map(col => `<div class="tv-col" style="--rows:${rowsPerCol};--cols:${slots.length}">
     <div class="tv-row head"><span></span><span>부스</span>${slots.map(s => `<span class="tc${phaseOf(s, now) === 'now' ? ' now' : ''}">${esc(shortTime(s))}</span>`).join('')}</div>
-    ${col.map(b => `<div class="tv-row"><span class="tv-no">${b.no}</span><span class="tv-name">${esc(b.name)}<small>${esc(b.org)}${b.pos ? ' · ' + esc(b.pos) : b.floor ? ' · ' + esc(b.floor) : ''}</small></span>${b.mode === ONSITE ? `<span class="tv-always"><span>현장접수 · 예약 없이 부스에서 접수</span><span class="tv-alw-n"><span class="j">참여 <b>${alwaysCounts(b).joined}</b></span></span></span>` : b.mode === ALWAYS ? `<span class="tv-always"><span>상시운영 · 방문 등록 후 입장</span><span class="tv-alw-n">${alwaysCheck() ? `<span class="w">대기 <b>${alwaysCounts(b).wait}</b></span>` : ''}<span class="j">누적 참여 <b>${alwaysCounts(b).joined}</b></span></span></span>` : slots.map(s => {
+    ${col.map(b => `<div class="tv-row"><span class="tv-no">${b.no}</span><span class="tv-name">${esc(b.name)}<small>${esc(b.org)}${b.pos ? ' · ' + esc(b.pos) : b.floor ? ' · ' + esc(b.floor) : ''}</small></span>${b.mode === ONSITE ? `<span class="tv-always"><span>현장접수 · 예약 없이 부스에서 접수</span><span class="tv-alw-n"><span class="j">참여 <b>${alwaysCounts(b).joined}</b></span></span></span>` : b.mode === ALWAYS ? `<span class="tv-always"><span class="tv-alw-t">상시운영 · 방문 등록 후 입장</span><span class="tv-alw-n">${congHTML(b, true)}${alwaysCheck() ? `<span class="w">예약자 <b>${alwaysCounts(b).wait}</b></span>` : ''}<span class="j">누적 참여 <b>${alwaysCounts(b).joined}</b></span></span></span>` : slots.map(s => {
       if ((b.slots || []).indexOf(s) === -1) return `<span class="tc na">·</span>`;
       const i = slotInfo(b, s, now);
       return `<span class="tc ${i.cls}${i.phase === 'now' ? ' now' : ''}">${i.phase === 'past' ? '종료' : i.closed ? '공개전' : i.waitFull ? '마감' : i.full ? '대기' : i.left}</span>`;
