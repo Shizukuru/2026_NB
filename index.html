@@ -830,9 +830,12 @@ function sessionOpen(x) {
 }
 function sessionClosed(slot) { const x = sessionOf(slot); return !!(x && !sessionOpen(x)); }
 function sessionLabel(x) { return sessionOpen(x) ? x.label + ' 접수 중' : x.mode === '닫힘' ? x.label + ' 접수 중지' : x.label + ' ' + x.opensAt + ' 공개'; }
+/** 상시운영 방문 등록이 닫혀 있으면 안내 문구, 열려 있으면 '' (설정 탭·운영자 '상시운영 공개') */
+function alClosedText() { const x = (sessions() || {}).al; if (!x || sessionOpen(x)) return ''; return x.mode === '닫힘' ? '상시운영 방문 등록 중지' : '방문 등록은 ' + (eventDates().length > 1 ? fmtDay(S.day) + ' ' : '행사일 ') + x.opensAt + '부터'; }
+const hasAlways = () => (S.status.booths || []).some(b => b.mode === ALWAYS);
 function sessionPillsHTML() {
   const ss = sessions(); if (!ss) return '';
-  return ['am', 'pm'].map(k => { const x = ss[k]; if (!x || !x.count) return ''; return `<span class="sess ${sessionOpen(x) ? 'open' : x.mode === '닫힘' ? 'off' : ''}">${esc(sessionLabel(x))}</span>`; }).join('');
+  return ['am', 'pm', 'al'].map(k => { const x = ss[k]; if (!x || (k === 'al' ? !hasAlways() : !x.count)) return ''; return `<span class="sess ${sessionOpen(x) ? 'open' : x.mode === '닫힘' ? 'off' : ''}">${esc(sessionLabel(x))}</span>`; }).join('');
 }
 function closedNote(slots) {
   const seen = {}; const parts = [];
@@ -1171,7 +1174,7 @@ function cardHTML(b, now) {
       <div class="booth-title"><h3>${esc(b.name)}</h3><p class="meta"><span>${esc(b.org)}</span>${b.floor ? `<span class="tag floor${zc(b.floor)}">${esc(placeText(b))}</span>` : ''}<span class="tag">${esc(b.field)}</span><span class="tag ${always ? 'alw' : onsite ? 'ons' : 'cls'}">${esc(b.mode)}</span></p></div></div>
     ${tagsHTML(b)}${b.desc ? `<p class="booth-desc">${esc(b.desc)}</p>` : ''}
     ${onsite ? `<div class="onsite-line"><b>현장접수 프로그램</b> · 예약 없이 부스에 가서 직접 접수해요</div>` : always ? `<div class="always-line">예약 없이 <b>방문 등록</b> 후 참여 · ${alwaysCountText(b, true)}${congHTML(b, true)}</div>` : slotChipsHTML(b, now)}
-    <div class="booth-foot">${onsite ? `<span class="avail">예약 없음 · 부스에서 현장접수</span>` : always ? `<span class="avail">${alwaysLevel(b) ? '동시 수용 ' + alwaysLevel(b).cap + '명 · 부스 도착 순 입장' : '정원 제한 없음 · 등록 후 참여'}</span>` : sum.total === 0 ? `<span class="avail">${sum.closed ? esc(closedNote(b.slots)) : '오늘 운영 종료'}</span>` : `<span class="avail${sum.left === 0 ? ' full' : ''}">${sum.left === 0 ? '<b>전 시간대 마감</b>' : '잔여 <b>' + sum.left + '석</b> · ' + sum.open + '개 시간대'}${sum.closed ? ' · ' + esc(closedNote(b.slots)) : ''}</span>`}
+    <div class="booth-foot">${onsite ? `<span class="avail">예약 없음 · 부스에서 현장접수</span>` : always ? `<span class="avail">${alClosedText() ? esc(alClosedText()) : alwaysLevel(b) ? '동시 수용 ' + alwaysLevel(b).cap + '명 · 부스 도착 순 입장' : '정원 제한 없음 · 등록 후 참여'}</span>` : sum.total === 0 ? `<span class="avail">${sum.closed ? esc(closedNote(b.slots)) : '오늘 운영 종료'}</span>` : `<span class="avail${sum.left === 0 ? ' full' : ''}">${sum.left === 0 ? '<b>전 시간대 마감</b>' : '잔여 <b>' + sum.left + '석</b> · ' + sum.open + '개 시간대'}${sum.closed ? ' · ' + esc(closedNote(b.slots)) : ''}</span>`}
       <span class="btn small">${onsite ? '부스 안내 보기' : always ? '방문 등록' : '예약하기'}</span></div>
   </article>`;
 }
@@ -1392,6 +1395,8 @@ function renderCta() {
       (S.rsv.retry ? `<div class="retry"><span class="spin" aria-hidden="true"></span><span>접속이 많아 다시 시도 중입니다 (${S.rsv.retry.n}/${RETRY_DELAYS.length}) — 화면을 닫지 마세요</span></div>` : '');
   } else if (b.mode === ONSITE) {
     html = (posOf(b) || mapOfFloor(b.floor)) ? `<a class="btn big primary" href="${attr(WEB ? WEB + '?page=map&booth=' + b.no : '#')}" data-action="map" data-no="${b.no}">현장접수 프로그램 · 배치도에서 부스 위치 보기</a>` : `<span class="btn big" aria-disabled="true">현장접수 프로그램 · 예약 없이 부스로 오세요</span>`;
+  } else if (b.mode === ALWAYS && alClosedText()) {
+    html = `<span class="btn big" aria-disabled="true">${esc(alClosedText())}</span>`;
   } else if (b.mode === ALWAYS) {
     html = `<button type="button" class="btn big primary" data-action="submit-rsv">${alwaysCheck() ? '방문 등록하기 · 부스에서 선착순 입장' : '방문 등록하기 · 등록 후 바로 참여'}</button>`;
   } else {
@@ -2000,10 +2005,10 @@ function renderSessionPanel(d) {
   host.hidden = false;
   if (!ss) { host.innerHTML = `<div class="note" style="font-weight:600;color:var(--fg)">예약 공개 (총괄운영자)</div><div class="note">서버 코드(Code.gs)가 아직 이전 버전입니다. 새 Code.gs로 교체하고 [배포 관리 > 새 버전]을 하면 여기에 오전반·오후반 자동/열림/닫힘 버튼이 나타납니다.</div>`; return; }
   const multi = eventDates().length > 1;
-  host.innerHTML = `<div class="note" style="font-weight:600;color:var(--fg)">예약 공개 (총괄운영자)${multi ? ` · <span class="sess-day">${esc(fmtDay(S.day))}</span> <small style="font-weight:400">— 날짜마다 따로 열고 닫습니다. 다른 날은 위의 날짜 탭에서</small>` : ''}</div>` + ['am', 'pm'].map(k => {
-    const x = ss[k]; if (!x || !x.count) return '';
-    const range = x.first.split(/[~\-–—]/)[0].trim() + '~' + x.last.split(/[~\-–—]/).pop().trim();
-    return `<div class="sess-row"><span class="name">${esc(x.label)}</span><span class="note">${esc(range)} · ${x.count}개 시간대</span>
+  host.innerHTML = `<div class="note" style="font-weight:600;color:var(--fg)">예약 공개 (총괄운영자)${multi ? ` · <span class="sess-day">${esc(fmtDay(S.day))}</span> <small style="font-weight:400">— 날짜마다 따로 열고 닫습니다. 다른 날은 위의 날짜 탭에서</small>` : ''}</div>` + ['am', 'pm', 'al'].map(k => {
+    const x = ss[k]; if (!x || (k === 'al' ? !(d.booths || []).some(b => b.mode === ALWAYS) : !x.count)) return '';
+    const range = k === 'al' ? '' : x.first.split(/[~\-–—]/)[0].trim() + '~' + x.last.split(/[~\-–—]/).pop().trim();
+    return `<div class="sess-row"><span class="name">${esc(x.label)}</span><span class="note">${k === 'al' ? '방문 등록 · ' + (d.booths || []).filter(b => b.mode === ALWAYS).length + '개 부스' : esc(range) + ' · ' + x.count + '개 시간대'}</span>
       <span class="sess ${x.open ? 'open' : x.mode === '닫힘' ? 'off' : ''}">${x.open ? '열림' : '닫힘'}</span>
       <span class="seg">${['자동', '열림', '닫힘'].map(m => `<button type="button" class="${x.mode === m ? 'on' : ''}" data-action="sess-mode" data-sess="${k}" data-mode="${m}">${m === '자동' ? '자동 (행사일 ' + esc(x.opensAt) + ')' : m}</button>`).join('')}</span></div>`;
   }).join('');
@@ -2183,10 +2188,11 @@ function writeCsv(list, logId, fileName) {
 /** 예약 공개 변경 전 확인 — 방문객 화면에 바로 영향이 가므로 실수로 누르지 않게 한 번 더 묻는다 */
 function confirmSessionMode(sess, mode) {
   const ss = ((S.admin.data || S.status || {}).sessions) || {}, x = ss[sess] || {};
-  const label = (eventDates().length > 1 ? fmtDay(S.day) + ' ' : '') + (x.label || (sess === 'am' ? '오전반' : '오후반'));
+  const label = (eventDates().length > 1 ? fmtDay(S.day) + ' ' : '') + (x.label || (sess === 'am' ? '오전반' : sess === 'pm' ? '오후반' : '상시운영'));
   if (x.mode === mode) { toast(label + '은(는) 이미 \'' + mode + '\'입니다'); return; }
   const nowTxt = x.open ? '지금 <b>열림</b>(예약 받는 중)' : '지금 <b>닫힘</b>';
-  const what = mode === '열림' ? `공개 시각(${esc(x.opensAt || '')})과 상관없이 <b>지금 바로 방문객이 예약할 수 있게</b> 됩니다.`
+  const what = sess === 'al' ? (mode === '열림' ? `<b>지금 바로</b>(행사 전날에도) 방문객이 상시운영 부스에 <b>방문 등록</b>할 수 있게 됩니다.` : mode === '닫힘' ? `상시운영 부스 <b>방문 등록이 바로 멈춥니다</b>. 이미 받은 등록은 그대로이고, 부스 담당자의 현장 등록은 계속 됩니다.` : `그 행사일 당일 <b>${esc(x.opensAt || '')}</b>부터 자동으로 열리고, 그 전(전날 포함)에는 닫혀 있습니다.`)
+    : mode === '열림' ? `공개 시각(${esc(x.opensAt || '')})과 상관없이 <b>지금 바로 방문객이 예약할 수 있게</b> 됩니다.`
     : mode === '닫힘' ? `방문객의 <b>예약 접수가 바로 멈춥니다</b>. 이미 받은 예약은 그대로이고, 부스 담당자의 현장 등록은 계속 됩니다.`
     : `공개 시각 <b>${esc(x.opensAt || '')}</b>(행사일)이 되면 자동으로 열리고, 그 전에는 닫혀 있습니다.`;
   const old = $('#result-modal'); if (old) old.remove();
