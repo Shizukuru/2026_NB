@@ -464,7 +464,7 @@ a.brand:hover .brand-name{color:var(--accent)}
 .map-list h3{font-size:15px;font-weight:700;margin-top:10px}
 .map-list h3 small{font-weight:400;color:var(--fg-muted);font-size:12.5px;margin-left:6px}
 .map-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font:inherit;color:inherit;cursor:pointer}
-.map-row .pin{position:static;transform:none;width:30px;height:30px;box-shadow:none;animation:none;outline:0}
+.map-row .pin{position:relative;transform:none;width:30px;height:30px;box-shadow:none;animation:none;outline:0}
 .map-row.hl{border-color:var(--mark);box-shadow:0 0 0 2px var(--mark) inset}
 .mr-name{font-weight:600;min-width:0;overflow-wrap:anywhere}
 .mr-name small{display:block;font-weight:400;font-size:12px;color:var(--fg-muted)}
@@ -596,6 +596,24 @@ body.phone .app{width:393px;max-width:100%;height:min(852px,calc(100vh - var(--c
 .preview-bar{background:var(--mark);color:var(--mark-ink);font-size:13px;padding:8px 16px;display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;justify-content:center}
 .preview-bar button{border:1px solid rgba(0,0,0,.25);background:rgba(255,255,255,.55);border-radius:999px;padding:3px 10px;font-size:12.5px;color:inherit}
 .preview-bar button.on{background:var(--mark-ink);color:var(--mark)}
+
+/* 구역(층)별 색 */
+.z-out{--z:#1C6DD0;--z-soft:#E3EDFB}.z-b1{--z:#D23434;--z-soft:#FCE6E6}.z-f1{--z:#7A48C8;--z-soft:#EFE7FA}.z-f3{--z:#178A4E;--z-soft:#E1F3E8}
+.no.zc{background:var(--z);color:#fff}
+.tag.floor.zc{background:var(--z-soft);color:var(--z);box-shadow:inset 0 0 0 1px var(--z)}
+.matrix .bno.zc,.tv-no.zc,.my-title .bno.zc{color:var(--z)}
+.qr-card .num.zc{color:var(--z)}
+.chip .zdot{display:inline-block;width:.7em;height:.7em;border-radius:50%;background:var(--z);margin-right:.35em;vertical-align:-.05em}
+.zone-legend{margin:4px 2px 10px;font-size:13px;color:var(--fg-muted);display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center}.zone-legend .zl{color:var(--z);font-weight:700}.zone-legend .zl i{display:inline-block;width:11px;height:11px;border-radius:3px;background:var(--z);margin-right:4px;vertical-align:-1px}
+.tv-legend .zl i{background:var(--z);border-radius:50%}.tv-zones .zl{margin-left:.9em;color:var(--z);font-weight:700}
+
+.pin.zc{background:var(--z)}
+.pin.zc::after{content:'';position:absolute;top:-4px;right:-4px;width:36%;height:36%;min-width:9px;min-height:9px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 .5px rgba(0,0,0,.25);background:var(--dot);display:none}
+.pin.zc.ok,.pin.zc.lv-ok{--dot:var(--ok)}.pin.zc.warn,.pin.zc.lv-warn{--dot:var(--warn)}.pin.zc.full,.pin.zc.lv-full{--dot:var(--full)}
+.pin.zc.ok::after,.pin.zc.warn::after,.pin.zc.full::after,.pin.zc[class*=" lv-"]::after{display:block}
+.pin.zc.past,.pin.zc.closed{opacity:.45}
+.legend b{color:var(--fg);font-weight:700}.legend i.dot{border-radius:50%}
+.map-zones .zl{color:var(--z);font-weight:700}.map-zones .zl i{background:var(--z);border-radius:50%}
 </style>
 </head>
 <body>
@@ -671,6 +689,10 @@ function pickDay(pref) { const ds = eventDates(); if (!ds.length) return ''; if 
 function applyDay(st) {
   st = st || S.status; const ds = eventDates(); if (!ds.length) return;
   if (!S.day || ds.indexOf(S.day) === -1) S.day = pickDay(S.day);
+  // 같은 번호를 날마다 다른 기관이 운영하면(부스 탭 '(6일)' '(7일)') 보는 날짜의 내용으로 바꾸고, 그날 운영 안 하는 부스는 숨김
+  if (!st.allBooths) st.allBooths = st.booths || [];
+  st.allBooths.forEach(b => { if (b.days) { const v = b.days[S.day]; b.off = !v; if (v) Object.assign(b, v); } });
+  st.booths = st.allBooths.filter(b => !b.off);
   (st.booths || []).forEach(b => { if (b.countsByDate) b.counts = b.countsByDate[S.day] || {}; });
   if (st.sessionsByDate) st.sessions = st.sessionsByDate[S.day] || st.sessions;
   if (st.event) st.event.date = S.day; // isEventDay(now): 보는 날짜가 오늘일 때만 '진행 중 / 종료' 판정
@@ -725,6 +747,9 @@ const POS = {"O-1":["b1",6.89,71.47,4.53,7.34],"O-2":["b1",6.98,59.32,4.53,7.34]
 /*MAPS-END*/
 function mapOfFloor(floor) { const k = Object.keys(MAPS).find(k => (MAPS[k].floors || []).indexOf(floor) > -1); return k || Object.keys(MAPS)[0] || ''; }
 function posOf(b) { return b && b.pos && POS[b.pos] ? POS[b.pos] : null; }
+/** 구역(층)별 색: 야외 파랑 · 지하1층 빨강 · 1층 보라 · 3층 녹색 — 번호 배지·층 표시·TV·현황표·QR 카드에 씀 */
+const ZONES = { '야외': 'out', '지하1층': 'b1', '1층': 'f1', '3층': 'f3' };
+const zc = f => ZONES[f] ? ' zc z-' + ZONES[f] : '';
 function placeText(b) { if (!b) return ''; return b.floor ? b.floor + (b.pos ? ' ' + b.pos : ' · 자리 추후 안내') : (b.pos || ''); }
 /*LOGO-START*/ // 충남 ANCHOR 늘봄학교 로고 (tools/build-logo.py 가 생성 — 손으로 고치지 마세요)
 const LOGO_MARK = 'data:image/png;base64,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';
@@ -1034,6 +1059,7 @@ function renderHome() {
     app.innerHTML = `<div class="page home">
       ${headerHTML('부스 프로그램 실시간 예약 현황')}
       <section class="summary" data-summary></section>
+      ${fl.some(f => ZONES[f]) ? `<p class="zone-legend">부스 번호 색 = 구역 ${fl.filter(f => ZONES[f]).map(f => `<span class="zl${zc(f)}"><i></i>${esc(f)}</span>`).join('')}</p>` : ''}
       <section class="filters">
         <div class="chips"><span class="chip-label">층</span>${chips('floor', [''].concat(fl))}<a class="chip link" href="${attr(WEB ? WEB + '?page=map' : '#')}" data-action="map">🗺 층별 배치도</a></div>
         <div class="chips"><span class="chip-label">권역</span>${chips('region', [''].concat(regions))}</div>
@@ -1057,7 +1083,7 @@ function renderHome() {
   updateHome();
 }
 function chips(key, values) {
-  return values.map(v => `<button type="button" class="chip${S.f[key] === v ? ' on' : ''}" data-filter="${key}" data-value="${attr(v)}">${v === '' ? '전체' : esc(v)}</button>`).join('');
+  return values.map(v => `<button type="button" class="chip${S.f[key] === v ? ' on' : ''}" data-filter="${key}" data-value="${attr(v)}">${key === 'floor' && ZONES[v] ? `<i class="zdot${zc(v)}"></i>` : ''}${v === '' ? '전체' : esc(v)}</button>`).join('');
 }
 function selOpts(values, allLabel) {
   return values.map(v => `<option value="${attr(v)}">${v === '' ? allLabel : esc(v)}</option>`).join('');
@@ -1141,8 +1167,8 @@ function cardHTML(b, now) {
   const always = b.mode === ALWAYS, onsite = b.mode === ONSITE;
   const sum = boothSummary(b, now);
   return `<article class="booth" data-action="open-booth" data-no="${b.no}" role="button" tabindex="0">
-    <div class="booth-head"><div class="no${always ? ' always' : onsite ? ' onsite' : ''}">${b.no}</div>
-      <div class="booth-title"><h3>${esc(b.name)}</h3><p class="meta"><span>${esc(b.org)}</span>${b.floor ? `<span class="tag floor">${esc(placeText(b))}</span>` : ''}<span class="tag">${esc(b.field)}</span><span class="tag ${always ? 'alw' : onsite ? 'ons' : 'cls'}">${esc(b.mode)}</span></p></div></div>
+    <div class="booth-head"><div class="no${always ? ' always' : onsite ? ' onsite' : ''}${zc(b.floor)}">${b.no}</div>
+      <div class="booth-title"><h3>${esc(b.name)}</h3><p class="meta"><span>${esc(b.org)}</span>${b.floor ? `<span class="tag floor${zc(b.floor)}">${esc(placeText(b))}</span>` : ''}<span class="tag">${esc(b.field)}</span><span class="tag ${always ? 'alw' : onsite ? 'ons' : 'cls'}">${esc(b.mode)}</span></p></div></div>
     ${tagsHTML(b)}${b.desc ? `<p class="booth-desc">${esc(b.desc)}</p>` : ''}
     ${onsite ? `<div class="onsite-line"><b>현장접수 프로그램</b> · 예약 없이 부스에 가서 직접 접수해요</div>` : always ? `<div class="always-line">예약 없이 <b>방문 등록</b> 후 참여 · ${alwaysCountText(b, true)}${congHTML(b, true)}</div>` : slotChipsHTML(b, now)}
     <div class="booth-foot">${onsite ? `<span class="avail">예약 없음 · 부스에서 현장접수</span>` : always ? `<span class="avail">${alwaysLevel(b) ? '동시 수용 ' + alwaysLevel(b).cap + '명 · 부스 도착 순 입장' : '정원 제한 없음 · 등록 후 참여'}</span>` : sum.total === 0 ? `<span class="avail">${sum.closed ? esc(closedNote(b.slots)) : '오늘 운영 종료'}</span>` : `<span class="avail${sum.left === 0 ? ' full' : ''}">${sum.left === 0 ? '<b>전 시간대 마감</b>' : '잔여 <b>' + sum.left + '석</b> · ' + sum.open + '개 시간대'}${sum.closed ? ' · ' + esc(closedNote(b.slots)) : ''}</span>`}
@@ -1216,10 +1242,10 @@ function updateBooth() {
     else note = `<p class="note">시간대를 누르고 아래에 예약자 정보를 적은 뒤 [예약하기]를 누르면 <b>확정 / 대기 / 접수 불가</b>가 바로 표시됩니다. 접수 순서대로 확정되며, 마감된 시간대는 ${waitMax() ? '대기 ' + waitMax() + '명까지 신청할 수 있고 대기까지 차면 접수가 끝납니다' : '대기를 받지 않습니다'}. ${esc(limitText())}</p>`;
   }
   host.innerHTML = `<section class="sign">
-    <div class="sign-head"><div class="no${always ? ' always' : onsite ? ' onsite' : ''}">${b.no}</div>
+    <div class="sign-head"><div class="no${always ? ' always' : onsite ? ' onsite' : ''}${zc(b.floor)}">${b.no}</div>
       <div class="booth-title"><h2>${esc(b.name)}</h2><p class="meta"><span>${esc(b.org)}</span><span class="tag">${esc(b.region)}</span><span class="tag">${esc(b.field)}</span><span class="tag ${always ? 'alw' : onsite ? 'ons' : 'cls'}">${esc(b.mode)}${b.mode === CLASS ? ' · 시간대당 ' + b.cap + '명' : ''}</span>${b.owner ? `<span>담당 ${esc(b.owner)}</span>` : ''}</p>
       ${tagsHTML(b)}${b.desc ? `<p class="desc">${esc(b.desc)}</p>` : ''}
-      ${b.floor || b.pos ? `<p class="place"><span class="tag floor big">📍 ${esc(placeText(b))}</span>${posOf(b) || mapOfFloor(b.floor) ? `<a href="${attr(WEB ? WEB + '?page=map&booth=' + b.no : '#')}" data-action="map" data-no="${b.no}">배치도에서 위치 보기</a>` : ''}</p>` : ''}</div></div>
+      ${b.floor || b.pos ? `<p class="place"><span class="tag floor big${zc(b.floor)}">📍 ${esc(placeText(b))}</span>${posOf(b) || mapOfFloor(b.floor) ? `<a href="${attr(WEB ? WEB + '?page=map&booth=' + b.no : '#')}" data-action="map" data-no="${b.no}">배치도에서 위치 보기</a>` : ''}</p>` : ''}</div></div>
     ${body}${note}<p class="sign-remind">${SIGN_REMIND}</p><p class="note inline-link">이미 예약하셨나요? <a href="${attr(WEB ? WEB + '?page=my' : '#')}" data-action="my">내 예약 확인·취소</a></p></section>`;
   const u = $('[data-updated]'); if (u) u.textContent = S.status.updatedAt || '';
   renderCta();
@@ -1717,7 +1743,7 @@ async function renderGroupView() {
       const g = groups[k]; const bb = booth(g.booth);
       const past = !noSlot(g.slot) && resPast({ date: g.date, slot: g.slot }, now);
       return (k === firstDoneKey ? doneSepHTML(nDoneG) : '') + `<div class="my-card group${past ? ' past' : ''}${gDone(k) ? ' done' : ''}">
-        <div class="my-head"><div class="my-title">${gSeq(k) ? `<span class="seq" title="갈 순서">${gSeq(k)}번째</span>` : ''}<span class="bno">${g.booth}</span>${esc(g.boothName)}</div><span class="pill ${past ? 'cancel' : 'ok'}">${g.items.length}명</span></div>
+        <div class="my-head"><div class="my-title">${gSeq(k) ? `<span class="seq" title="갈 순서">${gSeq(k)}번째</span>` : ''}<span class="bno${zc((booth(g.booth) || {}).floor)}">${g.booth}</span>${esc(g.boothName)}</div><span class="pill ${past ? 'cancel' : 'ok'}">${g.items.length}명</span></div>
         <div class="my-slot">${multi && g.date ? '<b>' + esc(fmtDay(g.date)) + '</b> · ' : ''}${esc(slotText(g.slot))}${bb && (bb.floor || bb.pos) ? ' · 📍 ' + esc(placeText(bb)) : ''}</div>
         <div class="group-kids">${g.items.sort((a, b) => a.name.localeCompare(b.name, 'ko')).map(x => {
           const cls = x.status === ST.OK ? 'ok' : x.status === ST.WAIT ? 'wait' : 'cancel';
@@ -1776,7 +1802,7 @@ function renderMyList() {
       ? `<div class="confirm-box"><div>${esc(r.booth + '. ' + r.boothName)} ${esc(r.slot)} 예약을 취소할까요? 취소하면 되돌릴 수 없고, 자리는 바로 다른 분에게 열립니다.</div><div class="row"><button type="button" class="btn danger" data-action="my-cancel-yes" data-res="${attr(r.no)}">네, 취소합니다</button><button type="button" class="btn" data-action="my-cancel-no">아니요</button></div></div>`
       : `<div class="my-actions">${cancellable ? `<button type="button" class="btn small" data-action="my-cancel" data-res="${attr(r.no)}">예약 취소</button>` : ''}${att === '출석' ? `<span class="pill ok">출석</span>` : att === '결석' ? `<span class="pill absent">결석</span>` : ''}${past && r.status !== ST.CANCEL && !att ? `<span class="pill cancel">시간 지남</span>` : ''}<a class="btn small" href="${attr(WEB ? WEB + '?booth=' + r.booth : '#')}" data-action="open-booth" data-no="${r.booth}">부스 보기</a></div>`;
     return (sorted.indexOf(r) === firstDone ? doneSepHTML(nDone) : '') + `<div class="my-card ${cls}${nextUp === r ? ' next' : ''}${resFinished(r, now) ? ' done' : ''}">
-      <div class="my-head"><div class="my-title">${seqOf(r) ? `<span class="seq" title="갈 순서">${seqOf(r)}번째</span>` : ''}<span class="bno">${r.booth}</span>${esc(r.boothName)}</div><span class="pill ${cls}">${nextUp === r ? '다음 일정 · ' : ''}${esc(r.status === ST.PENDING ? '처리 중' : r.status)}</span></div>
+      <div class="my-head"><div class="my-title">${seqOf(r) ? `<span class="seq" title="갈 순서">${seqOf(r)}번째</span>` : ''}<span class="bno${zc((booth(r.booth) || {}).floor)}">${r.booth}</span>${esc(r.boothName)}</div><span class="pill ${cls}">${nextUp === r ? '다음 일정 · ' : ''}${esc(r.status === ST.PENDING ? '처리 중' : r.status)}</span></div>
       <div class="my-slot">${multi && r.date ? '<b>' + esc(fmtDay(r.date)) + '</b> · ' : ''}${noSlot(r.slot) ? '상시운영 · 방문 등록 (예약 없이 참여)' : esc(r.slot)}</div>${place}
       <div class="my-meta">예약번호 ${esc(r.no)} · 접수 ${esc(r.time)}${r.status === ST.WAIT ? (autoPromote() ? ' · 취소가 생기면 자동으로 확정되고 알려 드립니다' : ' · 자리가 나면 운영진이 연락드립니다') : ''}${r.status === ST.OK && /자동 확정/.test(r.memo || '') ? ' · <b style="color:var(--ok)">대기에서 확정됨 🎉</b>' : ''}</div>
       ${r.status === ST.CANCEL && r.memo ? `<div class="rc-memo">${/^(1인 제한|접수 직전|중복)/.test(r.memo) ? '접수되지 않음 · ' : ''}${esc(r.memo)}</div>` : ''}
@@ -1807,17 +1833,20 @@ function renderMap() {
   }
   if (!S.map.key || !MAPS[S.map.key]) { const hb = S.map.hl ? booth(S.map.hl) : null; S.map.key = (hb && mapOfFloor(hb.floor)) || keys[0]; }
   if (!S.map.zoom) S.map.zoom = $('#app').classList.contains('narrow') ? 2 : 1; // 휴대폰은 2배로 시작 (옆으로 밀어서 봄)
-  app.innerHTML = `<div class="page booth-page map-page">${headerHTML('층별 배치도 · 숫자는 부스 번호, 색은 남은 자리')}
+  app.innerHTML = `<div class="page booth-page map-page">${headerHTML('층별 배치도 · 숫자는 부스 번호, 핀 색은 구역, 점은 남은 자리')}
     <button type="button" class="back" data-action="home">← 전체 부스 보기</button>
     <nav class="tabs map-tabs" data-map-tabs>${keys.map(k => `<button type="button" class="tab${S.map.key === k ? ' on' : ''}" data-map="${k}">${esc(MAPS[k].label)}</button>`).join('')}
       <span class="zoom"><button type="button" class="btn small" data-action="zoom-out" aria-label="축소">－</button><span data-zoom-label>${S.map.zoom || 1}×</span><button type="button" class="btn small" data-action="zoom-in" aria-label="확대">＋</button></span></nav>
     <div class="map-wrap" data-map-wrap></div>
-    <div class="legend"><span><i style="background:var(--ok)"></i>여유</span><span><i style="background:var(--warn)"></i>잔여 30% 이하</span><span><i style="background:var(--full)"></i>마감</span><span><i style="background:#7A8A84"></i>공개 전·종료</span><span><i style="background:#4C7BD9"></i>상시운영(등록 후 참여)</span></div>
+    <div class="legend map-zones"><b>핀 색 = 구역</b>${Object.keys(ZONES).map(f => `<span class="zl${zc(f)}"><i></i>${esc(f)}</span>`).join('')}</div>
+    <div class="legend"><b>오른쪽 위 점 = 상태</b><span><i class="dot" style="background:var(--ok)"></i>여유</span><span><i class="dot" style="background:var(--warn)"></i>잔여 30% 이하·보통</span><span><i class="dot" style="background:var(--full)"></i>마감·혼잡</span><span><i class="dot" style="background:#fff;box-shadow:inset 0 0 0 1.5px #9AA5A1"></i>점 없음 = 상시·현장접수</span><span><i style="background:#9AA5A1;opacity:.5"></i>흐린 핀 = 공개 전·종료</span></div>
     <p class="note">부스 번호를 누르면 그 부스의 남은 자리와 예약 화면으로 갑니다. 휴대폰에서는 ＋로 확대한 뒤 옆으로 밀어 보세요. 야외 부스는 지하1층 홀 왼쪽 테라스(연못 옆)에 있습니다.</p>
     <div class="map-list" data-map-list></div>
   </div>`;
   updateMap();
 }
+/** 배치도 핀: 바탕 = 구역 색, 오른쪽 위 점 = 예약 상태(상시운영은 혼잡도) */
+function pinClass(b, now) { const L = alwaysLevel(b); return markerClass(b, now) + zc(b.floor) + (L ? ' lv-' + L.k : ''); }
 function markerClass(b, now) {
   if (b.mode === ALWAYS) return 'always';
   if (b.mode === ONSITE) return 'onsite';
@@ -1843,13 +1872,13 @@ function updateMap() {
     const p = posOf(b); const cls = markerClass(b, now); const sum = b.mode !== CLASS ? null : boothSummary(b, now);
     const tip = b.no + '. ' + b.name + ' (' + (b.pos || '') + ') · ' + (b.mode === ONSITE ? '현장접수 · 예약 없이 부스에서 접수' : b.mode === ALWAYS ? '상시운영' + (alwaysLevel(b) ? ' · 혼잡도 ' + alwaysLevel(b).t : '') : sum.total === 0 ? (sum.closed ? '공개 전' : '운영 종료') : sum.left === 0 ? '전 시간대 마감' : '잔여 ' + sum.left + '석');
     const px = pinPx(p), hl = S.map.hl === b.no;
-    return `<button type="button" class="pin ${cls}${hl ? ' hl' : ''}" style="left:${p[1]}%;top:${p[2]}%;width:${px}px;height:${px}px;font-size:${Math.round(px * 0.42)}px" data-action="open-booth" data-no="${b.no}" title="${attr(tip)}" aria-label="${attr(tip)}"><span>${b.no}</span></button>`;
+    return `<button type="button" class="pin ${pinClass(b, now)}${hl ? ' hl' : ''}" style="left:${p[1]}%;top:${p[2]}%;width:${px}px;height:${px}px;font-size:${Math.round(px * 0.42)}px" data-action="open-booth" data-no="${b.no}" title="${attr(tip)}" aria-label="${attr(tip)}"><span>${b.no}</span></button>`;
   }).join('')}</div>`;
   const list = $('[data-map-list]');
   if (list) {
     const row = b => { const cls = markerClass(b, now); const sum = b.mode !== CLASS ? null : boothSummary(b, now);
       const st = b.mode === ONSITE ? '현장접수 · 예약 없이 부스에서 접수' : b.mode === ALWAYS ? '상시운영 · 방문 등록 후 참여' + (alwaysLevel(b) ? ' · 혼잡도 ' + alwaysLevel(b).t + ' (수용 ' + alwaysLevel(b).cap + '명)' : '') : sum.total === 0 ? (sum.closed ? esc(closedNote(b.slots)) : '오늘 운영 종료') : sum.left === 0 ? '전 시간대 마감' : '잔여 ' + sum.left + '석 · ' + sum.open + '개 시간대';
-      return `<button type="button" class="map-row${S.map.hl === b.no ? ' hl' : ''}" data-action="open-booth" data-no="${b.no}"><span class="pin ${cls}"><span>${b.no}</span></span><span class="mr-name">${esc(b.name)}<small>${esc(b.org)}${b.pos ? ' · ' + esc(b.pos) : ' · 자리 추후 안내'}</small></span><span class="mr-st ${cls}">${st}</span></button>`; };
+      return `<button type="button" class="map-row${S.map.hl === b.no ? ' hl' : ''}" data-action="open-booth" data-no="${b.no}"><span class="pin ${pinClass(b, now)}"><span>${b.no}</span></span><span class="mr-name">${esc(b.name)}<small>${esc(b.org)}${b.pos ? ' · ' + esc(b.pos) : ' · 자리 추후 안내'}</small></span><span class="mr-st ${cls}">${st}</span></button>`; };
     const groups = (m.floors || []).map(f => { const bs = placed.concat(unplaced).filter(b => b.floor === f).sort((a, b) => a.no - b.no); return bs.length ? `<h3>${esc(f)} <small>${bs.length}개 부스</small></h3>${bs.map(row).join('')}` : ''; }).join('');
     list.innerHTML = groups || `<div class="empty">이 층에 배정된 부스가 없습니다.</div>`;
   }
@@ -1984,7 +2013,7 @@ function renderMatrix(d, now) {
   const slots = allSlots(booths.filter(b => b.mode === CLASS));
   const head = `<tr><th>부스</th>${slots.map(s => `<th class="${phaseOf(s, now) === 'now' ? 'now' : ''}" style="text-align:center">${esc(s)}</th>`).join('')}</tr>`;
   const rows = booths.map(b => {
-    const name = `<td><span class="bno">${b.no}</span><span class="bname">${esc(b.name)}</span><span class="org">${esc(b.org)}${b.floor ? ' · ' + esc(placeText(b)) : ''}</span></td>`;
+    const name = `<td><span class="bno${zc(b.floor)}">${b.no}</span><span class="bname">${esc(b.name)}</span><span class="org">${esc(b.org)}${b.floor ? ' · ' + esc(placeText(b)) : ''}</span></td>`;
     if (b.mode === ALWAYS) {
       return `<tr>${name}<td class="cell always" colspan="${slots.length}" data-action="pick" data-booth="${b.no}" data-slot="${ALWAYS}">상시운영 · ${alwaysCountText(b, true)}${congHTML(b, true)}</td></tr>`;
     }
@@ -2214,7 +2243,7 @@ function renderTV() {
       <div class="tv-top"><div><div class="tv-title" data-tv-title></div><div class="tv-sub" data-tv-sub></div>${dayTabsHTML()}</div>
         <div style="text-align:right"><div class="tv-clock" data-clock="hms">--:--:--</div><div class="tv-upd">업데이트 <b data-updated></b> · ${POLL.tv / 1000}초마다 갱신</div></div></div>
       <div class="tv-body" data-tv-body></div>
-      <div class="tv-legend"><span><i style="background:var(--ok)"></i>잔여 좌석</span><span><i style="background:var(--warn)"></i>잔여 30% 이하</span><span><i style="background:var(--full)"></i>마감</span><span><i style="background:var(--surface-2)"></i>종료</span><span><i style="background:var(--mark)"></i>진행 중</span></div>
+      <div class="tv-legend"><span><i style="background:var(--ok)"></i>잔여 좌석</span><span><i style="background:var(--warn)"></i>잔여 30% 이하</span><span><i style="background:var(--full)"></i>마감</span><span><i style="background:var(--surface-2)"></i>종료</span><span><i style="background:var(--mark)"></i>진행 중</span><span class="tv-zones">번호 색 = 구역 ${Object.keys(ZONES).map(f => `<span class="zl${zc(f)}"><i></i>${esc(f)}</span>`).join('')}</span></div>
       ${sponsorsHTML(true)}
       <div class="tv-copy">${COPYRIGHT}</div>
     </div>`;
@@ -2241,7 +2270,7 @@ function updateTV() {
   const rowsPerCol = Math.max(half, 1);
   $('[data-tv-body]').innerHTML = cols.map(col => `<div class="tv-col" style="--rows:${rowsPerCol};--cols:${slots.length}">
     <div class="tv-row head"><span></span><span>부스</span>${slots.map(s => `<span class="tc${phaseOf(s, now) === 'now' ? ' now' : ''}">${esc(shortTime(s))}</span>`).join('')}</div>
-    ${col.map(b => `<div class="tv-row"><span class="tv-no">${b.no}</span><span class="tv-name">${esc(b.name)}<small>${esc(b.org)}${b.pos ? ' · ' + esc(b.pos) : b.floor ? ' · ' + esc(b.floor) : ''}</small></span>${b.mode === ONSITE ? `<span class="tv-always"><span>현장접수 · 예약 없이 부스에서 접수</span><span class="tv-alw-n"><span class="j">참여 <b>${alwaysCounts(b).joined}</b></span></span></span>` : b.mode === ALWAYS ? `<span class="tv-always"><span class="tv-alw-t">상시운영 · 방문 등록 후 입장</span><span class="tv-alw-n">${congHTML(b, true)}${alwaysCheck() ? `<span class="w">예약자 <b>${alwaysCounts(b).wait}</b></span>` : ''}<span class="j">누적 참여 <b>${alwaysCounts(b).joined}</b></span></span></span>` : slots.map(s => {
+    ${col.map(b => `<div class="tv-row"><span class="tv-no${zc(b.floor)}">${b.no}</span><span class="tv-name">${esc(b.name)}<small>${esc(b.org)}${b.pos ? ' · ' + esc(b.pos) : b.floor ? ' · ' + esc(b.floor) : ''}</small></span>${b.mode === ONSITE ? `<span class="tv-always"><span>현장접수 · 예약 없이 부스에서 접수</span><span class="tv-alw-n"><span class="j">참여 <b>${alwaysCounts(b).joined}</b></span></span></span>` : b.mode === ALWAYS ? `<span class="tv-always"><span class="tv-alw-t">상시운영 · 방문 등록 후 입장</span><span class="tv-alw-n">${congHTML(b, true)}${alwaysCheck() ? `<span class="w">예약자 <b>${alwaysCounts(b).wait}</b></span>` : ''}<span class="j">누적 참여 <b>${alwaysCounts(b).joined}</b></span></span></span>` : slots.map(s => {
       if ((b.slots || []).indexOf(s) === -1) return `<span class="tc na">·</span>`;
       const i = slotInfo(b, s, now);
       return `<span class="tc ${i.cls}${i.phase === 'now' ? ' now' : ''}">${i.phase === 'past' ? '종료' : i.closed ? '공개전' : i.waitFull ? '마감' : i.full ? '대기' : i.left}</span>`;
@@ -2315,7 +2344,7 @@ function updateQR() {
       ${PREVIEW ? '<div class="sample-mark">예시 · 실제 QR 아님</div>' : ''}
       ${LOGO_FULL ? `<img class="qr-logo" src="${LOGO_FULL}" alt="충남 ANCHOR 늘봄학교">` : ''}
       <div class="ev">${esc(ev)}</div>
-      <div class="num"><small>BOOTH</small>${b.no}</div>
+      <div class="num${zc(b.floor)}"><small>BOOTH</small>${b.no}</div>
       <h3>${esc(b.name)}</h3>
       <div class="org">${esc(b.org)} · ${esc(b.field)} · ${esc(b.mode)}${b.mode === CLASS ? ' (시간대당 ' + b.cap + '명)' : ''}</div>
       ${b.floor ? `<div class="place-line">📍 ${esc(placeText(b))}</div>` : ''}
