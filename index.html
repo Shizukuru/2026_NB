@@ -491,6 +491,11 @@ button.slot-row:disabled{cursor:default}
 .rsv select{border:1px solid var(--line);border-radius:10px;padding:11px 12px;font-size:16px;background:var(--bg);color:var(--fg);width:100%}
 .rsv .field input.bad,.rsv .field select.bad{border-color:var(--full);box-shadow:0 0 0 2px var(--full-soft)}
 .rsv .consent{align-items:flex-start;font-size:14px;line-height:1.45}
+/* 등록 주체: 보호자·인솔자 / 학생 본인 */
+.who{display:flex;gap:6px;background:var(--surface-2);border-radius:12px;padding:4px;margin:0 0 10px}
+.who button{flex:1;border:0;background:transparent;border-radius:9px;padding:9px 6px;font:inherit;font-size:14px;font-weight:600;color:var(--fg-muted);cursor:pointer}
+.who button.on{background:#fff;color:var(--accent);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.rsv .self-note{background:var(--accent-soft);border-radius:10px;padding:8px 12px;font-size:13px;margin:0 0 4px}
 /* 함께 온 어린이: 보호자 휴대폰 하나로 여러 어린이를 한 번에 */
 .kids{border:1px dashed var(--line);border-radius:12px;padding:10px 12px;display:grid;gap:8px;background:var(--bg)}
 .kids-head{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:14px;font-weight:700}
@@ -567,6 +572,8 @@ button.slot-row:disabled{cursor:default}
 .sign-remind{display:block;background:#FFF3EA;border:1.5px dashed #F28C3A;border-radius:10px;padding:8px 12px;font-size:14px;line-height:1.5;color:var(--fg);margin:8px 0 2px;text-align:left}
 .guide-card .row .btn.big{width:100%}
 .my-card.done{opacity:.55;filter:grayscale(.7);background:var(--surface-2);box-shadow:none}
+.my-card.done-rate{background:var(--surface-2);box-shadow:none} /* 끝났지만 평가할 게 남은 카드: 흐리게 하지 않음 (버튼이 또렷이 보이게) */
+.my-card.done-rate .my-actions .btn.primary{box-shadow:0 2px 8px rgba(0,0,0,.18)}
 .my-sep{display:flex;align-items:center;gap:10px;margin:14px 0 2px;color:var(--fg-muted);font-size:13px;font-weight:600}
 .my-sep::before,.my-sep::after{content:'';flex:1;border-top:1px dashed var(--line)}
 .my-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
@@ -808,7 +815,7 @@ const S = {
   admin: { pin: '', data: null, tab: 'matrix', f: { q: '', status: '', att: '', booth: '', slot: '', sort: 'recent' }, err: '', lastList: [] },
   qr: { target: 'status', per: '2', region: '' },
   my: { name: '', phone: '', list: null, busy: false, confirm: '', rate: '', rateScore: 0, rateBusy: false },
-  rsv: { booth: null, slot: null, busy: false, reqId: '', retry: null, privacy: false, leader: false, rosterFound: false }, // 부스 페이지의 예약 진행 상태 (leader = 위 이름은 인솔자, 예약 명단에서 제외)
+  rsv: { booth: null, slot: null, busy: false, reqId: '', retry: null, privacy: false, leader: false, rosterFound: false, self: (function () { try { return localStorage.getItem('rsvself') === '1'; } catch (x) { return false; } })() }, // self = 학생 본인 등록 모드 (이 휴대폰에 기억) // 부스 페이지의 예약 진행 상태 (leader = 위 이름은 인솔자, 예약 명단에서 제외)
   me: { name: '', phone: '', org: '', grade: '' }, // 이 휴대폰에 기억된 예약자 정보 (localStorage 'me')
   timer: null, clock: null, online: true,
   day: '', // 보고 있는 행사 날짜 (YYYY-MM-DD) — 이틀 이상 열리는 행사에서 날짜 탭으로 바꿈
@@ -903,7 +910,7 @@ let storageOk = true;
 try { localStorage.setItem('__t', '1'); storageOk = localStorage.getItem('__t') === '1'; localStorage.removeItem('__t'); } catch (x) { storageOk = false; }
 const IN_APP = /KAKAOTALK|NAVER\(inapp|Instagram|FBAN|FBAV|Line\//i.test(navigator.userAgent || '');
 function memoryNote() { return !storageOk ? `<p class="note" style="color:var(--warn)">이 브라우저는 입력 내용을 기억하지 못합니다(시크릿 창이거나 앱 안 브라우저). 확정 알림은 '내 예약'에서 이름·번호를 넣으면 볼 수 있어요.</p>` : IN_APP ? `<p class="note">앱 안 브라우저로 열렸습니다. 다른 브라우저로 다시 열면 예약자 정보를 다시 입력해야 하니, 확정 알림은 '내 예약'에서도 확인하세요.</p>` : ''; }
-function loadMe() { try { const saved = JSON.parse(localStorage.getItem('me') || 'null'); if (saved && saved.name) S.me = { name: saved.name || '', phone: saved.phone || '', org: saved.org || '', grade: saved.grade || '' }; } catch (x) { } return S.me; }
+function loadMe() { try { const saved = JSON.parse(localStorage.getItem('me') || 'null'); if (saved && saved.name) S.me = { name: saved.name || '', phone: saved.phone || '', org: saved.org || '', grade: saved.grade || '', gphone: saved.gphone || '', self: !!saved.self }; } catch (x) { } return S.me; }
 function saveMe(me, remember) { S.me = Object.assign({}, S.me, me); try { if (remember === false) localStorage.removeItem('me'); else localStorage.setItem('me', JSON.stringify(S.me)); } catch (x) { } }
 function shortTime(slot) { const t = parseSlot(slot); return t ? slot.split(/[~\-–—]/)[0].trim() : slot; }
 function boothSummary(b, now) {
@@ -1209,7 +1216,7 @@ function renderBooth() {
     app.innerHTML = `<div class="page">${headerHTML('부스 프로그램 실시간 예약')}<div class="empty">부스 번호 ${esc(S.boothNo)}을(를) 찾을 수 없습니다.<br><br><button class="btn" data-action="home">전체 부스 보기</button></div></div>`;
     return;
   }
-  if (S.rsv.booth !== b.no) S.rsv = { booth: b.no, slot: null, busy: false, reqId: '', retry: null, privacy: false };
+  if (S.rsv.booth !== b.no) S.rsv = { self: S.rsv.self, booth: b.no, slot: null, busy: false, reqId: '', retry: null, privacy: false };
   const all = (S.status.booths || []).slice().sort((a, c) => a.no - c.no);
   const idx = all.findIndex(x => x.no === b.no);
   const prev = idx > 0 ? all[idx - 1] : null, next = idx >= 0 && idx < all.length - 1 ? all[idx + 1] : null;
@@ -1359,9 +1366,20 @@ function renderRsvForm() {
   const grades = S.status.grades || [];
   const known = grades.indexOf(me.grade) > -1;
   const other = me.grade && !known;
+  const self = !!S.rsv.self;
+  const selfGrade = grades.indexOf(me.grade) > -1 ? me.grade : '';
   host.innerHTML = `<form class="sign rsv" data-form="rsv" autocomplete="on" novalidate>
-    <h3>${b.mode === ALWAYS ? '방문 등록' : '예약자 정보'}<small>보호자(인솔자)가 참가 어린이를 등록합니다</small></h3>
-    <div class="grid2">
+    <h3>${b.mode === ALWAYS ? '방문 등록' : '예약자 정보'}<small>${self ? '학생이 본인 휴대폰으로 직접 등록합니다' : '보호자(인솔자)가 참가 어린이를 등록합니다'}</small></h3>
+    <div class="who" role="tablist" aria-label="누가 등록하나요"><button type="button" role="tab" class="${self ? '' : 'on'}" aria-selected="${!self}" data-action="who" data-self="0">👨‍👩‍👧 보호자·인솔자가 등록</button><button type="button" role="tab" class="${self ? 'on' : ''}" aria-selected="${self}" data-action="who" data-self="1">🙋 학생 본인이 등록</button></div>
+    ${self ? `<div class="grid2">
+      <label class="field"><span>학생 이름</span><input id="sname" name="name" type="text" autocomplete="name" placeholder="예: 김하늘" value="${attr(me.self ? me.name : '')}" maxlength="30" required></label>
+      <label class="field"><span>학년</span><select id="sgrade" required><option value="">선택</option>${grades.map(g => `<option value="${attr(g)}"${selfGrade === g ? ' selected' : ''}>${esc(g)}</option>`).join('')}</select></label>
+      <label class="field"><span>본인 휴대폰 <small style="font-weight:400">— 예약 확인·알림용</small></span><input id="sphone" name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="숫자만 입력 (010-1234-5678)" value="${attr(me.self ? me.phone : '')}" maxlength="20" required></label>
+      <label class="field"><span>보호자 휴대폰 <small style="font-weight:400">— 비상 연락용</small></span><input id="sgphone" name="gphone" type="tel" inputmode="tel" placeholder="숫자만 입력" value="${attr(me.gphone || '')}" maxlength="20" required></label>
+    </div>
+    <label class="field"><span>소속 (학교/기관)</span><input id="rorg" name="org" type="text" autocomplete="organization" placeholder="예: 천안불당초등학교" value="${attr(me.org)}" maxlength="60" required></label>
+    <div class="self-note">예약 명단에는 학생 이름이 들어가고, 보호자 휴대폰은 비상 연락용으로 함께 기록됩니다. 예약 확인·취소·평가는 <b>학생 이름 + 본인 휴대폰</b>으로 합니다.</div>
+    <label class="chk consent"><input type="checkbox" id="sgconsent" required><span>보호자가 이 예약과 개인정보 수집·이용에 동의했습니다 <small style="font-weight:400;color:var(--fg-muted)">(만 14세 미만은 보호자 동의가 필요합니다)</small></span></label>` : `<div class="grid2">
       <label class="field"><span>보호자(인솔자) 이름</span><input id="rname" name="name" type="text" autocomplete="name" placeholder="예: 김보호" value="${attr(me.name)}" maxlength="30" required></label>
       <label class="field"><span>보호자 휴대폰 (비상 연락처)</span><input id="rphone" name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="숫자만 입력 (010-1234-5678)" value="${attr(me.phone)}" maxlength="20" required></label>
     </div>
@@ -1372,16 +1390,21 @@ function renderRsvForm() {
       <div class="kids-tools${loadKids().length ? '' : ' hidden'}" data-kid-tools><label>전원 학년<select id="kidgradeall" aria-label="전원 학년"><option value="">선택</option>${grades.map(g => `<option value="${attr(g)}">${esc(g)}</option>`).join('')}</select></label><span class="note" data-kid-count></span></div>
       <p class="note">예약 명단에는 어린이 이름만 들어가고, 보호자 이름·휴대폰은 비상 연락용으로 함께 기록됩니다. 어린이마다 따로 접수되어 확정/대기가 각각 표시되고, 소속이 다른 어린이는 소속 칸만 고치면 됩니다. 체크를 풀면 이번 예약에서 빠집니다. 한 번에 ${KIDS_MAX}명까지.</p>
     </div>
-    <label class="field"><span>어린이 소속 (학교/기관) <small style="font-weight:400">— 어린이마다 다르면 위 소속 칸에 따로</small></span><input id="rorg" name="org" type="text" autocomplete="organization" placeholder="예: 천안불당초등학교" value="${attr(me.org)}" maxlength="60" required></label>
+    <label class="field"><span>어린이 소속 (학교/기관) <small style="font-weight:400">— 어린이마다 다르면 위 소속 칸에 따로</small></span><input id="rorg" name="org" type="text" autocomplete="organization" placeholder="예: 천안불당초등학교" value="${attr(me.org)}" maxlength="60" required></label>`}
     <label class="chk consent"><input type="checkbox" id="rconsent" required><span>개인정보 수집·이용에 동의합니다 <button type="button" data-action="privacy">${S.rsv.privacy ? '내용 닫기' : '내용 보기'}</button></span></label>
     <div class="privacy${S.rsv.privacy ? '' : ' hidden'}" data-privacy>${esc(S.status.privacy || '')}</div>
     <label class="chk"><input type="checkbox" id="rremember" checked><span>이 휴대폰에 기억해 두기 (다음 부스 예약과 '내 예약' 조회에 다시 씀)</span></label>
     ${memoryNote()}
   </form>`;
-  syncKidTools();
-  tryRoster(); // 기억된 인솔자라면 바로 명단 확인
+  if (!self) { syncKidTools(); tryRoster(); } // 기억된 인솔자라면 바로 명단 확인
 }
 function rsvValues() {
+  if (S.rsv.self) {
+    const name = (($('#sname') || {}).value || '').trim(), phone = fmtPhone(($('#sphone') || {}).value || '') || (($('#sphone') || {}).value || '').trim(), gphone = fmtPhone(($('#sgphone') || {}).value || '') || (($('#sgphone') || {}).value || '').trim();
+    return { self: true, name, phone, gphone, org: (($('#rorg') || {}).value || '').trim(), grade: (($('#sgrade') || {}).value || '').trim(),
+      consent: !!($('#rconsent') && $('#rconsent').checked), gconsent: !!($('#sgconsent') && $('#sgconsent').checked), remember: !$('#rremember') || $('#rremember').checked,
+      kids: [{ on: true, name, grade: (($('#sgrade') || {}).value || '').trim(), org: '', el: $('#sname') && $('#sname').closest('.field') }], leader: false };
+  }
   return {
     name: (($('#rname') || {}).value || '').trim(), phone: fmtPhone(($('#rphone') || {}).value || '') || (($('#rphone') || {}).value || '').trim(), org: (($('#rorg') || {}).value || '').trim(),
     grade: '', // 보호자에게는 학년이 없음 (어린이마다 따로)
@@ -1392,6 +1415,17 @@ function rsvValues() {
 /** 화면에서 먼저 거르는 입력 검사 (서버도 같은 규칙으로 다시 검사). 문제가 있으면 그 칸으로 이동 */
 function rsvProblem(v, b) {
   if (b.mode !== ALWAYS && !S.rsv.slot) return { msg: '시간대를 먼저 선택해 주세요', el: $('.slot-rows') };
+  if (v.self) {
+    if (!v.name) return { msg: '학생 이름을 입력해 주세요', el: $('#sname') };
+    if (!v.grade) return { msg: '학년을 선택해 주세요', el: $('#sgrade') };
+    if (!/^01[016789]\d{7,8}$/.test(phoneDigits(v.phone))) return { msg: '본인 휴대폰 번호를 확인해 주세요 (예: 010-1234-5678)', el: $('#sphone') };
+    if (!/^01[016789]\d{7,8}$/.test(phoneDigits(v.gphone))) return { msg: '보호자 휴대폰 번호를 확인해 주세요 (비상 연락용)', el: $('#sgphone') };
+    if (phoneDigits(v.gphone) === phoneDigits(v.phone)) return { msg: '보호자 휴대폰은 본인 휴대폰과 다른 번호여야 합니다', el: $('#sgphone') };
+    if (!v.org) return { msg: '소속(학교/기관)을 입력해 주세요', el: $('#rorg') };
+    if (!v.gconsent) return { msg: '보호자 동의 확인에 체크해 주세요', el: $('#sgconsent') };
+    if (!v.consent) return { msg: '개인정보 수집·이용에 동의해 주세요', el: $('#rconsent') };
+    return null;
+  }
   if (!v.name) return { msg: '보호자(인솔자) 이름을 입력해 주세요', el: $('#rname') };
   if (!/^01[016789]\d{7,8}$/.test(phoneDigits(v.phone))) return { msg: '휴대폰 번호를 확인해 주세요 (예: 010-1234-5678 — 하이픈은 없어도 됩니다)', el: $('#rphone') };
   if (!v.kids.some(k => k.on && k.name)) return { kids: true, msg: '참가 어린이를 한 명 이상 추가해 주세요 ([＋ 어린이 추가])', el: $('[data-kid-rows]') || $('[data-kids]') };
@@ -1472,11 +1506,12 @@ async function submitRsv(opts) {
   const wait = b.mode !== ALWAYS && (opts.wait === true || slotInfo(b, S.rsv.slot, now).full);
   const kids = v.kids.filter(k => k.on && k.name);
   // 보호자(인솔자)는 명단에 들어가지 않고 guardian 으로만 기록. 어린이들이 각각 접수됨
-  const payload = { reqId: opts.reqId || newReqId(), booth: b.no, slot: b.mode === ALWAYS ? '' : S.rsv.slot, date: S.day || '', wait: wait, guardian: v.name, phone: v.phone, org: v.org, consent: true,
+  // 학생 본인 등록: 보호자 열에 '본인 등록 · 보호자 010-…'(비상 연락처), 휴대폰 열은 학생 본인 번호 (조회·알림·평가 기준)
+  const payload = { reqId: opts.reqId || newReqId(), booth: b.no, slot: b.mode === ALWAYS ? '' : S.rsv.slot, date: S.day || '', wait: wait, guardian: v.self ? '본인 등록 · 보호자 ' + v.gphone : v.name, phone: v.phone, org: v.org, consent: true,
     children: kids.map(k => ({ name: k.name, grade: k.grade, org: k.org || '' })) };
   S.rsv.busy = true; S.rsv.retry = null; S.rsv.reqId = payload.reqId; renderCta();
-  saveMe({ name: v.name, phone: v.phone, org: v.org }, v.remember);
-  saveKids(v.kids.filter(k => k.name).map(k => ({ name: k.name, grade: k.grade, org: k.org, on: k.on })), v.remember);
+  saveMe(v.self ? { name: v.name, phone: v.phone, org: v.org, grade: v.grade, gphone: v.gphone, self: true } : { name: v.name, phone: v.phone, org: v.org, self: false }, v.remember);
+  if (!v.self) saveKids(v.kids.filter(k => k.name).map(k => ({ name: k.name, grade: k.grade, org: k.org, on: k.on })), v.remember);
   let res = null, err = null;
   try { res = await callReserve(payload); } catch (e) { err = e; }
   S.rsv.busy = false; S.rsv.retry = null;
@@ -1628,6 +1663,7 @@ async function submitWalkIn(form) {
 const WATCH_MS = PREVIEW ? 6000 : 600000; // 대기 예약이 있는 휴대폰의 확정 '보조' 확인 주기 (10분) — 평소에는 현황의 promoted 목록으로 바로 알아챔
 const WATCH_OPEN_MIN_MS = PREVIEW ? 0 : 2 * 60 * 1000; // 화면을 다시 열 때의 확인은 마지막 확인 뒤 2분이 지났을 때만
 let watchTimer = null, watchBusy = false;
+function gKeyOf(x) { return 'g:' + [x.date || '', noSlot(x.slot) ? 'zzz' : x.slot, x.booth].join('|'); } // 묶음 키 (날짜|시간대|부스) — 한눈에 보기 카드·평가 안내 단위
 function loadSnap() { try { return JSON.parse(localStorage.getItem('mystat') || '{}') || {}; } catch (x) { return {}; } }
 function saveSnap(snap) { try { localStorage.setItem('mystat', JSON.stringify(snap)); } catch (x) { } }
 function hasWaiting(snap) { return Object.keys(snap).some(k => k !== '_t' && snap[k] && snap[k].status === ST.WAIT); }
@@ -1645,12 +1681,16 @@ function applyMyList(list, full) {
     const promotedUnseen = r.status === ST.OK && /자동 확정/.test(r.memo || '') && !/앱 확인/.test(r.notice || '') && !noticeShown[r.no];
     if (promotedUnseen || (prev && prev.status === ST.WAIT && r.status === ST.OK && !noticeShown[r.no])) notices.push({ kind: 'promoted', r });
     else if (prev && prev.status === ST.OK && r.status === ST.CANCEL && !/본인 취소/.test(r.memo || '') && !noticeShown[r.no]) notices.push({ kind: 'dropped', r });
-    snap[r.no] = { status: r.status, booth: r.booth, boothName: r.boothName, slot: r.slot, date: r.date || '' };
+    snap[r.no] = { status: r.status, booth: r.booth, boothName: r.boothName, slot: r.slot, date: r.date || '', att: r.att || (r.checkin ? '출석' : ''), rating: r.rating || 0, asked: prev && prev.asked ? 1 : 0 };
   });
+  // 만족도: 수업이 끝나고 출석 처리된 체험이 생겼으면 안내 팝업 (같은 부스·시간대의 형제는 한 묶음, 예약번호마다 한 번만)
+  const now = kstNow(); const askedG = askedGroups(snap); const due = (list || []).filter(r => canRate(r, now) && !askedG[gKeyOf(r)]);
+  if (due.length && !notices.length && !$('#result-modal')) { const seen = {}; const items = due.filter(r => { const k = gKeyOf(r); if (seen[k]) return false; seen[k] = 1; return true; }); due.forEach(r => { seen[gKeyOf(r)] = 1; }); Object.keys(snap).forEach(k => { if (k !== '_t' && snap[k] && seen[gKeyOf(snap[k])]) snap[k].asked = 1; }); notices.push({ kind: 'rate', r: items[0], items }); }
   snap._t = Date.now();
   saveSnap(snap);
   updateMyBadge();
   if (notices.length) { noticeShown[notices[0].r.no] = true; showNotice(notices[0]); }
+  if (typeof rateSchedule === 'function') rateSchedule();
   return notices;
 }
 function showNotice(n) {
@@ -1662,6 +1702,12 @@ function showNotice(n) {
       <div class="what">${r.booth}. ${esc(r.boothName)}<br>${esc(r.slot)} · 예약번호 ${esc(r.no)}</div>
       <p class="note">취소가 생겨 자리가 났습니다. 수업 시작 전에 부스에서 이름을 말씀해 주세요. 참여가 어려우면 '내 예약'에서 취소해 주셔야 다음 분에게 자리가 갑니다.</p>
       <div class="row"><button type="button" class="btn primary" data-action="notice-ack" data-res="${attr(r.no)}">확인했어요</button><button type="button" class="btn" data-action="notice-my" data-res="${attr(r.no)}">내 예약 보기</button></div></div>`;
+  } else if (n.kind === 'rate') {
+    const items = n.items || [r];
+    el.innerHTML = `<div class="modal-card"><div class="modal-icon ok">⭐</div><h2>체험은 어떠셨나요?</h2>
+      <div class="what">${items.slice(0, 3).map(x => `${x.booth}. ${esc(x.boothName)}${noSlot(x.slot) ? '' : '<br><small>' + esc(x.slot) + '</small>'}`).join('<br>')}${items.length > 3 ? `<br>외 ${items.length - 3}개` : ''}</div>
+      <p class="note">다녀온 체험에 별점을 남겨 주세요. 별 5개(0.5점 단위)와 한 줄 의견, 10초면 끝나요. 같이 간 형제는 한 번만 평가하면 됩니다.</p>
+      <div class="row"><button type="button" class="btn primary" data-action="notice-rate" data-res="${attr(r.no)}">⭐ 지금 평가하기</button><button type="button" class="btn" data-action="modal-close">나중에</button></div></div>`;
   } else {
     el.innerHTML = `<div class="modal-card"><div class="modal-icon cancel">!</div><h2>예약이 취소되었습니다</h2>
       <div class="what">${r.booth}. ${esc(r.boothName)}<br>${esc(r.slot)} · 예약번호 ${esc(r.no)}</div>
@@ -1723,6 +1769,7 @@ async function lookupMy() {
     const isChild = !!(grp && grp.list && grp.list.some(x => x.name.replace(/\s+/g, '') === nk)); // 어린이 이름으로 조회하면 그 어린이만
     if (grp && grp.list && grp.list.length && !isChild) {
       applyMyList(grp.list); watchStart(); S.my.confirm = ''; S.my.hint = null; S.my.list = [];
+      if (S.my.rateWant) { const w = grp.list.find(x => x.no === S.my.rateWant && canRate(x)); S.my.rateWant = ''; if (w) { S.my.rate = gKeyOf(w); S.my.rateScore = 0; S.my.rateComment = ''; } }
       await renderGroupView();
       if (host) { try { host.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (x) { } }
       return;
@@ -1732,6 +1779,7 @@ async function lookupMy() {
     S.my.family = null; try { S.my.family = await rpc('familyNames', S.my.name, S.my.phone); } catch (x) { } // 인솔자는 본인 예약이 없어도 명단의 어린이 이름이 옴
     S.my.confirm = '';
     S.my.hint = null;
+    if (S.my.rateWant) { const w = S.my.list.find(x => x.no === S.my.rateWant && canRate(x)); S.my.rateWant = ''; if (w) { S.my.rate = w.no; S.my.rateScore = 0; S.my.rateComment = ''; } }
     renderMyList();
     if (host && S.my.list.length) { try { host.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (x) { } }
     else if (host) { try { S.my.hint = await rpc('lookupHint', S.my.name, S.my.phone); renderMyList(); } catch (x) { /* 실마리는 없어도 됨 */ } }
@@ -1764,11 +1812,13 @@ async function renderGroupView() {
   const firstDoneKey = keys.find(gDone), nDoneG = keys.filter(gDone).length;
   const gSeq = k => gDone(k) ? 0 : keys.filter(x => !gDone(x)).indexOf(k) + 1;
   const nOk = list.filter(x => x.status === ST.OK).length, nWait = list.filter(x => x.status === ST.WAIT).length;
-  host.innerHTML = `<div class="note" style="margin:4px 0 2px"><b>${esc(S.my.name)}</b> 님 휴대폰의 어린이 <b>${(r.kids || []).length}</b>명 · 예약 ${list.length}건 (확정 ${nOk}${nWait ? ' · 대기 ' + nWait : ''}) ${(r.kids || []).length > 1 ? `<span class="fam" style="display:inline-flex;margin:0 0 0 6px">${(r.kids || []).map(n => `<button type="button" data-action="my-switch" data-name="${attr(n)}">${esc(n)}</button>`).join('')}</span>` : ''}</div>` +
+  host.innerHTML = rateBannerHTML(list, true) + `<div class="note" style="margin:4px 0 2px"><b>${esc(S.my.name)}</b> 님 휴대폰의 어린이 <b>${(r.kids || []).length}</b>명 · 예약 ${list.length}건 (확정 ${nOk}${nWait ? ' · 대기 ' + nWait : ''}) ${(r.kids || []).length > 1 ? `<span class="fam" style="display:inline-flex;margin:0 0 0 6px">${(r.kids || []).map(n => `<button type="button" data-action="my-switch" data-name="${attr(n)}">${esc(n)}</button>`).join('')}</span>` : ''}</div>` +
     keys.map(k => {
       const g = groups[k]; const bb = booth(g.booth);
       const past = !noSlot(g.slot) && resPast({ date: g.date, slot: g.slot }, now);
-      return (k === firstDoneKey ? doneSepHTML(nDoneG) : '') + `<div class="my-card group${past ? ' past' : ''}${gDone(k) ? ' done' : ''}">
+      const gk = 'g:' + k, rating = S.my.rate === gk, nRate = g.items.filter(x => canRate(x, now)).length, rated = g.items.find(x => x.rating);
+      const rateHTML = rating ? rateBoxHTML({ no: gk, booth: g.booth, boothName: g.boothName }) : nRate ? `<div class="my-actions"><button type="button" class="btn small primary" data-action="my-rate" data-res="${attr(gk)}">⭐ 평가하기 <small>(${nRate}명 한 번에)</small></button></div>` : rated ? `<div class="my-actions"><span class="pill rated" title="만족도 응답 완료">★ ${fmtScore(rated.rating)} 평가 완료</span></div>` : '';
+      return (k === firstDoneKey ? doneSepHTML(nDoneG) : '') + `<div class="my-card group${past && !rating ? ' past' : ''}${gDone(k) && !rating ? (nRate ? ' done-rate' : ' done') : ''}">
         <div class="my-head"><div class="my-title">${gSeq(k) ? `<span class="seq" title="갈 순서">${gSeq(k)}번째</span>` : ''}<span class="bno${zc((booth(g.booth) || {}).floor)}">${g.booth}</span>${esc(g.boothName)}</div><span class="pill ${past ? 'cancel' : 'ok'}">${g.items.length}명</span></div>
         <div class="my-slot">${multi && g.date ? '<b>' + esc(fmtDay(g.date)) + '</b> · ' : ''}${esc(slotText(g.slot))}${bb && (bb.floor || bb.pos) ? ' · 📍 ' + esc(placeText(bb)) : ''}</div>
         <div class="group-kids">${g.items.sort((a, b) => a.name.localeCompare(b.name, 'ko')).map(x => {
@@ -1776,7 +1826,7 @@ async function renderGroupView() {
           const tag = x.att === '출석' ? '출석' : x.att === '결석' ? '결석' : x.status === ST.WAIT ? '대기' : x.status === ST.PENDING ? '처리중' : '';
           const cancellable = x.status !== ST.CANCEL && x.att !== '출석' && !past;
           return `<span class="gk ${cls}${x.att === '결석' ? ' absent' : ''}">${esc(x.name)}${tag ? ' <small>' + tag + '</small>' : ''}${cancellable ? `<button type="button" data-action="my-group-cancel" data-res="${attr(x.no)}" data-name="${attr(x.name)}" title="이 어린이 예약 취소" aria-label="${attr(x.name)} 취소">✕</button>` : ''}</span>`;
-        }).join('')}</div>
+        }).join('')}</div>${rateHTML}
       </div>`;
     }).join('') + `<p class="note">이름 옆 ✕ 를 누르면 그 어린이의 예약만 취소됩니다 (출석 처리된 예약·끝난 시간대는 취소할 수 없음).</p>`;
 }
@@ -1802,9 +1852,38 @@ function doneSepHTML(n) { return n ? `<div class="my-sep"><span>지난 · 완료
 const surveyOn = () => !!((S.status.limits || {}).survey !== false);
 const STAR_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path class="bg" d="M12 2.5l2.9 6.1 6.7.8-4.9 4.6 1.3 6.6L12 17.3l-6 3.3 1.3-6.6L2.4 9.4l6.7-.8z"/><path class="fg" d="M12 2.5l2.9 6.1 6.7.8-4.9 4.6 1.3 6.6L12 17.3l-6 3.3 1.3-6.6L2.4 9.4l6.7-.8z"/></svg>';
 const fmtScore = v => (Math.round(v * 2) / 2).toFixed(1).replace(/\.0$/, '');
-function canRate(r) { return surveyOn() && r.status === ST.OK && (r.att || (r.checkin ? '출석' : '')) === '출석' && !r.rating; }
-function rateBannerHTML(list) {
-  const n = (list || []).filter(canRate).length; if (!n) return '';
+/** 평가 가능 = 설문 켜짐 · 확정 · 출석 처리됨 · 수업 시간이 끝남 (상시운영은 출석 처리되면 바로) · 아직 평가 안 함 */
+function canRate(r, now) { return surveyOn() && r.status === ST.OK && (r.att || (r.checkin ? '출석' : '')) === '출석' && !r.rating && (noSlot(r.slot) || resPast(r, now || kstNow())); }
+/** 평가 안내 팝업: 수업이 끝나고 출석 처리된 체험이 새로 생기면 한 번 (예약번호마다 한 번, 이 휴대폰 기준) */
+let rateTimer = null, rateTries = {};
+/** 이미 안내한 묶음(날짜|시간대|부스) — 형제가 같은 체험을 들었으면 한 번만 물음 */
+function askedGroups(snap) { const o = {}; Object.keys(snap).forEach(k => { if (k !== '_t' && snap[k] && snap[k].asked) o[gKeyOf(snap[k])] = 1; }); return o; }
+function rateDue(snap, now) { const a = askedGroups(snap); return Object.keys(snap).filter(k => k !== '_t' && snap[k] && snap[k].status === ST.OK && !snap[k].rating && !a[gKeyOf(snap[k])] && (noSlot(snap[k].slot) ? snap[k].att === '출석' : resPast(snap[k], now))); }
+function rateSchedule() {
+  clearTimeout(rateTimer); rateTimer = null;
+  if (!surveyOn()) return; const me = loadMe(); if (!me.name || !me.phone) return;
+  const snap = loadSnap(), now = kstNow(); let next = Infinity;
+  Object.keys(snap).forEach(k => { const e = snap[k]; if (k === '_t' || !e || e.status !== ST.OK || e.rating || e.asked || noSlot(e.slot)) return;
+    if (askedGroups(snap)[gKeyOf(e)]) return; const t = parseSlot(e.slot); if (!t || (e.date && e.date !== now.date) || (!e.date && !isEventDay(now))) return;
+    const at = (t.end - now.min) * 60000 + (PREVIEW ? 2000 : 90000); if (at > 0 && at < next) next = at; }); // 끝나고 1분 30초 뒤 (담당자가 출석을 누를 시간)
+  const due = rateDue(snap, now).filter(k => (rateTries[k] || 0) < 3);
+  if (due.length) next = Math.min(next, PREVIEW ? 1500 : 4000);
+  if (next < Infinity) rateTimer = setTimeout(rateTick, Math.min(next, 6 * 3600000));
+}
+async function rateTick() {
+  rateTimer = null; const me = loadMe(); if (!me.name || !me.phone) return;
+  if (document.hidden) { rateTimer = setTimeout(rateTick, 60000); return; }
+  const due = rateDue(loadSnap(), kstNow()); due.forEach(k => { rateTries[k] = (rateTries[k] || 0) + 1; });
+  try { const g = await rpc('findPhoneReservations', me.name, me.phone); const list = (g && g.list) || []; applyMyList(list, true);
+    if (S.my.list && $('#app').dataset.view === 'my') { const by = {}; list.forEach(x => { by[x.no] = x; }); S.my.list.forEach(r => { if (by[r.no]) { r.att = by[r.no].att; r.rating = by[r.no].rating; } }); if (!S.my.rate) renderMyList(); }
+  } catch (e) { /* 다음에 */ }
+  const still = rateDue(loadSnap(), kstNow()).filter(k => (rateTries[k] || 0) < 3); // 아직 출석 처리가 안 됐으면 5분 뒤 다시 (최대 3번)
+  if (still.length) rateTimer = setTimeout(rateTick, PREVIEW ? 3000 : 300000); else rateSchedule();
+}
+function rateBannerHTML(list, grouped) {
+  const now = kstNow(); let n = 0; const seen = {};
+  (list || []).forEach(r => { if (!canRate(r, now)) return; if (grouped) { const k = gKeyOf(r); if (seen[k]) return; seen[k] = 1; } n++; });
+  if (!n) return '';
   return `<div class="rate-banner"><span>⭐</span><span><b>평가할 체험 ${n}개</b> — 다녀온 프로그램에 별점을 남겨 주세요 (10초면 끝나요)</span></div>`;
 }
 function starsHTML(score) {
@@ -1825,23 +1904,25 @@ function setStar(score) {
 }
 async function sendRate(resNo) {
   if (S.my.rateBusy || !S.my.rateScore) return;
-  const r = (S.my.list || []).find(x => x.no === resNo); if (!r) return;
+  const grouped = /^g:/.test(resNo); const src = grouped ? ((S.my.group || {}).list || []) : (S.my.list || []);
+  const r = grouped ? src.find(x => gKeyOf(x) === resNo) : src.find(x => x.no === resNo); if (!r) return;
   const ta = $('#rate-comment'); const comment = ta ? ta.value.trim().slice(0, 200) : '';
-  // 같은 보호자·같은 날·부스·시간대의 다른 어린이(형제) 예약도 한 번에
-  const nos = (S.my.list || []).filter(x => x.booth === r.booth && x.slot === r.slot && (x.date || '') === (r.date || '') && x.status === ST.OK && (x.att || (x.checkin ? '출석' : '')) === '출석').map(x => x.no);
-  if (nos.indexOf(resNo) < 0) nos.unshift(resNo);
+  // 같은 보호자·같은 날·부스·시간대의 다른 어린이(형제·단체) 예약도 한 번에
+  const nos = src.filter(x => x.booth === r.booth && x.slot === r.slot && (x.date || '') === (r.date || '') && x.status === ST.OK && (x.att || (x.checkin ? '출석' : '')) === '출석').map(x => x.no);
+  if (!grouped && nos.indexOf(resNo) < 0) nos.unshift(resNo);
+  const rerender = () => grouped ? renderGroupView() : renderMyList();
   S.my.rateBusy = true; const b = $('[data-action="my-rate-send"]'); if (b) { b.disabled = true; b.textContent = '보내는 중…'; }
   try {
     const res = await rpc('submitSurvey', S.my.name, S.my.phone, [{ nos, score: S.my.rateScore, comment }], 'sv-' + Date.now().toString(36));
     const x = (res && res.results || [])[0] || {};
-    if (x.ok) { toast('⭐ ' + fmtScore(x.score) + '점 — 평가해 주셔서 고맙습니다'); (S.my.list || []).forEach(y => { if (nos.indexOf(y.no) > -1) y.rating = x.score; }); }
-    else if (x.code === 'DUP') { toast('이미 평가한 체험입니다'); (S.my.list || []).forEach(y => { if (nos.indexOf(y.no) > -1 && !y.rating) y.rating = S.my.rateScore; }); }
+    if (x.ok) { toast('⭐ ' + fmtScore(x.score) + '점 — 평가해 주셔서 고맙습니다'); src.forEach(y => { if (nos.indexOf(y.no) > -1) y.rating = x.score; }); }
+    else if (x.code === 'DUP') { toast('이미 평가한 체험입니다'); src.forEach(y => { if (nos.indexOf(y.no) > -1 && !y.rating) y.rating = S.my.rateScore; }); }
     else if (x.code === 'OFF') toast('지금은 만족도 설문을 받지 않습니다', 'err');
     else if (x.code === 'NOT_ATTENDED') toast('출석 처리된 체험만 평가할 수 있어요', 'err');
     else toast('평가를 보내지 못했습니다. 잠시 후 다시 시도해 주세요', 'err');
     S.my.rate = ''; S.my.rateScore = 0; S.my.rateComment = '';
   } catch (e) { toast(e.message || '평가를 보내지 못했습니다', 'err'); }
-  S.my.rateBusy = false; renderMyList();
+  S.my.rateBusy = false; rerender();
 }
 function renderMyList() {
   const host = $('[data-my-list]'); if (!host) return;
@@ -1874,7 +1955,7 @@ function renderMyList() {
       ? `<div class="confirm-box"><div>${esc(r.booth + '. ' + r.boothName)} ${esc(r.slot)} 예약을 취소할까요? 취소하면 되돌릴 수 없고, 자리는 바로 다른 분에게 열립니다.</div><div class="row"><button type="button" class="btn danger" data-action="my-cancel-yes" data-res="${attr(r.no)}">네, 취소합니다</button><button type="button" class="btn" data-action="my-cancel-no">아니요</button></div></div>`
       : S.my.rate === r.no ? rateBoxHTML(r)
       : `<div class="my-actions">${cancellable ? `<button type="button" class="btn small" data-action="my-cancel" data-res="${attr(r.no)}">예약 취소</button>` : ''}${att === '출석' ? `<span class="pill ok">출석</span>` : att === '결석' ? `<span class="pill absent">결석</span>` : ''}${canRate(r) ? `<button type="button" class="btn small primary" data-action="my-rate" data-res="${attr(r.no)}">⭐ 평가하기</button>` : r.rating ? `<span class="pill rated" title="만족도 응답 완료">★ ${fmtScore(r.rating)} 평가 완료</span>` : ''}${past && r.status !== ST.CANCEL && !att ? `<span class="pill cancel">시간 지남</span>` : ''}<a class="btn small" href="${attr(WEB ? WEB + '?booth=' + r.booth : '#')}" data-action="open-booth" data-no="${r.booth}">부스 보기</a></div>`;
-    return (sorted.indexOf(r) === firstDone ? doneSepHTML(nDone) : '') + `<div class="my-card ${cls}${nextUp === r ? ' next' : ''}${resFinished(r, now) && S.my.rate !== r.no ? ' done' : ''}">
+    return (sorted.indexOf(r) === firstDone ? doneSepHTML(nDone) : '') + `<div class="my-card ${cls}${nextUp === r ? ' next' : ''}${resFinished(r, now) && S.my.rate !== r.no ? (canRate(r, now) ? ' done-rate' : ' done') : ''}">
       <div class="my-head"><div class="my-title">${seqOf(r) ? `<span class="seq" title="갈 순서">${seqOf(r)}번째</span>` : ''}<span class="bno${zc((booth(r.booth) || {}).floor)}">${r.booth}</span>${esc(r.boothName)}</div><span class="pill ${cls}">${nextUp === r ? '다음 일정 · ' : ''}${esc(r.status === ST.PENDING ? '처리 중' : r.status)}</span></div>
       <div class="my-slot">${multi && r.date ? '<b>' + esc(fmtDay(r.date)) + '</b> · ' : ''}${noSlot(r.slot) ? '상시운영 · 방문 등록 (예약 없이 참여)' : esc(r.slot)}</div>${place}
       <div class="my-meta">예약번호 ${esc(r.no)} · 접수 ${esc(r.time)}${r.status === ST.WAIT ? (autoPromote() ? ' · 취소가 생기면 자동으로 확정되고 알려 드립니다' : ' · 자리가 나면 운영진이 연락드립니다') : ''}${r.status === ST.OK && /자동 확정/.test(r.memo || '') ? ' · <b style="color:var(--ok)">대기에서 확정됨 🎉</b>' : ''}</div>
@@ -2654,6 +2735,7 @@ document.addEventListener('click', e => {
   if (a === 'modal-close') { closeModal(); return; }
   if (a === 'notice-ack') { closeModal(); const me = loadMe(); rpc('ackNotice', me.name, me.phone, act.dataset.res).catch(() => { }); toast('확인했습니다. 부스에서 뵐게요!'); return; }
   if (a === 'notice-my') { closeModal(); const me = loadMe(); rpc('ackNotice', me.name, me.phone, act.dataset.res).catch(() => { }); S.my.name = me.name || S.my.name; S.my.phone = me.phone || S.my.phone; S.my.list = null; go('my'); return; }
+  if (a === 'notice-rate') { closeModal(); const me = loadMe(); S.my.name = me.name || S.my.name; S.my.phone = me.phone || S.my.phone; S.my.list = null; S.my.rateWant = act.dataset.res; S.my.rate = ''; go('my'); return; }
   if (a === 'modal-my') { closeModal(); const me = loadMe(); S.my.name = me.name || S.my.name; S.my.phone = me.phone || S.my.phone; S.my.list = null; go('my'); return; }
   if (a === 'modal-more') { closeModal(); S.rsv.slot = null; updateBooth(); try { const el = $('.slot-rows'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (x) { } return; }
   if (a === 'modal-wait') { closeModal(); submitRsv({ wait: true }); return; }
@@ -2671,10 +2753,11 @@ document.addEventListener('click', e => {
   else if (a === 'my-cancel') { S.my.confirm = act.dataset.res; renderMyList(); }
   else if (a === 'my-cancel-no') { S.my.confirm = ''; renderMyList(); }
   else if (a === 'my-cancel-yes') { cancelMy(act.dataset.res); }
-  else if (a === 'my-rate') { S.my.confirm = ''; S.my.rate = act.dataset.res; S.my.rateScore = 0; S.my.rateComment = ''; renderMyList(); setTimeout(() => { const el = $('[data-rate-box]'); if (el) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }, 30); }
+  else if (a === 'who') { S.rsv.self = act.dataset.self === '1'; try { localStorage.setItem('rsvself', S.rsv.self ? '1' : '0'); } catch (x) { } renderRsvForm(); }
+  else if (a === 'my-rate') { S.my.confirm = ''; S.my.rate = act.dataset.res; S.my.rateScore = 0; S.my.rateComment = ''; if (/^g:/.test(S.my.rate)) renderGroupView(); else renderMyList(); setTimeout(() => { const el = $('[data-rate-box]'); if (el) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }, 30); }
   else if (a === 'my-star') { setStar(Number(act.dataset.score)); }
   else if (a === 'my-rate-send') { sendRate(act.dataset.res); }
-  else if (a === 'my-rate-close') { S.my.rate = ''; S.my.rateScore = 0; S.my.rateComment = ''; renderMyList(); }
+  else if (a === 'my-rate-close') { const g = /^g:/.test(S.my.rate); S.my.rate = ''; S.my.rateScore = 0; S.my.rateComment = ''; if (g) renderGroupView(); else renderMyList(); }
   else if (a === 'go-staff') { e.preventDefault(); S.admin.staffPick = true; S.admin.staff = true; S.admin.f.booth = ''; S.admin.err = ''; go('admin'); }
   else if (a === 'go-admin') { S.admin.staffPick = false; S.admin.staff = false; S.admin.f.booth = ''; if (PREVIEW || !WEB || STATIC) { e.preventDefault(); go('admin'); } } // 방법 B 는 같은 페이지 안에서 이동 (주소는 pushNav 가 바꿈)
   else if (a === 'refresh') { refresh(); toast('새로고침 중…'); }
@@ -2754,6 +2837,7 @@ document.addEventListener('visibilitychange', () => {
   if (document.hidden) return;
   lastInteraction = Date.now();
   if (Date.now() - lastRefreshAt > 8000) refresh(); // 화면 복귀 시 1회 갱신 (8초 안에 또 오면 생략)
+  if (typeof rateDue === 'function' && rateDue(loadSnap(), kstNow()).length) { clearTimeout(rateTimer); rateTimer = setTimeout(rateTick, 1500); } // 휴대폰을 다시 켰을 때 끝난 체험이 있으면 평가 안내
   if (!S.timer && POLL[S.view]) S.timer = setTimeout(tick, nextDelay());
   { const snap = loadSnap(); const stale = Date.now() - (snap._t || 0) > 5 * 60 * 1000; if (hasWaiting(snap) || stale) { clearTimeout(watchTimer); watchTimer = setTimeout(() => watchTick(true), 800); } } // 돌아오면 바로 확정 여부 확인
 });
@@ -2819,7 +2903,7 @@ async function bootstrap() {
     else window.addEventListener('popstate', e => applyNavState(e.state, Object.fromEntries(new URLSearchParams(location.search))));
   } catch (x) { }
   if (S.view === 'admin' && S.admin.pin) loginAdmin(S.admin.pin);
-  watchStart();
+  watchStart(); rateSchedule();
   window.__boothDebug = () => ({ poll: Object.assign({}, POLL), view: S.view, mode: STATIC ? 'B' : 'A' }); // 점검용 (브라우저 콘솔에서 __boothDebug())
 })();
 })();
