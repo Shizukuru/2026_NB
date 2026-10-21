@@ -2,6 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
+<meta name="author" content="호서대학교 앵커늘봄총괄센터 (시스템 개발: 이지훈)">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>앵커 한마당 부스 현황판</title>
 <!-- ★★★ 여기 한 줄만 고치면 됩니다 ★★★
@@ -647,7 +648,8 @@ const PREVIEW = !!BOOT.preview;
 // /u/4/ 나 /a/macros/도메인/ 이 남은 주소는 시크릿 탭·방문객 휴대폰에서 열리지 않는다)
 const WEB = STATIC && !PREVIEW ? ownUrl() : guestUrl(BOOT.webAppUrl);
 const WEB_PROBLEM = STATIC ? API_PROBLEM : String(BOOT.webAppUrlProblem || '');
-const COPYRIGHT = '© 2026 호서대학교 앵커늘봄총괄센터 · 만든이 이지훈';
+const COPYRIGHT = '© 2026 호서대학교 앵커늘봄총괄센터. All rights reserved.';
+const DEV_CREDIT = '시스템 개발 이지훈'; // 개발자 표기: 운영자·부스 담당자 화면 하단에만 (방문객·TV 화면에는 기관 저작권만)
 const CLASS = '수업형', ALWAYS = '상시운영', ONSITE = '현장접수'; // 현장접수: 예약 없이 부스에서 직접 접수 — 화면에는 보이되 예약 버튼이 없음
 const noSlot = s => s === ALWAYS || s === ONSITE; // 시간대가 없는 예약 행(상시운영 방문 등록 · 현장접수 등록)
 const slotText = s => s === ALWAYS ? '상시운영 · 방문 등록' : s === ONSITE ? '현장접수 · 부스에서 등록' : s;
@@ -1967,6 +1969,7 @@ function renderAdmin() {
         <div data-filter-note></div>
         <div class="scroll list" style="margin-top:8px" data-list></div>
       </section>
+      <footer class="foot admin-foot"><span class="copy">${COPYRIGHT}<br>${DEV_CREDIT}</span></footer>
     </div>`;
   }
   renderAdminParts();
