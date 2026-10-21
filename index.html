@@ -611,7 +611,7 @@ body.phone .app{width:393px;max-width:100%;height:min(852px,calc(100vh - var(--c
 .pin.zc::after{content:'';position:absolute;top:-4px;right:-4px;width:36%;height:36%;min-width:9px;min-height:9px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 .5px rgba(0,0,0,.25);background:var(--dot);display:none}
 .pin.zc.ok,.pin.zc.lv-ok{--dot:var(--ok)}.pin.zc.warn,.pin.zc.lv-warn{--dot:var(--warn)}.pin.zc.full,.pin.zc.lv-full{--dot:var(--full)}
 .pin.zc.ok::after,.pin.zc.warn::after,.pin.zc.full::after,.pin.zc[class*=" lv-"]::after{display:block}
-.pin.zc.past,.pin.zc.closed{opacity:.45}
+.pin.zc.past,.pin.zc.closed,.pin.always.closed{opacity:.45}
 .legend b{color:var(--fg);font-weight:700}.legend i.dot{border-radius:50%}
 .map-zones .zl{color:var(--z);font-weight:700}.map-zones .zl i{background:var(--z);border-radius:50%}
 </style>
@@ -1844,16 +1844,16 @@ function renderMap() {
       <span class="zoom"><button type="button" class="btn small" data-action="zoom-out" aria-label="축소">－</button><span data-zoom-label>${S.map.zoom || 1}×</span><button type="button" class="btn small" data-action="zoom-in" aria-label="확대">＋</button></span></nav>
     <div class="map-wrap" data-map-wrap></div>
     <div class="legend map-zones"><b>핀 색 = 구역</b>${Object.keys(ZONES).map(f => `<span class="zl${zc(f)}"><i></i>${esc(f)}</span>`).join('')}</div>
-    <div class="legend"><b>오른쪽 위 점 = 상태</b><span><i class="dot" style="background:var(--ok)"></i>여유</span><span><i class="dot" style="background:var(--warn)"></i>잔여 30% 이하·보통</span><span><i class="dot" style="background:var(--full)"></i>마감·혼잡</span><span><i class="dot" style="background:#fff;box-shadow:inset 0 0 0 1.5px #9AA5A1"></i>점 없음 = 상시·현장접수</span><span><i style="background:#9AA5A1;opacity:.5"></i>흐린 핀 = 공개 전·종료</span></div>
+    <div class="legend"><b>오른쪽 위 점 = 상태</b><span><i class="dot" style="background:var(--ok)"></i>여유</span><span><i class="dot" style="background:var(--warn)"></i>잔여 30% 이하·보통</span><span><i class="dot" style="background:var(--full)"></i>마감·혼잡</span><span><i class="dot" style="background:#fff;box-shadow:inset 0 0 0 1.5px #9AA5A1"></i>점 없음 = 상시·현장접수</span><span><i style="background:#9AA5A1;opacity:.5"></i>흐린 핀 = 공개 전·접수 중지·종료</span></div>
     <p class="note">부스 번호를 누르면 그 부스의 남은 자리와 예약 화면으로 갑니다. 휴대폰에서는 ＋로 확대한 뒤 옆으로 밀어 보세요. 야외 부스는 지하1층 홀 왼쪽 테라스(연못 옆)에 있습니다.</p>
     <div class="map-list" data-map-list></div>
   </div>`;
   updateMap();
 }
 /** 배치도 핀: 바탕 = 구역 색, 오른쪽 위 점 = 예약 상태(상시운영은 혼잡도) */
-function pinClass(b, now) { const L = alwaysLevel(b); return markerClass(b, now) + zc(b.floor) + (L ? ' lv-' + L.k : ''); }
+function pinClass(b, now) { const alOff = b.mode === ALWAYS && !!alClosedText(); const L = alOff ? null : alwaysLevel(b); return markerClass(b, now) + zc(b.floor) + (L ? ' lv-' + L.k : ''); }
 function markerClass(b, now) {
-  if (b.mode === ALWAYS) return 'always';
+  if (b.mode === ALWAYS) return alClosedText() ? 'always closed' : 'always'; // 상시운영 공개 전·중지 = 흐린 핀
   if (b.mode === ONSITE) return 'onsite';
   const sum = boothSummary(b, now);
   if (sum.total === 0) return sum.closed ? 'closed' : 'past';
@@ -1875,14 +1875,14 @@ function updateMap() {
   const pinPx = p => { const wpx = canvasPx * (p[3] || 5) / 100, hpx = canvasPx * (m.h / m.w) * (p[4] || 5) / 100; return Math.max(26, Math.round(Math.min(wpx, hpx) * 0.86)); };
   wrap.innerHTML = `<div class="map-canvas" style="aspect-ratio:${m.w}/${m.h};width:${(S.map.zoom || 1) * 100}%"><div class="fp">${m.svg || ''}</div>${placed.map(b => {
     const p = posOf(b); const cls = markerClass(b, now); const sum = b.mode !== CLASS ? null : boothSummary(b, now);
-    const tip = b.no + '. ' + b.name + ' (' + (b.pos || '') + ') · ' + (b.mode === ONSITE ? '현장접수 · 예약 없이 부스에서 접수' : b.mode === ALWAYS ? '상시운영' + (alwaysLevel(b) ? ' · 혼잡도 ' + alwaysLevel(b).t : '') : sum.total === 0 ? (sum.closed ? '공개 전' : '운영 종료') : sum.left === 0 ? '전 시간대 마감' : '잔여 ' + sum.left + '석');
+    const tip = b.no + '. ' + b.name + ' (' + (b.pos || '') + ') · ' + (b.mode === ONSITE ? '현장접수 · 예약 없이 부스에서 접수' : b.mode === ALWAYS ? '상시운영' + (alClosedText() ? ' · ' + alClosedText() : alwaysLevel(b) ? ' · 혼잡도 ' + alwaysLevel(b).t : '') : sum.total === 0 ? (sum.closed ? '공개 전' : '운영 종료') : sum.left === 0 ? '전 시간대 마감' : '잔여 ' + sum.left + '석');
     const px = pinPx(p), hl = S.map.hl === b.no;
     return `<button type="button" class="pin ${pinClass(b, now)}${hl ? ' hl' : ''}" style="left:${p[1]}%;top:${p[2]}%;width:${px}px;height:${px}px;font-size:${Math.round(px * 0.42)}px" data-action="open-booth" data-no="${b.no}" title="${attr(tip)}" aria-label="${attr(tip)}"><span>${b.no}</span></button>`;
   }).join('')}</div>`;
   const list = $('[data-map-list]');
   if (list) {
     const row = b => { const cls = markerClass(b, now); const sum = b.mode !== CLASS ? null : boothSummary(b, now);
-      const st = b.mode === ONSITE ? '현장접수 · 예약 없이 부스에서 접수' : b.mode === ALWAYS ? '상시운영 · 방문 등록 후 참여' + (alwaysLevel(b) ? ' · 혼잡도 ' + alwaysLevel(b).t + ' (수용 ' + alwaysLevel(b).cap + '명)' : '') : sum.total === 0 ? (sum.closed ? esc(closedNote(b.slots)) : '오늘 운영 종료') : sum.left === 0 ? '전 시간대 마감' : '잔여 ' + sum.left + '석 · ' + sum.open + '개 시간대';
+      const st = b.mode === ONSITE ? '현장접수 · 예약 없이 부스에서 접수' : b.mode === ALWAYS ? (alClosedText() ? '상시운영 · ' + esc(alClosedText()) : '상시운영 · 방문 등록 후 참여' + (alwaysLevel(b) ? ' · 혼잡도 ' + alwaysLevel(b).t + ' (수용 ' + alwaysLevel(b).cap + '명)' : '')) : sum.total === 0 ? (sum.closed ? esc(closedNote(b.slots)) : '오늘 운영 종료') : sum.left === 0 ? '전 시간대 마감' : '잔여 ' + sum.left + '석 · ' + sum.open + '개 시간대';
       return `<button type="button" class="map-row${S.map.hl === b.no ? ' hl' : ''}" data-action="open-booth" data-no="${b.no}"><span class="pin ${pinClass(b, now)}"><span>${b.no}</span></span><span class="mr-name">${esc(b.name)}<small>${esc(b.org)}${b.pos ? ' · ' + esc(b.pos) : ' · 자리 추후 안내'}</small></span><span class="mr-st ${cls}">${st}</span></button>`; };
     const groups = (m.floors || []).map(f => { const bs = placed.concat(unplaced).filter(b => b.floor === f).sort((a, b) => a.no - b.no); return bs.length ? `<h3>${esc(f)} <small>${bs.length}개 부스</small></h3>${bs.map(row).join('')}` : ''; }).join('');
     list.innerHTML = groups || `<div class="empty">이 층에 배정된 부스가 없습니다.</div>`;
