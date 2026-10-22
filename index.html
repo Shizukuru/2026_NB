@@ -370,6 +370,7 @@ tr:last-child td{border-bottom:0}
 .tc.closed{background:var(--surface-2);color:var(--fg-muted);font-weight:400;font-size:.8em}
 .sess{display:inline-flex;align-items:center;gap:6px;padding:2px 10px;border-radius:999px;font-size:12.5px;font-weight:600;background:var(--surface-2);color:var(--fg-muted)}
 .sess.open{background:var(--ok-soft);color:var(--ok)} .sess.off{background:var(--full-soft);color:var(--full)}
+.sess-panel[hidden]{display:none} /* 부스 담당자 화면: 빈 틀이 남지 않게 */
 .sess-panel{display:grid;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-top:12px}
 .sess-day{background:var(--accent-soft);color:var(--accent);padding:1px 8px;border-radius:999px;font-weight:700}
 .sess-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
@@ -428,8 +429,7 @@ a.brand:hover .brand-name{color:var(--accent)}
 .tv .sponsors-compact .sp-item img{height:2.7vh;max-width:9vw}
 @media (max-width:900px){.tv .sponsors-compact{gap:6px}.tv .sponsors-compact .sp-list{flex-wrap:wrap;justify-content:center}.tv .sponsors-compact .sp-item{height:30px}.tv .sponsors-compact .sp-item img{height:22px;max-width:110px}}
 .htags{display:flex;flex-wrap:wrap;gap:4px 6px;margin:6px 0 0;padding:0}
-.htag{border:0;background:var(--accent-soft);color:var(--accent);font:600 12.5px/1.2 var(--font-body);padding:4px 9px;border-radius:999px;cursor:pointer}
-.htag:hover{filter:brightness(.96)}
+.htag{display:inline-block;background:var(--accent-soft);color:var(--accent);font:600 12.5px/1.2 var(--font-body);padding:4px 9px;border-radius:999px} /* 표시만 (누르는 기능 없음) */
 .sign .htags{margin-top:8px}.sign .htag{font-size:13.5px}
 .booth-desc{margin:6px 0 2px;font-size:13.5px;line-height:1.5;color:var(--fg);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:keep-all;padding-left:9px;border-left:3px solid var(--accent-soft)}
 .qr-card .place-line{font-size:14px;font-weight:600;color:#0E7C6B;background:#E6F3EF;border-radius:8px;padding:4px 12px}
@@ -1192,7 +1192,7 @@ function congHTML(b, withCap) {
 /** 해시태그 줄. 누르면 첫 화면 검색에 그 태그를 넣어 같은 태그 부스만 봄 */
 function tagsHTML(b) {
   const t = (b && b.tags) || []; if (!t.length) return '';
-  return `<p class="htags">${t.map(x => `<button type="button" class="htag" data-action="tag" data-tag="${attr(x)}">#${esc(x)}</button>`).join('')}</p>`;
+  return `<p class="htags">${t.map(x => `<span class="htag">#${esc(x)}</span>`).join('')}</p>`;
 }
 function cardHTML(b, now) {
   const always = b.mode === ALWAYS, onsite = b.mode === ONSITE;
@@ -2717,7 +2717,6 @@ document.addEventListener('click', e => {
   if (a === 'guide-close') { const g = $('#guide-modal'); if (g) g.remove(); return; }
   if (a === 'guide-open') { e.preventDefault(); showGuide(true); return; }
   if (a === 'kid-paste') { showKidPaste(); return; }
-  if (a === 'tag') { e.stopPropagation(); S.f.q = '#' + act.dataset.tag; if (S.view !== 'home') go('home'); else { const qi = $('#q'); if (qi) qi.value = S.f.q; updateHome(); } setTimeout(() => { const qi = $('#q'); if (qi) { qi.value = S.f.q; qi.scrollIntoView({ block: 'center' }); } }, 0); return; }
   if (a === 'kid-paste-add') {
     const grades = S.status.grades || [];
     const list = parseKidList(($('#kidpaste') || {}).value || '', grades);
