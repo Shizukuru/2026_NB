@@ -638,6 +638,7 @@ button.slot-row:disabled{cursor:default}
 .cong-ctrl .seg button+button{border-left:1px solid var(--line)}
 .cong-ctrl .seg button.on{color:#fff;background:var(--fg)}
 .cong-ctrl .seg button.ok.on{background:var(--ok)}.cong-ctrl .seg button.warn.on{background:var(--warn)}.cong-ctrl .seg button.full.on{background:var(--full)}
+.ping-row .seg button{font-weight:800}
 .svtest-row{background:#FFF4E5;border-color:#F2B48C}.svtest-row .note b{color:#B34700}
 .cong-ctrl .note{color:var(--fg-muted);flex-basis:100%}
 .cong-ctrl.busy{opacity:.6;pointer-events:none}
@@ -833,7 +834,26 @@ function setDay(d) {
   pushNav(true);
   toast(fmtDay(d) + ' 현황을 보고 있습니다');
 }
-function onStatus(st) { applyPoll(st); applyDay(st); reapplyPatches(st); checkPromoted(st); }
+function onStatus(st) { applyPoll(st); applyDay(st); reapplyPatches(st); checkPromoted(st); checkRatePing(st); }
+/** 운영자가 [평가 요청 보내기]를 누르면 현황의 ratePing.n 이 올라감 → 이 휴대폰에 미평가 체험이 있으면 팝업 한 번 (회차마다 한 번, 3시간 지난 요청은 무시) */
+let ratePingBusy = false;
+function checkRatePing(st) {
+  const rp = st && st.ratePing; if (!rp || !rp.n || ratePingBusy || S.view === 'admin' || S.view === 'tv' || typeof loadSnap !== 'function' || !surveyOn()) return;
+  let seen = 0; try { seen = Number(localStorage.getItem('ratePingSeen')) || 0; } catch (x) { }
+  if (rp.n <= seen) return;
+  const mark = () => { try { localStorage.setItem('ratePingSeen', String(rp.n)); } catch (x) { } };
+  if (seen === 0 && rp.at && Date.now() - rp.at > 3 * 3600000) { mark(); return; }
+  const me = loadMe(); const snap = loadSnap();
+  if (!me.name || !me.phone || !Object.keys(snap).some(k => k !== '_t' && snap[k] && snap[k].status === ST.OK && !snap[k].rating)) { mark(); return; } // 확정 예약이 없거나 다 평가했으면 서버에 묻지 않음
+  if ($('#result-modal') || $('#guide-modal') || S.rsv && S.rsv.busy || document.hidden) return; // 다른 창·예약 중이면 다음 현황 때
+  ratePingBusy = true; mark();
+  setTimeout(async () => { // 한꺼번에 몰리지 않게 0~20초 흩어서
+    try { const g = await rpc('findPhoneReservations', me.name, me.phone); const list = (g && g.list) || []; const shown = applyMyList(list, true);
+      if ((!shown || !shown.length) && !$('#result-modal')) { const now = kstNow(), seenG = {}; const items = list.filter(r => canRate(r, now)).filter(r => { const k = gKeyOf(r); if (seenG[k]) return false; seenG[k] = 1; return true; });
+        if (items.length) showNotice({ kind: 'rate', r: items[0], items, again: true }); }
+    } catch (e) { /* 다음에 */ } finally { ratePingBusy = false; }
+  }, PREVIEW ? 300 : Math.random() * 20000);
+}
 /** 현황에 실린 '대기→자동 확정' 예약번호에 내 대기 예약이 있으면 그때만 내 예약을 다시 받아 알림 (대기자 휴대폰이 2분마다 서버에 묻던 것을 대신) */
 function checkPromoted(st) {
   const pr = st && st.promoted; if (!pr || !pr.length || typeof loadSnap !== 'function') return;
@@ -1704,12 +1724,12 @@ function showResult(r) {
     cls = 'ok'; icon = '✓';
     title = always ? (r.again ? '이미 등록되어 있습니다' : '방문 등록되었습니다') : (r.again ? '이미 예약되어 있습니다' : '예약이 확정되었습니다');
     why = always ? (r.again ? '같은 이름·연락처로 이미 등록되어 있습니다. ' : '') + (alwaysCheck() ? '부스로 가서 담당자에게 이름을 말하세요. 부스에 온 순서대로(선착순) 입장하고, 입장하면 참여로 기록됩니다.' : '이제 부스로 가서 바로 참여하세요. 등록 기록은 행사 참여 확인에 쓰입니다.') : (r.again ? '같은 이름·연락처로 이 시간대에 이미 접수된 예약이 있어 그대로 두었습니다. ' : '') + '수업 시작 전에 부스에서 담당자에게 이름을 말씀하시면 입장 확인이 됩니다.';
-    buttons = btn('modal-my', '내 예약 보기', true) + (always ? '' : btn('modal-more', '다른 시간대도 예약')) + btn('modal-close', '닫기');
+    buttons = btn('modal-my', '내 예약 보기', true) + (always ? '' : btn('modal-more', '다른 시간대도 예약')) + btn('modal-home', '닫기');
   } else if (r.kind === 'ok') {
     cls = 'wait'; icon = '…'; title = r.again ? '이미 대기로 접수되어 있습니다' : '대기로 접수되었습니다' + (r.waitNo ? ' (대기 ' + r.waitNo + '번째)' : '');
     why = autoPromote() ? '정원이 차 있어 대기 순번으로 들어갔습니다. 취소가 생기면 접수 순서대로 자동 확정되고, 이 화면을 열어 두거나 다시 열면 팝업으로 알려 드립니다. 다른 시간대를 함께 예약해 두셔도 됩니다.'
       : '정원이 차 있어 대기 순번으로 들어갔습니다. 취소가 생기면 운영진이 접수 순서대로 연락드립니다. 다른 시간대를 함께 예약해 두셔도 됩니다.';
-    buttons = btn('modal-my', '내 예약 보기', true) + btn('modal-more', '다른 시간대 예약') + btn('modal-close', '닫기');
+    buttons = btn('modal-my', '내 예약 보기', true) + btn('modal-more', '다른 시간대 예약') + btn('modal-home', '닫기');
   } else if (r.kind === 'error') {
     cls = 'cancel'; icon = '!'; title = '접수를 확인하지 못했습니다'; why = r.message;
     buttons = btn('modal-retry', '다시 시도', true, ` data-req="${attr(r.reqId)}"`) + btn('modal-my', '내 예약에서 확인') + btn('modal-close', '닫기');
@@ -1750,7 +1770,7 @@ function showGroupResult(list, b, slot, wasWait, reqId) {
     return `<div class="g ${c}"><b>${esc(r.name || '')}</b><span>${esc(what)}</span></div>`;
   };
   const btn = (act, label, primary, extra) => `<button type="button" class="btn${primary ? ' primary' : ''}" data-action="${act}"${extra || ''}>${label}</button>`;
-  const buttons = (canWait ? btn('modal-wait', '자리 없는 어린이는 대기로 신청', true) : '') + btn('modal-my', '내 예약 보기', !canWait) + (always ? '' : btn('modal-more', '다른 시간대도 예약')) + btn('modal-close', '닫기');
+  const buttons = (canWait ? btn('modal-wait', '자리 없는 어린이는 대기로 신청', true) : '') + btn('modal-my', '내 예약 보기', !canWait) + (always ? '' : btn('modal-more', '다른 시간대도 예약')) + btn('modal-home', '닫기');
   const old = $('#result-modal'); if (old) old.remove();
   const el = document.createElement('div'); el.id = 'result-modal'; el.className = 'modal'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true');
   el.innerHTML = `<div class="modal-card${list.length > 4 ? ' tall' : ''}"><div class="modal-icon ${cls}">${icon}</div><h2>${esc(title)}</h2>
@@ -1849,7 +1869,7 @@ function showNotice(n) {
       <div class="row"><button type="button" class="btn primary" data-action="notice-ack" data-res="${attr(r.no)}">확인했어요</button><button type="button" class="btn" data-action="notice-my" data-res="${attr(r.no)}">내 예약 보기</button></div></div>`;
   } else if (n.kind === 'rate') {
     const items = n.items || [r];
-    el.innerHTML = `<div class="modal-card"><div class="modal-icon ok">⭐</div><h2>체험은 어떠셨나요?</h2>
+    el.innerHTML = `<div class="modal-card"><div class="modal-icon ok">⭐</div><h2>${n.again ? '아직 평가하지 않은 체험이 있어요' : '체험은 어떠셨나요?'}</h2>
       <div class="what">${items.slice(0, 3).map(x => `${x.booth}. ${esc(x.boothName)}${noSlot(x.slot) ? '' : '<br><small>' + esc(x.slot) + '</small>'}`).join('<br>')}${items.length > 3 ? `<br>외 ${items.length - 3}개` : ''}</div>
       <p class="note">다녀온 체험에 별점을 남겨 주세요. 별 5개(0.5점 단위)와 한 줄 의견, 10초면 끝나요. 같이 간 형제는 한 번만 평가하면 됩니다.</p>
       <div class="row"><button type="button" class="btn primary" data-action="notice-rate" data-res="${attr(r.no)}">⭐ 지금 평가하기</button><button type="button" class="btn" data-action="modal-close">나중에</button></div></div>`;
@@ -2308,7 +2328,28 @@ function renderSessionPanel(d) {
     return `<div class="sess-row"><span class="name">${esc(x.label)}</span><span class="note">${k === 'al' ? '방문 등록 · ' + (d.booths || []).filter(b => b.mode === ALWAYS).length + '개 부스' : esc(range) + ' · ' + x.count + '개 시간대'}</span>
       <span class="sess ${x.open ? 'open' : x.mode === '닫힘' ? 'off' : ''}">${x.open ? '열림' : '닫힘'}</span>
       <span class="seg">${['자동', '열림', '닫힘'].map(m => `<button type="button" class="${x.mode === m ? 'on' : ''}" data-action="sess-mode" data-sess="${k}" data-mode="${m}">${m === '자동' ? '자동 (행사일 ' + esc(x.opensAt) + ')' : m}</button>`).join('')}</span></div>`;
-  }).join('') + geoRowHTML(d.geo) + svTestRowHTML();
+  }).join('') + geoRowHTML(d.geo) + ratePingRowHTML(d) + svTestRowHTML();
+}
+/** 총괄 운영자: 평가 요청 다시 보내기 — 출석했지만 아직 평가 안 한 체험이 있는 휴대폰에 팝업 한 번 (사이트를 열고 있거나 다음에 열 때) */
+function ratePingRowHTML(d) {
+  if (!surveyOn()) return '';
+  const rp = d.ratePing || {}; const now = kstNow(); const seen = {}; let n = 0;
+  (d.reservations || []).forEach(r => { if (canRate(r, now)) { const k = (r.phone || '') + '|' + gKeyOf(r); if (!seen[k]) { seen[k] = 1; n++; } } });
+  const last = rp.at ? new Date(rp.at + 9 * 3600000).toISOString().slice(11, 16) : '';
+  return `<div class="sess-row ping-row"><span class="name">⭐ 평가 요청</span><span class="note">아직 평가 안 한 체험 <b data-unrated>${n}</b>건${rp.n ? ` · 지금까지 <b>${rp.n}</b>번 보냄 (마지막 ${last})` : ''} <small>— 누르면 그 휴대폰에 "체험은 어떠셨나요?" 팝업이 한 번 뜹니다 (사이트를 열고 있거나 다음에 열 때). 예약이 몰리는 공개 시각은 피해 주세요</small></span><span class="seg"><button type="button" class="on" data-action="rate-ping">평가 요청 보내기</button></span></div>`;
+}
+function ratePingAsk() {
+  const el = document.createElement('div'); el.id = 'result-modal'; el.className = 'modal'; el.setAttribute('role', 'alertdialog'); el.setAttribute('aria-modal', 'true');
+  const n = ($('[data-unrated]') || {}).textContent || '0';
+  el.innerHTML = `<div class="modal-card"><div class="modal-icon ok">⭐</div><h2>평가 요청을 보낼까요?</h2>
+    <p class="note">출석했지만 아직 평가하지 않은 체험 <b>${esc(n)}</b>건의 휴대폰에 평가 팝업이 한 번 뜹니다. 이미 평가한 분에게는 뜨지 않아요. 같은 요청은 5분 뒤에 다시 보낼 수 있습니다.</p>
+    <div class="row"><button type="button" class="btn" data-action="modal-close" autofocus>취소</button><button type="button" class="btn primary" data-action="rate-ping-confirm">보내기</button></div></div>`;
+  const old = $('#result-modal'); if (old) old.remove(); document.body.appendChild(el);
+}
+async function ratePingSend() {
+  closeModal();
+  try { const r = await rpc('sendRatePing', S.admin.pin); toast(r.n + '번째 평가 요청을 보냈습니다 — 1~2분 안에 휴대폰에 뜹니다'); await refresh(); }
+  catch (e) { toast(e.message || '보내지 못했습니다', 'err'); }
 }
 /** 만족도 테스트 모드 켜짐 경고 (끄는 곳은 설정 탭) */
 function svTestRowHTML() {
@@ -2998,6 +3039,7 @@ document.addEventListener('click', e => {
   }
   if (a === 'privacy') { S.rsv.privacy = !S.rsv.privacy; const pv = $('[data-privacy]'); if (pv) pv.classList.toggle('hidden', !S.rsv.privacy); act.textContent = S.rsv.privacy ? '내용 닫기' : '내용 보기'; return; }
   if (a === 'modal-close') { closeModal(); return; }
+  if (a === 'modal-home') { closeModal(); go('home'); window.scrollTo({ top: 0 }); return; } // 예약 완료 팝업 [닫기] → 첫 목록 (같은 프로그램 다른 시간대는 [다른 시간대도 예약])
   if (a === 'notice-ack') { closeModal(); const me = loadMe(); rpc('ackNotice', me.name, me.phone, act.dataset.res).catch(() => { }); toast('확인했습니다. 부스에서 뵐게요!'); return; }
   if (a === 'notice-my') { closeModal(); const me = loadMe(); rpc('ackNotice', me.name, me.phone, act.dataset.res).catch(() => { }); S.my.name = me.name || S.my.name; S.my.phone = me.phone || S.my.phone; S.my.list = null; go('my'); return; }
   if (a === 'notice-rate') { closeModal(); const me = loadMe(); S.my.name = me.name || S.my.name; S.my.phone = me.phone || S.my.phone; S.my.list = null; S.my.rateWant = act.dataset.res; S.my.rate = ''; go('my'); return; }
@@ -3031,6 +3073,8 @@ document.addEventListener('click', e => {
   else if (a === 'clear-filter') { S.admin.f.booth = ''; S.admin.f.slot = ''; renderList(S.admin.data, kstNow()); }
   else if (a === 'print') { try { window.print(); } catch (x) { toast('브라우저 메뉴에서 인쇄(Ctrl+P)해 주세요'); } }
   else if (a === 'geo-mode') { setGeo(act.dataset.on === '1'); }
+  else if (a === 'rate-ping') { ratePingAsk(); }
+  else if (a === 'rate-ping-confirm') { ratePingSend(); }
   else if (a === 'geo-confirm') { setGeoConfirm(act.dataset.on === '1'); }
   else if (a === 'cong') { setCong(Number(act.dataset.booth), act.dataset.level); }
   else if (a === 'sess-mode') { confirmSessionMode(act.dataset.sess, act.dataset.mode); }
