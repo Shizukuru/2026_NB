@@ -1545,13 +1545,13 @@ function renderRsvForm() {
       <label class="field"><span>본인 휴대폰 <em class="ftag req">예약 확인 번호</em></span><input id="sphone" name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="숫자만 입력 (010-1234-5678)" value="${attr(me.self ? me.phone : '')}" maxlength="20" required></label>
       <label class="field"><span>보호자 휴대폰 <em class="ftag opt">선택</em></span><input id="sgphone" name="gphone" type="tel" inputmode="tel" placeholder="비워도 돼요 · 본인 번호와 같아도 OK" value="${attr(me.gphone || '')}" maxlength="20"></label>
     </div>
-    <label class="field"><span>소속 (학교/기관)</span><input id="rorg" name="org" type="text" autocomplete="organization" placeholder="예: 천안불당초등학교" value="${attr(me.org)}" maxlength="60" required></label>
+    <label class="field"><span>소속 (학교/기관)</span><input id="rorg" name="org" type="text" autocomplete="organization" placeholder="예: 정식학교명 기입" value="${attr(me.org)}" maxlength="60" required></label>
     <div class="self-note"><b>본인 휴대폰 = 예약 확인 번호</b>예요. 예약 확인·취소·평가는 <b>학생 이름 + 본인 휴대폰</b>으로 합니다. 보호자 휴대폰은 <b>선택</b>이고(비상 연락용), 본인 번호와 같아도 괜찮아요.</div>
     <label class="chk consent"><input type="checkbox" id="sgconsent" required><span>보호자가 이 예약과 개인정보 수집·이용에 동의했습니다 <small style="font-weight:400;color:var(--fg-muted)">(만 14세 미만은 보호자 동의가 필요합니다)</small></span></label>` : `<div class="grid2">
       <label class="field"><span>보호자(인솔자) 이름</span><input id="rname" name="name" type="text" autocomplete="name" placeholder="예: 김보호" value="${attr(me.name)}" maxlength="30" required></label>
       <label class="field"><span>보호자(인솔자) 휴대폰 <em class="ftag req">예약 확인 번호</em></span><input id="rphone" name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="숫자만 입력 (010-1234-5678)" value="${attr(me.phone)}" maxlength="20" required></label>
     </div>
-    <label class="field"><span>대표 소속 (학교명) <small style="font-weight:400">— 참가 어린이 모두에게 들어가요</small></span><input id="rorg" name="org" type="text" autocomplete="organization" placeholder="예: 천안불당초등학교" value="${attr(me.org)}" maxlength="60" required></label>
+    <label class="field"><span>대표 소속 (학교명) <small style="font-weight:400">— 참가 어린이 모두에게 들어가요</small></span><input id="rorg" name="org" type="text" autocomplete="organization" placeholder="예: 정식학교명 기입" value="${attr(me.org)}" maxlength="60" required></label>
     <div class="kids" data-kids>
       <div class="kids-head"><span>참가 어린이 <small style="font-weight:400;color:var(--fg-muted)">(1명 이상)</small></span><span class="kids-btns"><button type="button" class="btn small" data-action="kid-add">＋ 어린이 추가</button><button type="button" class="btn small" data-action="kid-paste">명단 붙여넣기</button></span></div>
       <div class="roster-note" data-roster-note hidden></div>
