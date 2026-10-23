@@ -107,6 +107,7 @@ body::before{content:'';position:fixed;top:0;left:0;right:0;height:5px;z-index:7
 .always-line b{color:var(--fg)}
 .booth-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:auto}
 .avail{font-size:13px;color:var(--fg-muted)}
+.ftag{font-style:normal;font-size:11.5px;font-weight:800;border-radius:999px;padding:1px 8px;margin-left:4px;vertical-align:1px;white-space:nowrap}.ftag.req{background:var(--accent);color:#fff}.ftag.opt{background:#E6EAE8;color:#4A5852}
 /* 카드 버튼: 크고 잘 보이게 (수업형 파랑 · 상시운영 남색 · 현장접수 주황, 마감·공개 전은 회색) */
 .booth-foot{flex-wrap:wrap}
 .btn.card-cta{min-height:48px;min-width:140px;padding:11px 18px;font-size:17px;font-weight:800;letter-spacing:-.01em;border:0;border-radius:12px;color:#fff;background:var(--accent);box-shadow:0 3px 0 rgba(0,0,0,.18);white-space:nowrap;flex:none}
@@ -579,10 +580,11 @@ button.slot-row:disabled{cursor:default}
 /* 함께 온 어린이: 보호자 휴대폰 하나로 여러 어린이를 한 번에 */
 .kids{border:1px dashed var(--line);border-radius:12px;padding:10px 12px;display:grid;gap:8px;background:var(--bg)}
 .kids-head{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:14px;font-weight:700}
-.kid-row{display:grid;grid-template-columns:auto auto minmax(0,1fr) minmax(0,1fr) auto;grid-template-areas:"on no name name del" ". . grade org .";gap:6px;align-items:center;padding-bottom:6px;border-bottom:1px dashed var(--line)}
+.kid-row{display:grid;grid-template-columns:auto auto minmax(84px,.62fr) minmax(0,1.38fr) auto;grid-template-areas:"on no name name del" ". . grade org org";gap:6px;align-items:center;padding-bottom:6px;border-bottom:1px dashed var(--line)}
 .kid-row .kid-on{grid-area:on}.kid-row .kid-no{grid-area:no;min-width:1.6em;text-align:center;font-weight:700;font-size:13px;color:var(--accent);background:var(--accent-soft);border-radius:999px;padding:2px 6px}.kid-row.off .kid-no{opacity:.45}.kid-row .kid-name{grid-area:name}.kid-row .del{grid-area:del}.kid-row .kid-grade{grid-area:grade}.kid-row .kid-org{grid-area:org}
 .kid-row input[type="text"],.kid-row select{width:100%;box-sizing:border-box}
 .kid-row .kid-grade,.kid-row .kid-org{font-size:14px;padding:8px 9px}
+@media (max-width:480px){.kid-row{grid-template-columns:22px 26px 36px minmax(0,1fr) 28px;grid-template-areas:"on no name name del" "grade grade grade org org"}.kid-row .kid-org{padding:8px 7px}} /* 휴대폰: 학교명 칸을 넓게 (학년은 왼쪽 아래로) */
 .kids-btns{display:flex;gap:6px}.kids-tools{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:13px}.kids-tools select{padding:6px 8px;font-size:14px;margin-left:6px}
 .kid-row input[type="checkbox"]{width:20px;height:20px;accent-color:var(--accent)}
 .kid-row input[type="text"],.kid-row select{min-width:0;padding:9px 10px;font-size:15px}
@@ -1477,7 +1479,9 @@ async function tryRoster(force) {
   if (added) toast((force ? '사전 명단에서 ' : '사전 등록 명단 ') + added + '명을 불러왔습니다');
   return { found: true, added: added, total: r.kids.length };
 }
-function syncKidTools() { const rows = $$('[data-kid]'); const n = rows.length; rows.forEach((r, i) => { const el = r.querySelector('[data-kid-no]'); if (el) el.textContent = i + 1; }); const t = $('[data-kid-tools]'); if (t) t.classList.toggle('hidden', !n); const c = $('[data-kid-count]'); if (c) c.textContent = n ? '어린이 ' + n + '명' : ''; const lb = $('[data-leader-box]'); if (lb) lb.classList.toggle('hidden', !n || !S.rsv.rosterFound); } // 인솔자 체크는 사전 명단이 불러와진 경우(단체)에만 — 가족 예약에서 첫째 아이가 빠지는 실수 방지
+/** 어린이 줄 학교명 칸: 비어 있으면 대표 소속을 흐리게 보여 줌 (비워 두면 대표 소속으로 접수) */
+function syncKidOrgPh() { const v = (($('#rorg') || {}).value || '').trim(); $$('[data-kid] .kid-org').forEach(el => { el.placeholder = v || '학교명'; }); }
+function syncKidTools() { syncKidOrgPh(); const rows = $$('[data-kid]'); const n = rows.length; rows.forEach((r, i) => { const el = r.querySelector('[data-kid-no]'); if (el) el.textContent = i + 1; }); const t = $('[data-kid-tools]'); if (t) t.classList.toggle('hidden', !n); const c = $('[data-kid-count]'); if (c) c.textContent = n ? '어린이 ' + n + '명' : ''; const lb = $('[data-leader-box]'); if (lb) lb.classList.toggle('hidden', !n || !S.rsv.rosterFound); } // 인솔자 체크는 사전 명단이 불러와진 경우(단체)에만 — 가족 예약에서 첫째 아이가 빠지는 실수 방지
 const KIDS_MAX = 15; // 함께 온 어린이 최대 (인솔자 제외 15명 / 보호자 본인 포함 16명)
 function kidRowHTML(k, grades) {
   k = k || {}; const on = k.on !== false;
@@ -1486,7 +1490,7 @@ function kidRowHTML(k, grades) {
     `<input type="text" class="kid-name" placeholder="이름" value="${attr(k.name || '')}" maxlength="30" autocomplete="off">` +
     `<button type="button" class="del" data-action="kid-del" aria-label="빼기">✕</button>` +
     `<select class="kid-grade" aria-label="학년"><option value="">학년</option>${grades.map(g => `<option value="${attr(g)}"${k.grade === g ? ' selected' : ''}>${esc(g)}</option>`).join('')}<option value="__other"${k.grade && !known ? ' selected' : ''}>기타</option></select>` +
-    `<input type="text" class="kid-org" placeholder="소속 (같으면 비움)" value="${attr(k.org || '')}" maxlength="60" autocomplete="off"></div>`;
+    `<input type="text" class="kid-org" placeholder="학교명" aria-label="학교명 (대표 소속과 같으면 그대로 두세요)" value="${attr(k.org || '')}" maxlength="60" autocomplete="off"></div>`;
 }
 function kidValues() {
   return $$('[data-kid]').map(row => {
@@ -1538,23 +1542,24 @@ function renderRsvForm() {
     ${self ? `<div class="grid2">
       <label class="field"><span>학생 이름</span><input id="sname" name="name" type="text" autocomplete="name" placeholder="예: 김하늘" value="${attr(me.self ? me.name : '')}" maxlength="30" required></label>
       <label class="field"><span>학년</span><select id="sgrade" required><option value="">선택</option>${grades.map(g => `<option value="${attr(g)}"${selfGrade === g ? ' selected' : ''}>${esc(g)}</option>`).join('')}</select></label>
-      <label class="field"><span>본인 휴대폰 <small style="font-weight:400">— 예약 확인·알림용</small></span><input id="sphone" name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="숫자만 입력 (010-1234-5678)" value="${attr(me.self ? me.phone : '')}" maxlength="20" required></label>
-      <label class="field"><span>보호자 휴대폰 <small style="font-weight:400">— 비상 연락용</small></span><input id="sgphone" name="gphone" type="tel" inputmode="tel" placeholder="숫자만 입력" value="${attr(me.gphone || '')}" maxlength="20" required></label>
+      <label class="field"><span>본인 휴대폰 <em class="ftag req">예약 확인 번호</em></span><input id="sphone" name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="숫자만 입력 (010-1234-5678)" value="${attr(me.self ? me.phone : '')}" maxlength="20" required></label>
+      <label class="field"><span>보호자 휴대폰 <em class="ftag opt">선택</em></span><input id="sgphone" name="gphone" type="tel" inputmode="tel" placeholder="비워도 돼요 · 본인 번호와 같아도 OK" value="${attr(me.gphone || '')}" maxlength="20"></label>
     </div>
     <label class="field"><span>소속 (학교/기관)</span><input id="rorg" name="org" type="text" autocomplete="organization" placeholder="예: 천안불당초등학교" value="${attr(me.org)}" maxlength="60" required></label>
-    <div class="self-note">예약 명단에는 학생 이름이 들어가고, 보호자 휴대폰은 비상 연락용으로 함께 기록됩니다. 예약 확인·취소·평가는 <b>학생 이름 + 본인 휴대폰</b>으로 합니다.</div>
+    <div class="self-note"><b>본인 휴대폰 = 예약 확인 번호</b>예요. 예약 확인·취소·평가는 <b>학생 이름 + 본인 휴대폰</b>으로 합니다. 보호자 휴대폰은 <b>선택</b>이고(비상 연락용), 본인 번호와 같아도 괜찮아요.</div>
     <label class="chk consent"><input type="checkbox" id="sgconsent" required><span>보호자가 이 예약과 개인정보 수집·이용에 동의했습니다 <small style="font-weight:400;color:var(--fg-muted)">(만 14세 미만은 보호자 동의가 필요합니다)</small></span></label>` : `<div class="grid2">
       <label class="field"><span>보호자(인솔자) 이름</span><input id="rname" name="name" type="text" autocomplete="name" placeholder="예: 김보호" value="${attr(me.name)}" maxlength="30" required></label>
-      <label class="field"><span>보호자 휴대폰 (비상 연락처)</span><input id="rphone" name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="숫자만 입력 (010-1234-5678)" value="${attr(me.phone)}" maxlength="20" required></label>
+      <label class="field"><span>보호자(인솔자) 휴대폰 <em class="ftag req">예약 확인 번호</em></span><input id="rphone" name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="숫자만 입력 (010-1234-5678)" value="${attr(me.phone)}" maxlength="20" required></label>
     </div>
+    <label class="field"><span>대표 소속 (학교명) <small style="font-weight:400">— 참가 어린이 모두에게 들어가요</small></span><input id="rorg" name="org" type="text" autocomplete="organization" placeholder="예: 천안불당초등학교" value="${attr(me.org)}" maxlength="60" required></label>
     <div class="kids" data-kids>
       <div class="kids-head"><span>참가 어린이 <small style="font-weight:400;color:var(--fg-muted)">(1명 이상)</small></span><span class="kids-btns"><button type="button" class="btn small" data-action="kid-add">＋ 어린이 추가</button><button type="button" class="btn small" data-action="kid-paste">명단 붙여넣기</button></span></div>
       <div class="roster-note" data-roster-note hidden></div>
       <div data-kid-rows>${loadKids().map(k => kidRowHTML(k, grades)).join('')}</div>
       <div class="kids-tools${loadKids().length ? '' : ' hidden'}" data-kid-tools><label>전원 학년<select id="kidgradeall" aria-label="전원 학년"><option value="">선택</option>${grades.map(g => `<option value="${attr(g)}">${esc(g)}</option>`).join('')}</select></label><span class="note" data-kid-count></span></div>
-      <p class="note">예약 명단에는 어린이 이름만 들어가고, 보호자 이름·휴대폰은 비상 연락용으로 함께 기록됩니다. 어린이마다 따로 접수되어 확정/대기가 각각 표시되고, 소속이 다른 어린이는 소속 칸만 고치면 됩니다. 체크를 풀면 이번 예약에서 빠집니다. 한 번에 ${KIDS_MAX}명까지.</p>
+      <p class="note">예약 명단에는 어린이 이름만 들어가고, 보호자 휴대폰은 <b>예약 확인 번호</b>(비상 연락처)로 함께 기록됩니다. 어린이마다 따로 접수되어 확정/대기가 각각 표시됩니다. 학교명 칸은 <b>대표 소속</b>이 자동으로 들어가고, 학교가 다른 어린이만 고쳐 적으면 됩니다. 체크를 풀면 이번 예약에서 빠집니다. 한 번에 ${KIDS_MAX}명까지.</p>
     </div>
-    <label class="field"><span>어린이 소속 (학교/기관) <small style="font-weight:400">— 어린이마다 다르면 위 소속 칸에 따로</small></span><input id="rorg" name="org" type="text" autocomplete="organization" placeholder="예: 천안불당초등학교" value="${attr(me.org)}" maxlength="60" required></label>`}
+`}
     <label class="chk consent"><input type="checkbox" id="rconsent" required><span>개인정보 수집·이용에 동의합니다 <button type="button" data-action="privacy">${S.rsv.privacy ? '내용 닫기' : '내용 보기'}</button></span></label>
     <div class="privacy${S.rsv.privacy ? '' : ' hidden'}" data-privacy>${esc(S.status.privacy || '')}</div>
     <label class="chk"><input type="checkbox" id="rremember" checked><span>이 휴대폰에 기억해 두기 (다음 부스 예약과 '내 예약' 조회에 다시 씀)</span></label>
@@ -1583,8 +1588,7 @@ function rsvProblem(v, b) {
     if (!v.name) return { msg: '학생 이름을 입력해 주세요', el: $('#sname') };
     if (!v.grade) return { msg: '학년을 선택해 주세요', el: $('#sgrade') };
     if (!/^01[016789]\d{7,8}$/.test(phoneDigits(v.phone))) return { msg: '본인 휴대폰 번호를 확인해 주세요 (예: 010-1234-5678)', el: $('#sphone') };
-    if (!/^01[016789]\d{7,8}$/.test(phoneDigits(v.gphone))) return { msg: '보호자 휴대폰 번호를 확인해 주세요 (비상 연락용)', el: $('#sgphone') };
-    if (phoneDigits(v.gphone) === phoneDigits(v.phone)) return { msg: '보호자 휴대폰은 본인 휴대폰과 다른 번호여야 합니다', el: $('#sgphone') };
+    if (v.gphone && !/^01[016789]\d{7,8}$/.test(phoneDigits(v.gphone))) return { msg: '보호자 휴대폰 번호를 확인해 주세요 (선택 — 비워 둬도 됩니다)', el: $('#sgphone') }; // 선택 · 본인 번호와 같아도 됨
     if (!v.org) return { msg: '소속(학교/기관)을 입력해 주세요', el: $('#rorg') };
     if (!v.gconsent) return { msg: '보호자 동의 확인에 체크해 주세요', el: $('#sgconsent') };
     if (!v.consent) return { msg: '개인정보 수집·이용에 동의해 주세요', el: $('#rconsent') };
@@ -1593,7 +1597,7 @@ function rsvProblem(v, b) {
   if (!v.name) return { msg: '보호자(인솔자) 이름을 입력해 주세요', el: $('#rname') };
   if (!/^01[016789]\d{7,8}$/.test(phoneDigits(v.phone))) return { msg: '휴대폰 번호를 확인해 주세요 (예: 010-1234-5678 — 하이픈은 없어도 됩니다)', el: $('#rphone') };
   if (!v.kids.some(k => k.on && k.name)) return { kids: true, msg: '참가 어린이를 한 명 이상 추가해 주세요 ([＋ 어린이 추가])', el: $('[data-kid-rows]') || $('[data-kids]') };
-  if (!v.org && v.kids.some(k => k.on && k.name && !k.org)) return { msg: '어린이 소속(학교/기관)을 입력해 주세요', el: $('#rorg') };
+  if (!v.org && v.kids.some(k => k.on && k.name && !k.org)) return { msg: '대표 소속(학교/기관)을 입력해 주세요', el: $('#rorg') };
   const seen = {};
   for (const k of v.kids) {
     if (!k.on) continue;
@@ -1672,7 +1676,7 @@ async function submitRsv(opts) {
   const kids = v.kids.filter(k => k.on && k.name);
   // 보호자(인솔자)는 명단에 들어가지 않고 guardian 으로만 기록. 어린이들이 각각 접수됨
   // 학생 본인 등록: 보호자 열에 '본인 등록 · 보호자 010-…'(비상 연락처), 휴대폰 열은 학생 본인 번호 (조회·알림·평가 기준)
-  const payload = { reqId: opts.reqId || newReqId(), booth: b.no, slot: b.mode === ALWAYS ? '' : S.rsv.slot, date: S.day || '', wait: wait, guardian: v.self ? '본인 등록 · 보호자 ' + v.gphone : v.name, phone: v.phone, org: v.org, consent: true, geo: opts.geo || S.rsv.geo || null,
+  const payload = { reqId: opts.reqId || newReqId(), booth: b.no, slot: b.mode === ALWAYS ? '' : S.rsv.slot, date: S.day || '', wait: wait, guardian: v.self ? (v.gphone ? '본인 등록 · 보호자 ' + v.gphone : '본인 등록') : v.name, phone: v.phone, org: v.org, consent: true, geo: opts.geo || S.rsv.geo || null,
     children: kids.map(k => ({ name: k.name, grade: k.grade, org: k.org || '' })) };
   S.rsv.busy = true; S.rsv.retry = null; S.rsv.reqId = payload.reqId; renderCta();
   saveMe(v.self ? { name: v.name, phone: v.phone, org: v.org, grade: v.grade, gphone: v.gphone, self: true } : { name: v.name, phone: v.phone, org: v.org, self: false }, v.remember);
@@ -1909,7 +1913,7 @@ function renderMy() {
     <form class="sign my-form" data-form="my">
       <h2>예약할 때 적은 보호자 이름과 휴대폰 번호를 입력하세요</h2>
       <label class="field"><span>보호자(인솔자) 이름 <small style="font-weight:400">— 어린이 이름으로도 됩니다</small></span><input id="myname" type="text" autocomplete="name" value="${attr(S.my.name)}" placeholder="예: 김보호"></label>
-      <label class="field"><span>연락처 (예약할 때 적은 보호자 휴대폰)</span><input id="myphone" type="tel" inputmode="tel" autocomplete="tel" value="${attr(S.my.phone)}" placeholder="숫자만 입력 (010-1234-5678)" maxlength="20"></label>
+      <label class="field"><span>연락처 (예약할 때 적은 휴대폰 — 학생 본인 등록이면 본인 휴대폰)</span><input id="myphone" type="tel" inputmode="tel" autocomplete="tel" value="${attr(S.my.phone)}" placeholder="숫자만 입력 (010-1234-5678)" maxlength="20"></label>
       <label class="chk"><input type="checkbox" id="myremember" checked> 이 휴대폰에 기억해 두기</label>
       <button class="btn big primary" type="submit">내 예약 보기</button>
       <p class="note">두 가지가 모두 일치하는 예약만 표시됩니다. 하이픈(-)은 없어도 되고 숫자만 치면 됩니다. 취소하면 그 자리는 바로 다른 분에게 열립니다. ${esc(limitText())}${demo ? ' <br>미리보기 예시: 이름 <b>' + esc(demo.name) + '</b> · 연락처 <b>' + esc(demo.phone) + '</b>' : ''}</p>
@@ -2843,7 +2847,7 @@ function renderGuidePage() {
     ${step('①', '<span id="h1"></span>접수처에서 먼저', `<p>행사장 접수처의 <b>종이 등록부에 서명</b>한 뒤 이 예약 홈페이지를 엽니다. 처음 열면 이용 안내가 뜨는데, <b>두 칸을 체크</b>해야 시작됩니다.</p><p class="tip">예약은 ${multi ? '날짜마다 ' : ''}오전반 <b>${esc(am)}</b>, 오후반 <b>${esc(pm)}</b>에 열립니다. 그 전에는 부스를 둘러볼 수만 있어요.</p>`)}
     ${step('②', '<span id="h2"></span>부스 고르기', `<p>첫 화면에 모든 부스가 카드로 나옵니다. <b>층 · 권역 · 분야 · 방식</b>으로 거르거나, 검색 칸에 부스 번호·프로그램 이름·<code>#태그</code>를 쳐 보세요. <b>예약 가능만</b>을 켜면 자리가 남은 부스만 보입니다.</p>
       <ul><li>부스 번호의 <b>색 = 구역(층)</b>. 배치도(🗺)에서 같은 색 핀을 찾으면 됩니다.</li><li>카드 아래 시간대 칸의 색: <span class="swl"><i class="sw ok"></i>초록 = 여유</span> <span class="swl"><i class="sw warn"></i>주황 = 잔여 30% 이하</span> <span class="swl"><i class="sw full"></i>빨강 = 마감(대기 가능)</span> <span class="swl"><i class="sw gray"></i>회색 = 종료</span></li><li>카드를 누르면 설명·시간대 전체가 보이는 <b>부스 페이지</b>로 갑니다. 부스에 붙은 QR을 찍어도 바로 그 페이지예요.</li></ul>`)}
-    ${step('③', '<span id="h3"></span>예약하기 (수업형 부스)', `<ol><li>부스 페이지에서 <b>시간대</b>를 고릅니다 (마감이면 '대기'로 신청 가능).</li><li><b>보호자(인솔자) 이름 · 휴대폰</b>을 적고, <b>참가 어린이</b>를 [＋ 어린이 추가]로 넣습니다 (이름·학년, 소속). 형제·학급 전체를 한 번에 넣어도 돼요.</li><li>학생이 직접 하려면 위의 <b>[🙋 학생 본인이 등록]</b>으로 바꾸고 본인 휴대폰 + 보호자 휴대폰을 적습니다.</li><li>개인정보 동의에 체크하고 <b>[예약하기]</b>.</li></ol>
+    ${step('③', '<span id="h3"></span>예약하기 (수업형 부스)', `<ol><li>부스 페이지에서 <b>시간대</b>를 고릅니다 (마감이면 '대기'로 신청 가능).</li><li><b>보호자(인솔자) 이름 · 휴대폰</b>을 적고, <b>참가 어린이</b>를 [＋ 어린이 추가]로 넣습니다 (이름·학년, 소속). 형제·학급 전체를 한 번에 넣어도 돼요.</li><li>학생이 직접 하려면 위의 <b>[🙋 학생 본인이 등록]</b>으로 바꾸고 <b>본인 휴대폰(예약 확인 번호)</b>을 적습니다. 보호자 휴대폰은 선택이에요(같은 번호여도 돼요).</li><li>개인정보 동의에 체크하고 <b>[예약하기]</b>.</li></ol>
       <p class="tip">한 어린이는 <b>같은 시간대 1개</b>, <b>동시에 ${max}개</b>까지 예약할 수 있어요. 출석하거나 수업이 끝나면 다시 예약할 수 있습니다. 화면 위 <b>'예약 가능 n개 남음'</b> 표시가 빨간색이면 한도에 찬 거예요.</p>`)}
     ${step('④', '<span id="h4"></span>결과 확인', `<p>누르자마자 어린이마다 결과가 뜹니다.</p><ul><li><b>확정</b> — 자리가 잡혔어요. 수업 시작 전에 부스로 가세요.</li><li><b>대기</b> — 자리가 다 찼지만 순서를 잡아 뒀어요. 누가 취소하면 <b>자동으로 확정</b>되고 이 휴대폰에 알림이 뜹니다.</li><li><b>접수되지 않음</b> — 이유가 함께 나옵니다 (마감, 한도 초과, 같은 시간대 중복 등).</li></ul><p class="tip">예약번호(예: <code>6오전-08-01</code>)는 내 예약에서 언제든 다시 볼 수 있어요.</p>`)}
     ${hasAlways ? step('⑤', '<span id="h5"></span>상시운영 부스', `<p>시간 예약이 없는 부스예요. 예약시스템에 <b>등록 후 선착순 진행</b>: 부스 페이지에서 [등록하기]를 누르고 부스로 가면, <b>부스에 온 순서대로</b> 들어갑니다. 카드의 <b>혼잡도(여유·보통·혼잡)</b>를 보고 덜 붐빌 때 가세요.</p>${hasOnsite ? '<p class="tip"><b>현장접수</b> 프로그램은 등록 없이 부스에서 직접 접수합니다.</p>' : ''}`) : ''}
@@ -3110,7 +3114,8 @@ document.addEventListener('submit', e => {
 });
 let qTimer = null;
 document.addEventListener('input', e => {
-  if (e.target.id === 'rphone' || e.target.id === 'myphone' || e.target.id === 'wphone') formatPhoneField(e.target);
+  if (e.target.id === 'rphone' || e.target.id === 'myphone' || e.target.id === 'wphone' || e.target.id === 'sphone' || e.target.id === 'sgphone') formatPhoneField(e.target);
+  if (e.target.id === 'rorg') syncKidOrgPh();
   if (e.target.closest && e.target.closest('[data-form="rsv"]')) { e.target.classList.remove('bad'); return; }
   if (e.target.id === 'q') { S.f.q = e.target.value; clearTimeout(qTimer); qTimer = setTimeout(updateHome, 120); }
   else if (e.target.id === 'aq') { S.admin.f.q = e.target.value; clearTimeout(qTimer); qTimer = setTimeout(() => renderList(S.admin.data, kstNow()), 120); }
