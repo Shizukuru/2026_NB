@@ -602,6 +602,8 @@ button.slot-row:disabled{cursor:default}
 .my-card.group.past{opacity:.6}.group-kids{display:flex;flex-wrap:wrap;gap:6px}
 .gk{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:4px 6px 4px 10px;font-size:13.5px;font-weight:600;background:var(--ok-soft);color:var(--ok)}
 .gk.wait{background:var(--warn-soft);color:var(--warn)}.gk.cancel{background:var(--surface-2);color:var(--fg-muted)}.gk.absent{background:var(--full-soft);color:var(--full)}
+.gk .gk-name{border:0;background:none;padding:0;width:auto;height:auto;line-height:inherit;border-radius:0;font:inherit;color:inherit;cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px}
+.fam.kidpick button.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .gk small{font-weight:600;font-size:11px;opacity:.85}.gk button{border:0;background:rgba(0,0,0,.08);color:inherit;border-radius:999px;width:20px;height:20px;line-height:20px;padding:0;font-size:12px}
 .rsv .consent input{margin-top:3px;flex:none}
 .rsv .consent button{background:none;border:0;color:var(--accent);text-decoration:underline;padding:0;font-size:13px}
@@ -1545,13 +1547,13 @@ function renderRsvForm() {
       <label class="field"><span>본인 휴대폰 <em class="ftag req">예약 확인 번호</em></span><input id="sphone" name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="숫자만 입력 (010-1234-5678)" value="${attr(me.self ? me.phone : '')}" maxlength="20" required></label>
       <label class="field"><span>보호자 휴대폰 <em class="ftag opt">선택</em></span><input id="sgphone" name="gphone" type="tel" inputmode="tel" placeholder="비워도 돼요 · 본인 번호와 같아도 OK" value="${attr(me.gphone || '')}" maxlength="20"></label>
     </div>
-    <label class="field"><span>소속 (학교/기관)</span><input id="rorg" name="org" type="text" autocomplete="organization" placeholder="예: 정식학교명 기입" value="${attr(me.org)}" maxlength="60" required></label>
+    <label class="field"><span>소속 (학교/기관)</span><input id="rorg" name="org" type="text" autocomplete="organization" placeholder="예: 천안불당초등학교" value="${attr(me.org)}" maxlength="60" required></label>
     <div class="self-note"><b>본인 휴대폰 = 예약 확인 번호</b>예요. 예약 확인·취소·평가는 <b>학생 이름 + 본인 휴대폰</b>으로 합니다. 보호자 휴대폰은 <b>선택</b>이고(비상 연락용), 본인 번호와 같아도 괜찮아요.</div>
     <label class="chk consent"><input type="checkbox" id="sgconsent" required><span>보호자가 이 예약과 개인정보 수집·이용에 동의했습니다 <small style="font-weight:400;color:var(--fg-muted)">(만 14세 미만은 보호자 동의가 필요합니다)</small></span></label>` : `<div class="grid2">
       <label class="field"><span>보호자(인솔자) 이름</span><input id="rname" name="name" type="text" autocomplete="name" placeholder="예: 김보호" value="${attr(me.name)}" maxlength="30" required></label>
       <label class="field"><span>보호자(인솔자) 휴대폰 <em class="ftag req">예약 확인 번호</em></span><input id="rphone" name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="숫자만 입력 (010-1234-5678)" value="${attr(me.phone)}" maxlength="20" required></label>
     </div>
-    <label class="field"><span>대표 소속 (학교명) <small style="font-weight:400">— 참가 어린이 모두에게 들어가요</small></span><input id="rorg" name="org" type="text" autocomplete="organization" placeholder="예: 정식학교명 기입" value="${attr(me.org)}" maxlength="60" required></label>
+    <label class="field"><span>대표 소속 (학교명) <small style="font-weight:400">— 참가 어린이 모두에게 들어가요</small></span><input id="rorg" name="org" type="text" autocomplete="organization" placeholder="예: 천안불당초등학교" value="${attr(me.org)}" maxlength="60" required></label>
     <div class="kids" data-kids>
       <div class="kids-head"><span>참가 어린이 <small style="font-weight:400;color:var(--fg-muted)">(1명 이상)</small></span><span class="kids-btns"><button type="button" class="btn small" data-action="kid-add">＋ 어린이 추가</button><button type="button" class="btn small" data-action="kid-paste">명단 붙여넣기</button></span></div>
       <div class="roster-note" data-roster-note hidden></div>
@@ -1926,24 +1928,26 @@ function renderMy() {
 async function lookupMy() {
   const name = ($('#myname') || {}).value || S.my.name, phone = ($('#myphone') || {}).value || S.my.phone;
   if (!name.trim() || phoneDigits(phone).length < 9) { toast('이름과 휴대폰 번호를 입력해 주세요', 'err'); return; }
-  S.my.name = name.trim(); S.my.phone = fmtPhone(phone) || phone.trim(); // 숫자만 쳤어도 010-1234-5678 꼴로 기억
+  S.my.kid = ''; S.my.name = name.trim(); S.my.phone = fmtPhone(phone) || phone.trim(); // 숫자만 쳤어도 010-1234-5678 꼴로 기억
   const pi = $('#myphone'); if (pi && pi.value !== S.my.phone) pi.value = S.my.phone;
   const remember = $('#myremember') ? $('#myremember').checked : true;
   saveMe({ name: S.my.name, phone: S.my.phone }, remember);
   const host = $('[data-my-list]'); if (host) host.innerHTML = `<div class="empty">조회 중…</div>`;
+  const tok = S.my.tok = (S.my.tok || 0) + 1; // 조회가 겹치면 마지막 것만 그림
   try {
     // 보호자 이름이면 한눈에 보기(어린이 전체)로, 어린이 이름이면 그 어린이만
     let grp = null; try { grp = await rpc('findPhoneReservations', S.my.name, S.my.phone); } catch (x) { }
+    if (tok !== S.my.tok) return;
     const nk = S.my.name.replace(/\s+/g, '');
     const isChild = !!(grp && grp.list && grp.list.some(x => x.name.replace(/\s+/g, '') === nk)); // 어린이 이름으로 조회하면 그 어린이만
     if (grp && grp.list && grp.list.length && !isChild) {
       applyMyList(grp.list); watchStart(); S.my.confirm = ''; S.my.hint = null; S.my.list = [];
       if (S.my.rateWant) { const w = grp.list.find(x => x.no === S.my.rateWant && canRate(x)); S.my.rateWant = ''; if (w) { S.my.rate = gKeyOf(w); S.my.rateScore = 0; S.my.rateComment = ''; } }
-      await renderGroupView();
+      S.my.group = grp; renderGroupView(true); // 방금 받은 목록으로 바로 그림 (같은 조회를 두 번 하지 않음)
       if (host) { try { host.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (x) { } }
       return;
     }
-    S.my.list = await rpc('findMyReservations', S.my.name, S.my.phone);
+    const mine = await rpc('findMyReservations', S.my.name, S.my.phone); if (tok !== S.my.tok) return; S.my.list = mine;
     applyMyList(S.my.list); watchStart();
     S.my.family = null; try { S.my.family = await rpc('familyNames', S.my.name, S.my.phone); } catch (x) { } // 인솔자는 본인 예약이 없어도 명단의 어린이 이름이 옴
     S.my.confirm = '';
@@ -1965,14 +1969,19 @@ function myEmptyHTML() {
   return `<div class="empty">이 이름·연락처로 접수된 예약이 없습니다.<br><span class="note">${why}<br>그래도 안 되면 안내 데스크(운영진)에 이름이나 예약번호를 말씀하시면 확인·취소해 드립니다.</span><br><br><button type="button" class="btn" data-action="home">부스 보고 예약하기</button></div>`;
 }
 /** 단체·가족 한눈에 보기: 이 휴대폰의 모든 어린이 예약을 날짜 → 시간대 → 부스 순으로, 어린이 이름을 한 줄에 모아서. 인솔자가 15명을 한 명씩 보지 않아도 되게 */
-async function renderGroupView() {
+async function renderGroupView(cached) {
   const host = $('[data-my-list]'); if (!host) return;
-  host.innerHTML = `<div class="empty">조회 중…</div>`;
-  let r;
-  try { r = await rpc('findPhoneReservations', S.my.name, S.my.phone); } catch (e) { host.innerHTML = `<div class="empty">${esc(e.message || '조회에 실패했습니다')}</div>`; return; }
-  const list = (r && r.list) || [];
-  S.my.group = r;
-  if (!list.length) { host.innerHTML = `<div class="empty">이 휴대폰으로 접수된 예약이 없습니다.</div>`; return; }
+  if (!cached || !S.my.group) { // 평가 상자 열기/닫기·어린이 고르기는 이미 받은 목록으로 다시 그림 (서버에 다시 묻지 않음)
+    host.innerHTML = `<div class="empty">조회 중…</div>`;
+    let r0;
+    try { r0 = await rpc('findPhoneReservations', S.my.name, S.my.phone); } catch (e) { host.innerHTML = `<div class="empty">${esc(e.message || '조회에 실패했습니다')}</div>`; return; }
+    S.my.group = r0;
+  }
+  const r = S.my.group;
+  const all = (r && r.list) || [];
+  if (S.my.kid && !all.some(x => x.name === S.my.kid)) S.my.kid = '';
+  const list = S.my.kid ? all.filter(x => x.name === S.my.kid) : all; // 어린이 이름을 누르면 그 어린이 예약만
+  if (!all.length) { host.innerHTML = `<div class="empty">이 휴대폰으로 접수된 예약이 없습니다.</div>`; return; }
   const now = kstNow(), multi = eventDates().length > 1;
   const groups = {};
   list.forEach(x => { const k = [x.date || '', noSlot(x.slot) ? 'zzz' : x.slot, x.booth].join('|'); (groups[k] = groups[k] || { date: x.date, slot: x.slot, booth: x.booth, boothName: x.boothName, items: [] }).items.push(x); });
@@ -1981,7 +1990,7 @@ async function renderGroupView() {
   const firstDoneKey = keys.find(gDone), nDoneG = keys.filter(gDone).length;
   const gSeq = k => gDone(k) ? 0 : keys.filter(x => !gDone(x)).indexOf(k) + 1;
   const nOk = list.filter(x => x.status === ST.OK).length, nWait = list.filter(x => x.status === ST.WAIT).length;
-  host.innerHTML = rateBannerHTML(list, true) + `<div class="note" style="margin:4px 0 2px"><b>${esc(S.my.name)}</b> 님 휴대폰의 어린이 <b>${(r.kids || []).length}</b>명 · 예약 ${list.length}건 (확정 ${nOk}${nWait ? ' · 대기 ' + nWait : ''}) ${(r.kids || []).length > 1 ? `<span class="fam" style="display:inline-flex;margin:0 0 0 6px">${(r.kids || []).map(n => `<button type="button" data-action="my-switch" data-name="${attr(n)}">${esc(n)}</button>`).join('')}</span>` : ''}</div>` +
+  host.innerHTML = rateBannerHTML(list, true) + `<div class="note" style="margin:4px 0 2px"><b>${esc(S.my.name)}</b> 님 휴대폰의 어린이 <b>${(r.kids || []).length}</b>명 · 예약 ${list.length}건 (확정 ${nOk}${nWait ? ' · 대기 ' + nWait : ''}) </div>${(r.kids || []).length > 1 ? `<div class="fam kidpick"><span>어린이별 보기:</span><button type="button" class="${S.my.kid ? '' : 'on'}" data-action="my-kid" data-name="" aria-pressed="${!S.my.kid}">전체</button>${(r.kids || []).map(n => `<button type="button" class="${S.my.kid === n ? 'on' : ''}" data-action="my-kid" data-name="${attr(n)}" aria-pressed="${S.my.kid === n}">${esc(n)}</button>`).join('')}</div>` : ''}${S.my.kid ? `<div class="note" style="margin:2px 0 4px"><b>${esc(S.my.kid)}</b> 예약 ${list.length}건</div>` : ''}` +
     keys.map(k => {
       const g = groups[k]; const bb = booth(g.booth);
       const past = !noSlot(g.slot) && resPast({ date: g.date, slot: g.slot }, now);
@@ -1994,7 +2003,7 @@ async function renderGroupView() {
           const cls = x.status === ST.OK ? 'ok' : x.status === ST.WAIT ? 'wait' : 'cancel';
           const tag = x.att === '출석' ? '출석' : x.att === '결석' ? '결석' : x.status === ST.WAIT ? '대기' : x.status === ST.PENDING ? '처리중' : '';
           const cancellable = x.status !== ST.CANCEL && x.att !== '출석' && !past;
-          return `<span class="gk ${cls}${x.att === '결석' ? ' absent' : ''}">${esc(x.name)}${tag ? ' <small>' + tag + '</small>' : ''}${cancellable ? `<button type="button" data-action="my-group-cancel" data-res="${attr(x.no)}" data-name="${attr(x.name)}" title="이 어린이 예약 취소" aria-label="${attr(x.name)} 취소">✕</button>` : ''}</span>`;
+          return `<span class="gk ${cls}${x.att === '결석' ? ' absent' : ''}"><button type="button" class="gk-name" data-action="my-kid" data-name="${attr(x.name)}" title="${attr(x.name)} 예약만 보기">${esc(x.name)}</button>${tag ? ' <small>' + tag + '</small>' : ''}${cancellable ? `<button type="button" data-action="my-group-cancel" data-res="${attr(x.no)}" data-name="${attr(x.name)}" title="이 어린이 예약 취소" aria-label="${attr(x.name)} 취소">✕</button>` : ''}</span>`;
         }).join('')}</div>${rateHTML}
       </div>`;
     }).join('') + `<p class="note">이름 옆 ✕ 를 누르면 그 어린이의 예약만 취소됩니다 (출석 처리된 예약·끝난 시간대는 취소할 수 없음).</p>`;
@@ -2081,7 +2090,7 @@ async function sendRate(resNo) {
   // 같은 보호자·같은 날·부스·시간대의 다른 어린이(형제·단체) 예약도 한 번에
   const nos = src.filter(x => x.booth === r.booth && x.slot === r.slot && (x.date || '') === (r.date || '') && x.status === ST.OK && (x.att || (x.checkin ? '출석' : '')) === '출석').map(x => x.no);
   if (!grouped && nos.indexOf(resNo) < 0) nos.unshift(resNo);
-  const rerender = () => grouped ? renderGroupView() : renderMyList();
+  const rerender = () => grouped ? renderGroupView(true) : renderMyList(); // 평가 결과는 위에서 목록에 반영 — 다시 조회하지 않음
   S.my.rateBusy = true; const b = $('[data-action="my-rate-send"]'); if (b) { b.disabled = true; b.textContent = '보내는 중…'; }
   try {
     const res = await rpc('submitSurvey', S.my.name, S.my.phone, [{ nos, score: S.my.rateScore, comment }], 'sv-' + Date.now().toString(36));
@@ -3065,10 +3074,11 @@ document.addEventListener('click', e => {
   else if (a === 'my-cancel-no') { S.my.confirm = ''; renderMyList(); }
   else if (a === 'my-cancel-yes') { cancelMy(act.dataset.res); }
   else if (a === 'who') { S.rsv.self = act.dataset.self === '1'; try { localStorage.setItem('rsvself', S.rsv.self ? '1' : '0'); } catch (x) { } renderRsvForm(); }
-  else if (a === 'my-rate') { S.my.confirm = ''; S.my.rate = act.dataset.res; S.my.rateScore = 0; S.my.rateComment = ''; if (/^g:/.test(S.my.rate)) renderGroupView(); else renderMyList(); setTimeout(() => { const el = $('[data-rate-box]'); if (el) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }, 30); }
+  else if (a === 'my-rate') { S.my.confirm = ''; S.my.rate = act.dataset.res; S.my.rateScore = 0; S.my.rateComment = ''; if (/^g:/.test(S.my.rate)) renderGroupView(true); else renderMyList(); setTimeout(() => { const el = $('[data-rate-box]'); if (el) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }, 30); }
   else if (a === 'my-star') { setStar(Number(act.dataset.score)); }
   else if (a === 'my-rate-send') { sendRate(act.dataset.res); }
-  else if (a === 'my-rate-close') { const g = /^g:/.test(S.my.rate); S.my.rate = ''; S.my.rateScore = 0; S.my.rateComment = ''; if (g) renderGroupView(); else renderMyList(); }
+  else if (a === 'my-rate-close') { const g = /^g:/.test(S.my.rate); S.my.rate = ''; S.my.rateScore = 0; S.my.rateComment = ''; if (g) renderGroupView(true); else renderMyList(); }
+  else if (a === 'my-kid') { S.my.kid = act.dataset.name || ''; S.my.rate = ''; renderGroupView(true); const h = $('[data-my-list]'); if (h) { try { h.scrollIntoView({ block: 'start', behavior: 'smooth' }); } catch (x) { } } }
   else if (a === 'go-staff') { e.preventDefault(); S.admin.staffPick = true; S.admin.staff = true; S.admin.f.booth = ''; S.admin.err = ''; go('admin'); }
   else if (a === 'go-admin') { S.admin.staffPick = false; S.admin.staff = false; S.admin.f.booth = ''; if (PREVIEW || !WEB || STATIC) { e.preventDefault(); go('admin'); } } // 방법 B 는 같은 페이지 안에서 이동 (주소는 pushNav 가 바꿈)
   else if (a === 'refresh') { refresh(); toast('새로고침 중…'); }
