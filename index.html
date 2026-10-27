@@ -2923,12 +2923,16 @@ function updateQR() {
 // ───────── 라우팅·렌더 ─────────
 // ───────── 방문객 이용 안내 (처음 한 번 · 동의해야 사용) ─────────
 const GUIDE_VER = '2026-10-b'; // 안내 내용을 바꾸면 이 값을 바꿔 모두에게 다시 보이게
-function guideAgreed() { try { return localStorage.getItem('guideOk') === GUIDE_VER; } catch (x) { return !!S.guideOk; } }
-function setGuideAgreed() { S.guideOk = true; try { localStorage.setItem('guideOk', GUIDE_VER); } catch (x) { } }
+// 위치 제한이 켜져 있으면 '위치 제한 항목까지 본 동의'(guideGeo)도 있어야 함 → 켜기 전에 동의한 분에게도 안내가 한 번 더 뜸
+function guideAgreed() { try { return localStorage.getItem('guideOk') === GUIDE_VER && (!geoOn() || localStorage.getItem('guideGeo') === '1'); } catch (x) { return !!S.guideOk; } }
+function setGuideAgreed() { S.guideOk = true; try { localStorage.setItem('guideOk', GUIDE_VER); if (geoOn()) localStorage.setItem('guideGeo', '1'); } catch (x) { } }
+/** 위치 제한 문구: '호서대학교 아산캠퍼스 안(반경 1.5km)' */
+function geoPlaceText() { const g = (S.status && S.status.geo) || {}; const r = Number(g.radius) || 0; return (g.place || '행사장') + ' 안' + (r ? '(반경 ' + (r >= 1000 ? (Math.round(r / 100) / 10) + 'km' : r + 'm') + ')' : ''); }
 function guideItemsHTML() {
   const L = S.status.limits || {}, per = L.perSlot || 1, tot = L.total || 0, wm = waitMax();
   const items = [
     ['👨‍👩‍👧', '<b>보호자(인솔자) 이름·휴대폰</b>으로 예약하고, 참가 어린이를 추가해요. 한 번에 여러 명도 됩니다.'],
+    ...(geoOn() ? [['📍', '<b>위치 제한</b>: 예약·방문 등록은 <b>' + esc(geoPlaceText()) + '에서만</b> 할 수 있어요. [예약하기]를 누르면 휴대폰이 <b>위치 사용 허용</b>을 물어요 — <b>\'허용\'</b>을 눌러 주세요. 거부했다면 휴대폰 설정에서 이 브라우저의 위치 권한을 켜고 다시 눌러 주세요. 위치는 행사장 안인지 확인하는 데만 쓰고 저장하지 않아요. (예약 확인·취소는 어디서나 돼요)']] : []),
     ['🕘', '<b>수업형 부스</b>는 시간대를 골라 예약해요. 정원이 차면 ' + (wm ? '<b>대기</b>(시간대당 ' + wm + '명)로 신청할 수 있고, 취소가 생기면 순서대로 자동 확정되어 이 화면에 알려 드려요.' : '마감됩니다.')],
     ['✋', '한 어린이당 <b>같은 시간대 ' + per + '개</b>' + (tot ? ', <b>동시에 ' + tot + '개</b>까지 예약할 수 있어요. 앞 수업에 출석하거나 수업이 끝나면 다음 예약이 가능해요.' : '까지 예약할 수 있어요.')],
     ['🚶', '<b>상시운영 부스</b>는 시간 예약이 아니라 예약시스템에 <b>등록 후 선착순 진행</b>이에요. 부스에 온 순서대로 들어가요.'],
@@ -2991,6 +2995,7 @@ function renderGuidePage() {
     <section class="hs faq"><div class="hs-n">?</div><div class="hs-b"><h2><span id="h9"></span>자주 묻는 질문</h2>
       <dl>
         <dt>예약 버튼이 없어요.</dt><dd>아직 공개 시각 전이거나(오전반 ${esc(am)} · 오후반 ${esc(pm)}), 그 시간대가 끝났거나, 현장접수 프로그램입니다. 화면 위 초록 표시가 '접수 중'인지 보세요.</dd>
+        ${geoOn() ? `<dt>위치 사용을 허용하라고 나와요.</dt><dd>예약·방문 등록은 <b>${esc(geoPlaceText())}</b>에서만 할 수 있어 위치를 한 번 확인해요. '허용'을 눌러 주세요. 이미 거부했다면 휴대폰 설정 → 이 브라우저(크롬·사파리 등) → 위치를 '허용'으로 바꾼 뒤 다시 누르세요. 실내에서 잘 안 잡히면 창가나 실외에서 다시 해 보세요. 위치는 확인에만 쓰고 저장하지 않습니다.</dd>` : ''}
         <dt>"한도 초과"라고 나와요.</dt><dd>그 어린이가 이미 ${max}개를 들고 있어요. 하나를 다녀오거나(출석) 취소하면 다시 예약할 수 있습니다.</dd>
         <dt>내 예약이 안 보여요.</dt><dd>예약할 때 적은 이름·휴대폰과 똑같이 넣어야 해요. 하이픈(-)은 있어도 없어도 됩니다. 그래도 안 되면 안내 데스크에 이름이나 예약번호를 말씀하세요.</dd>
         <dt>글씨가 작아요.</dt><dd>화면 오른쪽 위 <b>가</b> 버튼을 누르면 큰 글씨로 바뀝니다.</dd>
