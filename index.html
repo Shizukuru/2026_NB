@@ -1980,7 +1980,7 @@ async function renderGroupView(cached) {
     try { r0 = await rpc('findPhoneReservations', S.my.name, S.my.phone); } catch (e) { host.innerHTML = `<div class="empty">${esc(e.message || '조회에 실패했습니다')}</div>`; return; }
     S.my.group = r0;
   }
-  const r = S.my.group;
+  const r = S.my.group; S.my.shown = 'group';
   const all = (r && r.list) || [];
   if (S.my.kid && !all.some(x => x.name === S.my.kid)) S.my.kid = '';
   const list = S.my.kid ? all.filter(x => x.name === S.my.kid) : all; // 어린이 이름을 누르면 그 어린이 예약만
@@ -1993,7 +1993,7 @@ async function renderGroupView(cached) {
   const firstDoneKey = keys.find(gDone), nDoneG = keys.filter(gDone).length;
   const gSeq = k => gDone(k) ? 0 : keys.filter(x => !gDone(x)).indexOf(k) + 1;
   const nOk = list.filter(x => x.status === ST.OK).length, nWait = list.filter(x => x.status === ST.WAIT).length;
-  host.innerHTML = rateBannerHTML(list, true) + `<div class="note" style="margin:4px 0 2px"><b>${esc(S.my.name)}</b> 님 휴대폰의 어린이 <b>${(r.kids || []).length}</b>명 · 예약 ${list.length}건 (확정 ${nOk}${nWait ? ' · 대기 ' + nWait : ''}) </div>${(r.kids || []).length > 1 ? `<div class="fam kidpick"><span>어린이별 보기:</span><button type="button" class="${S.my.kid ? '' : 'on'}" data-action="my-kid" data-name="" aria-pressed="${!S.my.kid}">전체</button>${(r.kids || []).map(n => `<button type="button" class="${S.my.kid === n ? 'on' : ''}" data-action="my-kid" data-name="${attr(n)}" aria-pressed="${S.my.kid === n}">${esc(n)}</button>`).join('')}</div>` : ''}${S.my.kid ? `<div class="note" style="margin:2px 0 4px"><b>${esc(S.my.kid)}</b> 예약 ${list.length}건</div>` : ''}${(() => { const all = list.filter(x => grpCancellable(x, now)); return all.length >= 2 ? `<div class="cancel-all"><span>${S.my.kid ? esc(S.my.kid) + ' 어린이의 ' : ''}남은 예약 <b>${all.length}</b>건</span><button type="button" class="btn small danger-ghost" data-action="my-cancel-many" data-nos="${attr(all.map(x => x.no).join(','))}" data-what="${attr((S.my.kid ? S.my.kid + ' 어린이의 ' : '') + '남은 예약 전부')}">남은 예약 모두 취소</button></div>` : ''; })()}` +
+  host.innerHTML = rateBannerHTML(list, true) + `<div class="note" style="margin:4px 0 2px"><b>${esc(S.my.name)}</b> 님 휴대폰의 어린이 <b>${(r.kids || []).length}</b>명 · 예약 ${list.length}건 (확정 ${nOk}${nWait ? ' · 대기 ' + nWait : ''})${myReloadHTML()}</div>${(r.kids || []).length > 1 ? `<div class="fam kidpick"><span>어린이별 보기:</span><button type="button" class="${S.my.kid ? '' : 'on'}" data-action="my-kid" data-name="" aria-pressed="${!S.my.kid}">전체</button>${(r.kids || []).map(n => `<button type="button" class="${S.my.kid === n ? 'on' : ''}" data-action="my-kid" data-name="${attr(n)}" aria-pressed="${S.my.kid === n}">${esc(n)}</button>`).join('')}</div>` : ''}${S.my.kid ? `<div class="note" style="margin:2px 0 4px"><b>${esc(S.my.kid)}</b> 예약 ${list.length}건</div>` : ''}${(() => { const all = list.filter(x => grpCancellable(x, now)); return all.length >= 2 ? `<div class="cancel-all"><span>${S.my.kid ? esc(S.my.kid) + ' 어린이의 ' : ''}남은 예약 <b>${all.length}</b>건</span><button type="button" class="btn small danger-ghost" data-action="my-cancel-many" data-nos="${attr(all.map(x => x.no).join(','))}" data-what="${attr((S.my.kid ? S.my.kid + ' 어린이의 ' : '') + '남은 예약 전부')}">남은 예약 모두 취소</button></div>` : ''; })()}` +
     keys.map(k => {
       const g = groups[k]; const bb = booth(g.booth);
       const past = !noSlot(g.slot) && resPast({ date: g.date, slot: g.slot }, now);
@@ -2010,6 +2010,7 @@ async function renderGroupView(cached) {
         }).join('')}</div>${(() => { const cc = g.items.filter(x => grpCancellable(x, now)); return cc.length >= 2 ? `<div class="my-actions"><button type="button" class="btn small danger-ghost" data-action="my-cancel-many" data-nos="${attr(cc.map(x => x.no).join(','))}" data-what="${attr(g.booth + '. ' + g.boothName + (noSlot(g.slot) ? '' : ' ' + g.slot))}">이 체험 ${cc.length}명 모두 취소</button></div>` : ''; })()}${rateHTML}
       </div>`;
     }).join('') + `<p class="note">이름 옆 ✕ 를 누르면 그 어린이의 예약만, <b>[이 체험 n명 모두 취소]</b>는 그 시간대 어린이 전부, <b>[남은 예약 모두 취소]</b>는 남은 예약 전부를 한 번에 취소합니다 (출석 처리된 예약·끝난 시간대는 취소할 수 없음).</p>`;
+  myLiveSchedule();
 }
 /** 한눈에 보기에서 취소할 수 있는 예약: 취소 전 · 출석 전 · 시간이 지나지 않음 */
 function grpCancellable(x, now) { return x.status !== ST.CANCEL && x.att !== '출석' && !(!noSlot(x.slot) && resPast(x, now)); }
@@ -2044,6 +2045,52 @@ function resFinished(r, now) {
   return !noSlot(r.slot) && resPast(r, now || kstNow());
 }
 function doneSepHTML(n) { return n ? `<div class="my-sep"><span>지난 · 완료된 예약 ${n}건</span></div>` : ''; }
+// ───────── 내 예약 화면 자동 새로 보기 ─────────
+// 열어 둔 동안 담당자의 [출석]이 반영되도록: 상시운영 방문 등록(시간대 없음, 지난 날 제외)이 아직 출석 전이거나, 지금 진행 중인 수업이 있을 때만 서버에 다시 물음 (약 1분 간격).
+// 그 밖에는 화면만 다시 그려 끝난 시간대를 아래로 내림. 별점 상자·취소 확인 중이거나 화면이 꺼져 있으면 건너뜀.
+let myLiveTimer = null, myLiveAt = 0, myLiveBusy = false;
+const myShownList = () => S.my.shown === 'group' ? ((S.my.group || {}).list || []) : (S.my.list || []);
+function myLiveNeedsServer(list, now) {
+  return (list || []).some(r => {
+    if (r.status !== ST.OK && r.status !== ST.WAIT) return false;
+    if (r.att || r.checkin) return false;
+    if (r.slot === ALWAYS) return !r.date || r.date >= now.date; // 상시운영: 지난 날이 아니면 (행사 전 점검 때도)
+    if (!(r.date ? r.date === now.date : isEventDay(now))) return false;
+    const t = parseSlot(r.slot); return !!t && now.min >= t.start - 10 && now.min <= t.end + 15;
+  });
+}
+function mySig(list, now) { return (list || []).map(r => [r.no, r.status, r.att || (r.checkin ? '출석' : ''), r.rating || 0, resFinished(r, now) ? 1 : 0, canRate(r, now) ? 1 : 0].join(':')).join('|'); }
+function myLiveSchedule() {
+  clearTimeout(myLiveTimer); myLiveTimer = null;
+  const app = $('#app'); if (!app || app.dataset.view !== 'my' || !myShownList().length) return;
+  myLiveTimer = setTimeout(() => myLiveTick(false), (PREVIEW ? 3000 : 60000) * (0.8 + Math.random() * 0.4));
+}
+/** 서버에서 받은 이 휴대폰의 목록(findPhoneReservations)을 지금 보이는 내 예약에 반영 */
+function myApplyFresh(g) {
+  const list = (g && g.list) || []; const by = {}; list.forEach(x => { by[x.no] = x; });
+  if (S.my.group) S.my.group.list.forEach(r => { const x = by[r.no]; if (x) { r.att = x.att; r.status = x.status; r.rating = x.rating || r.rating; } });
+  if (S.my.shown === 'group' && g && g.list) S.my.group = g;
+  (S.my.list || []).forEach(r => { const x = by[r.no]; if (x) { r.att = x.att; r.checkin = x.att === '출석'; r.status = x.status; r.rating = x.rating || r.rating; } });
+}
+async function myLiveTick(force) {
+  myLiveTimer = null; const app = $('#app'); if (!app || app.dataset.view !== 'my') return;
+  if (document.hidden || S.my.rate || S.my.confirm || S.my.rateBusy) { myLiveSchedule(); return; }
+  const now = kstNow(), before = mySig(myShownList(), now);
+  if (myLiveBusy) return;
+  if (S.my.name && S.my.phone && myShownList().length && (force || (myLiveNeedsServer(myShownList(), now) && Date.now() - myLiveAt > 20000))) {
+    myLiveAt = Date.now(); myLiveBusy = true; const tok = S.my.tok;
+    try {
+      const g = await rpc('findPhoneReservations', S.my.name, S.my.phone);
+      if (tok === S.my.tok && app.dataset.view === 'my') { myApplyFresh(g); applyMyList((g && g.list) || [], true); }
+    } catch (e) { if (force) { toast('새로 보지 못했습니다. 잠시 후 다시 해 주세요', 'err'); force = 'err'; } }
+    myLiveBusy = false;
+  }
+  if (app.dataset.view !== 'my') return;
+  if (!S.my.rate && !S.my.confirm && (force || mySig(myShownList(), kstNow()) !== before || !before)) (S.my.shown === 'group' ? renderGroupView(true) : renderMyList());
+  else myLiveSchedule();
+  if (force === true) toast('최신 상태로 새로 봤습니다');
+}
+const myReloadHTML = () => ` <button type="button" class="linkish my-reload" data-action="my-reload" title="출석·평가 상태를 다시 불러옵니다">↻ 새로 보기</button>`;
 // ───────── 만족도 별점 (내 예약 · 출석 처리된 체험만) ─────────
 const surveyOn = () => !!((S.status.limits || {}).survey !== false);
 const surveyTest = () => !!(S.status.limits || {}).surveyTest; // 설정 탭 '만족도 테스트 모드' = 예 → 시간 조건 무시, 출석만 되면 평가
@@ -2056,6 +2103,11 @@ let rateTimer = null, rateTries = {};
 /** 이미 안내한 묶음(날짜|시간대|부스) — 형제가 같은 체험을 들었으면 한 번만 물음 */
 function askedGroups(snap) { const o = {}; Object.keys(snap).forEach(k => { if (k !== '_t' && snap[k] && snap[k].asked) o[gKeyOf(snap[k])] = 1; }); return o; }
 function rateDue(snap, now) { const a = askedGroups(snap); return Object.keys(snap).filter(k => k !== '_t' && snap[k] && snap[k].status === ST.OK && !snap[k].rating && !a[gKeyOf(snap[k])] && (noSlot(snap[k].slot) || surveyTest() ? snap[k].att === '출석' : resPast(snap[k], now))); }
+/** 상시운영 방문 등록(확정, 지난 날 제외) 중 아직 출석 전·평가 전인 것이 있나 — 행사 당일은 마지막 수업이 끝난 뒤 1시간까지만 */
+function alwaysAwaitingAtt(snap, now) {
+  const ss = (S.status && S.status.defaultSlots) || []; const last = parseSlot(ss[ss.length - 1] || ''); if (isEventDay(now) && last && now.min > last.end + 60) return false;
+  return Object.keys(snap).some(k => { const e = snap[k]; return k !== '_t' && e && e.status === ST.OK && e.slot === ALWAYS && !e.att && !e.rating && !e.asked && (!e.date || e.date >= now.date); });
+}
 function rateSchedule() {
   clearTimeout(rateTimer); rateTimer = null;
   if (!surveyOn()) return; const me = loadMe(); if (!me.name || !me.phone) return;
@@ -2065,6 +2117,7 @@ function rateSchedule() {
     const at = (t.end - now.min) * 60000 + (PREVIEW ? 2000 : 90000); if (at > 0 && at < next) next = at; }); // 끝나고 1분 30초 뒤 (담당자가 출석을 누를 시간)
   const due = rateDue(snap, now).filter(k => (rateTries[k] || 0) < 3);
   if (due.length) next = Math.min(next, PREVIEW ? 1500 : 4000);
+  else if (alwaysAwaitingAtt(snap, now)) next = Math.min(next, PREVIEW ? 3000 : 300000); // 상시운영 방문 등록: 시간대가 없어 끝나는 시각으로 잡을 수 없음 → 출석 처리됐는지 5분마다 확인 (화면이 켜져 있을 때만)
   else if (surveyTest() && Object.keys(snap).some(k => k !== '_t' && snap[k] && snap[k].status === ST.OK && !snap[k].rating && !snap[k].asked)) next = Math.min(next, PREVIEW ? 3000 : 60000); // 테스트 모드: 출석 처리됐는지 1분마다 확인
   if (next < Infinity) rateTimer = setTimeout(rateTick, Math.min(next, 6 * 3600000));
 }
@@ -2073,7 +2126,7 @@ async function rateTick() {
   if (document.hidden) { rateTimer = setTimeout(rateTick, 60000); return; }
   const due = rateDue(loadSnap(), kstNow()); due.forEach(k => { rateTries[k] = (rateTries[k] || 0) + 1; });
   try { const g = await rpc('findPhoneReservations', me.name, me.phone); const list = (g && g.list) || []; applyMyList(list, true);
-    if (S.my.list && $('#app').dataset.view === 'my') { const by = {}; list.forEach(x => { by[x.no] = x; }); S.my.list.forEach(r => { if (by[r.no]) { r.att = by[r.no].att; r.rating = by[r.no].rating; } }); if (!S.my.rate) renderMyList(); }
+    if ($('#app').dataset.view === 'my' && myShownList().length) { myApplyFresh(g); if (!S.my.rate && !S.my.confirm) (S.my.shown === 'group' ? renderGroupView(true) : renderMyList()); }
   } catch (e) { /* 다음에 */ }
   const still = rateDue(loadSnap(), kstNow()).filter(k => (rateTries[k] || 0) < 3); // 아직 출석 처리가 안 됐으면 5분 뒤 다시 (최대 3번)
   if (still.length) rateTimer = setTimeout(rateTick, PREVIEW ? 3000 : 300000); else rateSchedule();
@@ -2131,7 +2184,7 @@ async function sendRate(resNo) {
 }
 function renderMyList() {
   const host = $('[data-my-list]'); if (!host) return;
-  const list = S.my.list || [];
+  const list = S.my.list || []; S.my.shown = 'list';
   if (!list.length) {
     const famE = (S.my.family || []).filter(n => n && n !== S.my.name);
     if (famE.length) { host.innerHTML = `<div class="fam" style="margin-top:10px"><span><b>${esc(S.my.name)}</b> 님 본인 예약은 없고, 같은 휴대폰으로 예약된 어린이가 있습니다. 이름을 누르면 그 어린이의 예약을 봅니다:</span>${famE.map(n => `<button type="button" data-action="my-switch" data-name="${attr(n)}">${esc(n)}</button>`).join('')}<button type="button" class="all" data-action="my-group">전체 ${famE.length}명 한눈에 보기</button></div>`; return; }
@@ -2147,7 +2200,7 @@ function renderMyList() {
   const nextUp = sorted.find(r => r.status === ST.OK && !noSlot(r.slot) && (r.date ? r.date === now.date : isEventDay(now)) && !resPast(r, now)) || null;
   const nOk = list.filter(r => r.status === ST.OK).length, nWait = list.filter(r => r.status === ST.WAIT).length;
   const fam = (S.my.family || []).filter(n => n && n !== S.my.name);
-  host.innerHTML = `<p class="sign-remind">${SIGN_REMIND}</p><div class="note" style="margin:4px 0 -2px">${esc(S.my.name)} 님의 예약 ${list.length}건 · 확정 ${nOk}${nWait ? ' · 대기 ' + nWait : ''} · 시간 순</div>` +
+  host.innerHTML = `<p class="sign-remind">${SIGN_REMIND}</p><div class="note" style="margin:4px 0 -2px">${esc(S.my.name)} 님의 예약 ${list.length}건 · 확정 ${nOk}${nWait ? ' · 대기 ' + nWait : ''} · 시간 순${myReloadHTML()}</div>` +
     rateBannerHTML(list) +
     (fam.length ? `<div class="fam"><span>같은 휴대폰의 다른 어린이:</span>${fam.map(n => `<button type="button" data-action="my-switch" data-name="${attr(n)}">${esc(n)}</button>`).join('')}<button type="button" class="all" data-action="my-group">전체 한눈에 보기</button></div>` : '') + sorted.map(r => {
     const cls = r.status === ST.OK ? 'ok' : (r.status === ST.WAIT || r.status === ST.PENDING) ? 'wait' : 'cancel';
@@ -2167,6 +2220,7 @@ function renderMyList() {
       ${r.status === ST.CANCEL && r.memo ? `<div class="rc-memo">${/^(1인 제한|접수 직전|중복)/.test(r.memo) ? '접수되지 않음 · ' : ''}${esc(r.memo)}</div>` : ''}
       ${actions}</div>`;
   }).join('');
+  myLiveSchedule();
 }
 async function cancelMy(resNo) {
   const btns = $$('[data-action="my-cancel-yes"]'); btns.forEach(b => { b.disabled = true; b.textContent = '취소 중…'; });
@@ -3119,6 +3173,7 @@ document.addEventListener('click', e => {
   else if (a === 'my-star') { setStar(Number(act.dataset.score)); }
   else if (a === 'my-rate-send') { sendRate(act.dataset.res); }
   else if (a === 'my-rate-close') { const g = /^g:/.test(S.my.rate); S.my.rate = ''; S.my.rateScore = 0; S.my.rateComment = ''; if (g) renderGroupView(true); else renderMyList(); }
+  else if (a === 'my-reload') { act.disabled = true; myLiveTick(true); }
   else if (a === 'my-kid') { S.my.kid = act.dataset.name || ''; S.my.rate = ''; renderGroupView(true); const h = $('[data-my-list]'); if (h) { try { h.scrollIntoView({ block: 'start', behavior: 'smooth' }); } catch (x) { } } }
   else if (a === 'go-staff') { e.preventDefault(); S.admin.staffPick = true; S.admin.staff = true; S.admin.f.booth = ''; S.admin.err = ''; go('admin'); }
   else if (a === 'go-admin') { S.admin.staffPick = false; S.admin.staff = false; S.admin.f.booth = ''; if (PREVIEW || !WEB || STATIC) { e.preventDefault(); go('admin'); } } // 방법 B 는 같은 페이지 안에서 이동 (주소는 pushNav 가 바꿈)
@@ -3205,6 +3260,7 @@ document.addEventListener('visibilitychange', () => {
   if (document.hidden) return;
   lastInteraction = Date.now();
   if (Date.now() - lastRefreshAt > 8000) refresh(); // 화면 복귀 시 1회 갱신 (8초 안에 또 오면 생략)
+  if ($('#app') && $('#app').dataset.view === 'my') { if (myShownList().length && Date.now() - myLiveAt > 15000) { clearTimeout(myLiveTimer); myLiveTimer = setTimeout(() => myLiveTick(false), 900); } } // 내 예약을 열어 둔 채 돌아오면 출석 처리 반영
   if (typeof rateDue === 'function' && rateDue(loadSnap(), kstNow()).length) { clearTimeout(rateTimer); rateTimer = setTimeout(rateTick, 1500); } // 휴대폰을 다시 켰을 때 끝난 체험이 있으면 평가 안내
   if (!S.timer && POLL[S.view]) S.timer = setTimeout(tick, nextDelay());
   { const snap = loadSnap(); const stale = Date.now() - (snap._t || 0) > 5 * 60 * 1000; if (hasWaiting(snap) || stale) { clearTimeout(watchTimer); watchTimer = setTimeout(() => watchTick(true), 800); } } // 돌아오면 바로 확정 여부 확인
