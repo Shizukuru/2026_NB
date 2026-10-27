@@ -699,6 +699,8 @@ button.slot-row:disabled{cursor:default}
 .rate-banner b{font-size:15px}
 .app.narrow .star,.app.narrow .star svg{width:34px;height:34px}
 .btn.danger{background:var(--full);border-color:var(--full);color:#fff}
+.btn.danger-ghost{background:var(--surface);border-color:var(--full);color:var(--full);font-weight:700}
+.cancel-all{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin:6px 0 4px;padding:8px 10px;border:1px dashed var(--full);border-radius:10px;background:var(--full-soft);font-size:13px}
 .inline-link{font-size:13px}
 
 /* ── 미리보기 휴대폰 프레임 (미리보기에서만 사용) ── */
@@ -1991,7 +1993,7 @@ async function renderGroupView(cached) {
   const firstDoneKey = keys.find(gDone), nDoneG = keys.filter(gDone).length;
   const gSeq = k => gDone(k) ? 0 : keys.filter(x => !gDone(x)).indexOf(k) + 1;
   const nOk = list.filter(x => x.status === ST.OK).length, nWait = list.filter(x => x.status === ST.WAIT).length;
-  host.innerHTML = rateBannerHTML(list, true) + `<div class="note" style="margin:4px 0 2px"><b>${esc(S.my.name)}</b> 님 휴대폰의 어린이 <b>${(r.kids || []).length}</b>명 · 예약 ${list.length}건 (확정 ${nOk}${nWait ? ' · 대기 ' + nWait : ''}) </div>${(r.kids || []).length > 1 ? `<div class="fam kidpick"><span>어린이별 보기:</span><button type="button" class="${S.my.kid ? '' : 'on'}" data-action="my-kid" data-name="" aria-pressed="${!S.my.kid}">전체</button>${(r.kids || []).map(n => `<button type="button" class="${S.my.kid === n ? 'on' : ''}" data-action="my-kid" data-name="${attr(n)}" aria-pressed="${S.my.kid === n}">${esc(n)}</button>`).join('')}</div>` : ''}${S.my.kid ? `<div class="note" style="margin:2px 0 4px"><b>${esc(S.my.kid)}</b> 예약 ${list.length}건</div>` : ''}` +
+  host.innerHTML = rateBannerHTML(list, true) + `<div class="note" style="margin:4px 0 2px"><b>${esc(S.my.name)}</b> 님 휴대폰의 어린이 <b>${(r.kids || []).length}</b>명 · 예약 ${list.length}건 (확정 ${nOk}${nWait ? ' · 대기 ' + nWait : ''}) </div>${(r.kids || []).length > 1 ? `<div class="fam kidpick"><span>어린이별 보기:</span><button type="button" class="${S.my.kid ? '' : 'on'}" data-action="my-kid" data-name="" aria-pressed="${!S.my.kid}">전체</button>${(r.kids || []).map(n => `<button type="button" class="${S.my.kid === n ? 'on' : ''}" data-action="my-kid" data-name="${attr(n)}" aria-pressed="${S.my.kid === n}">${esc(n)}</button>`).join('')}</div>` : ''}${S.my.kid ? `<div class="note" style="margin:2px 0 4px"><b>${esc(S.my.kid)}</b> 예약 ${list.length}건</div>` : ''}${(() => { const all = list.filter(x => grpCancellable(x, now)); return all.length >= 2 ? `<div class="cancel-all"><span>${S.my.kid ? esc(S.my.kid) + ' 어린이의 ' : ''}남은 예약 <b>${all.length}</b>건</span><button type="button" class="btn small danger-ghost" data-action="my-cancel-many" data-nos="${attr(all.map(x => x.no).join(','))}" data-what="${attr((S.my.kid ? S.my.kid + ' 어린이의 ' : '') + '남은 예약 전부')}">남은 예약 모두 취소</button></div>` : ''; })()}` +
     keys.map(k => {
       const g = groups[k]; const bb = booth(g.booth);
       const past = !noSlot(g.slot) && resPast({ date: g.date, slot: g.slot }, now);
@@ -2005,9 +2007,24 @@ async function renderGroupView(cached) {
           const tag = x.att === '출석' ? '출석' : x.att === '결석' ? '결석' : x.status === ST.WAIT ? '대기' : x.status === ST.PENDING ? '처리중' : '';
           const cancellable = x.status !== ST.CANCEL && x.att !== '출석' && !past;
           return `<span class="gk ${cls}${x.att === '결석' ? ' absent' : ''}"><button type="button" class="gk-name" data-action="my-kid" data-name="${attr(x.name)}" title="${attr(x.name)} 예약만 보기">${esc(x.name)}</button>${tag ? ' <small>' + tag + '</small>' : ''}${cancellable ? `<button type="button" data-action="my-group-cancel" data-res="${attr(x.no)}" data-name="${attr(x.name)}" title="이 어린이 예약 취소" aria-label="${attr(x.name)} 취소">✕</button>` : ''}</span>`;
-        }).join('')}</div>${rateHTML}
+        }).join('')}</div>${(() => { const cc = g.items.filter(x => grpCancellable(x, now)); return cc.length >= 2 ? `<div class="my-actions"><button type="button" class="btn small danger-ghost" data-action="my-cancel-many" data-nos="${attr(cc.map(x => x.no).join(','))}" data-what="${attr(g.booth + '. ' + g.boothName + (noSlot(g.slot) ? '' : ' ' + g.slot))}">이 체험 ${cc.length}명 모두 취소</button></div>` : ''; })()}${rateHTML}
       </div>`;
-    }).join('') + `<p class="note">이름 옆 ✕ 를 누르면 그 어린이의 예약만 취소됩니다 (출석 처리된 예약·끝난 시간대는 취소할 수 없음).</p>`;
+    }).join('') + `<p class="note">이름 옆 ✕ 를 누르면 그 어린이의 예약만, <b>[이 체험 n명 모두 취소]</b>는 그 시간대 어린이 전부, <b>[남은 예약 모두 취소]</b>는 남은 예약 전부를 한 번에 취소합니다 (출석 처리된 예약·끝난 시간대는 취소할 수 없음).</p>`;
+}
+/** 한눈에 보기에서 취소할 수 있는 예약: 취소 전 · 출석 전 · 시간이 지나지 않음 */
+function grpCancellable(x, now) { return x.status !== ST.CANCEL && x.att !== '출석' && !(!noSlot(x.slot) && resPast(x, now)); }
+/** 인솔자·보호자 일괄 취소 */
+async function cancelMany(nos, what) {
+  nos = String(nos || '').split(',').filter(Boolean); if (!nos.length) return;
+  if (!window.confirm(what + ' ' + nos.length + '건을 모두 취소할까요?\n취소하면 되돌릴 수 없고 자리는 바로 다른 분(대기자)에게 넘어갑니다.')) return;
+  const btns = $$('[data-action="my-cancel-many"]'); btns.forEach(b => { b.disabled = true; });
+  try {
+    const r = await rpc('cancelMyReservations', S.my.name, S.my.phone, nos);
+    const skipped = (r.results || []).filter(x => !x.ok).length;
+    toast((r.n || 0) + '건을 취소했습니다' + (skipped ? ' · ' + skipped + '건은 출석 처리됐거나 시간이 지나 그대로 둠' : ''));
+    S.my.rate = ''; await renderGroupView();
+    try { S.status = await rpc('getPublicStatus'); onStatus(S.status); } catch (x) { }
+  } catch (e) { toast(e.message || '취소에 실패했습니다', 'err'); btns.forEach(b => { b.disabled = false; }); }
 }
 async function cancelGroupItem(resNo, name) {
   if (!window.confirm(name + ' 어린이의 이 예약을 취소할까요?\n취소하면 되돌릴 수 없고 자리는 바로 다른 분에게 열립니다.')) return;
@@ -3091,6 +3108,7 @@ document.addEventListener('click', e => {
   else if (a === 'my') { e.preventDefault(); go('my'); }
   else if (a === 'my-group') { renderGroupView(); }
   else if (a === 'my-group-cancel') { cancelGroupItem(act.dataset.res, act.dataset.name); }
+  else if (a === 'my-cancel-many') { cancelMany(act.dataset.nos, act.dataset.what || ''); }
   else if (a === 'my-switch') { const ni = $('#myname'); if (ni) ni.value = act.dataset.name; S.my.name = act.dataset.name; lookupMy(); }
   else if (a === 'my-all') { renderGroupView(); }
   else if (a === 'my-cancel') { S.my.confirm = act.dataset.res; renderMyList(); }
