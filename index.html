@@ -509,6 +509,11 @@ a.brand:hover .brand-name{color:var(--accent)}
 .howto-foot{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0 0}.howto-foot .btn{flex:1;text-align:center;text-decoration:none}
 .app.narrow .howto-band .go{display:none}.app.narrow .hs{grid-template-columns:32px minmax(0,1fr);gap:10px}.app.narrow .hs-n{width:32px;height:32px;font-size:15px}
 .guide-btn:hover{filter:brightness(1.05)}
+.my-reload-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0 6px;padding:10px 12px;border:1.5px solid var(--accent);border-radius:12px;background:var(--accent-soft)}
+.my-reload-row .btn.my-reload{min-height:44px;padding:8px 18px;font-size:16px;font-weight:700;background:var(--accent);color:var(--accent-ink);border:0;border-radius:10px;cursor:pointer;white-space:nowrap}
+.my-reload-row .btn.my-reload:disabled{opacity:.65;cursor:default}
+.my-reload-row .hint{font-size:13px;line-height:1.4;color:var(--accent);flex:1;min-width:150px}
+@media (max-width:420px){.my-reload-row .btn.my-reload{flex:1 0 100%}}
 .linkish{border:0;background:none;padding:0;color:var(--accent);text-decoration:underline;font:inherit;cursor:pointer}
 .htags{display:flex;flex-wrap:wrap;gap:4px 6px;margin:6px 0 0;padding:0}
 .htag{display:inline-block;background:var(--accent-soft);color:var(--accent);font:600 12.5px/1.2 var(--font-body);padding:4px 9px;border-radius:999px} /* 표시만 (누르는 기능 없음) */
@@ -1993,7 +1998,7 @@ async function renderGroupView(cached) {
   const firstDoneKey = keys.find(gDone), nDoneG = keys.filter(gDone).length;
   const gSeq = k => gDone(k) ? 0 : keys.filter(x => !gDone(x)).indexOf(k) + 1;
   const nOk = list.filter(x => x.status === ST.OK).length, nWait = list.filter(x => x.status === ST.WAIT).length;
-  host.innerHTML = rateBannerHTML(list, true) + `<div class="note" style="margin:4px 0 2px"><b>${esc(S.my.name)}</b> 님 휴대폰의 어린이 <b>${(r.kids || []).length}</b>명 · 예약 ${list.length}건 (확정 ${nOk}${nWait ? ' · 대기 ' + nWait : ''})${myReloadHTML()}</div>${(r.kids || []).length > 1 ? `<div class="fam kidpick"><span>어린이별 보기:</span><button type="button" class="${S.my.kid ? '' : 'on'}" data-action="my-kid" data-name="" aria-pressed="${!S.my.kid}">전체</button>${(r.kids || []).map(n => `<button type="button" class="${S.my.kid === n ? 'on' : ''}" data-action="my-kid" data-name="${attr(n)}" aria-pressed="${S.my.kid === n}">${esc(n)}</button>`).join('')}</div>` : ''}${S.my.kid ? `<div class="note" style="margin:2px 0 4px"><b>${esc(S.my.kid)}</b> 예약 ${list.length}건</div>` : ''}${(() => { const all = list.filter(x => grpCancellable(x, now)); return all.length >= 2 ? `<div class="cancel-all"><span>${S.my.kid ? esc(S.my.kid) + ' 어린이의 ' : ''}남은 예약 <b>${all.length}</b>건</span><button type="button" class="btn small danger-ghost" data-action="my-cancel-many" data-nos="${attr(all.map(x => x.no).join(','))}" data-what="${attr((S.my.kid ? S.my.kid + ' 어린이의 ' : '') + '남은 예약 전부')}">남은 예약 모두 취소</button></div>` : ''; })()}` +
+  host.innerHTML = rateBannerHTML(list, true) + myReloadHTML() + `<div class="note" style="margin:4px 0 2px"><b>${esc(S.my.name)}</b> 님 휴대폰의 어린이 <b>${(r.kids || []).length}</b>명 · 예약 ${list.length}건 (확정 ${nOk}${nWait ? ' · 대기 ' + nWait : ''})</div>${(r.kids || []).length > 1 ? `<div class="fam kidpick"><span>어린이별 보기:</span><button type="button" class="${S.my.kid ? '' : 'on'}" data-action="my-kid" data-name="" aria-pressed="${!S.my.kid}">전체</button>${(r.kids || []).map(n => `<button type="button" class="${S.my.kid === n ? 'on' : ''}" data-action="my-kid" data-name="${attr(n)}" aria-pressed="${S.my.kid === n}">${esc(n)}</button>`).join('')}</div>` : ''}${S.my.kid ? `<div class="note" style="margin:2px 0 4px"><b>${esc(S.my.kid)}</b> 예약 ${list.length}건</div>` : ''}${(() => { const all = list.filter(x => grpCancellable(x, now)); return all.length >= 2 ? `<div class="cancel-all"><span>${S.my.kid ? esc(S.my.kid) + ' 어린이의 ' : ''}남은 예약 <b>${all.length}</b>건</span><button type="button" class="btn small danger-ghost" data-action="my-cancel-many" data-nos="${attr(all.map(x => x.no).join(','))}" data-what="${attr((S.my.kid ? S.my.kid + ' 어린이의 ' : '') + '남은 예약 전부')}">남은 예약 모두 취소</button></div>` : ''; })()}` +
     keys.map(k => {
       const g = groups[k]; const bb = booth(g.booth);
       const past = !noSlot(g.slot) && resPast({ date: g.date, slot: g.slot }, now);
@@ -2090,7 +2095,7 @@ async function myLiveTick(force) {
   else myLiveSchedule();
   if (force === true) toast('최신 상태로 새로 봤습니다');
 }
-const myReloadHTML = () => ` <button type="button" class="linkish my-reload" data-action="my-reload" title="출석·평가 상태를 다시 불러옵니다">↻ 새로 보기</button>`;
+const myReloadHTML = () => `<div class="my-reload-row"><button type="button" class="btn my-reload" data-action="my-reload" title="출석·평가 상태를 다시 불러옵니다">↻ 새로 보기</button><span class="hint">출석 처리되면 1분 안에 저절로 바뀌어요. 바로 보려면 누르세요.</span></div>`;
 // ───────── 만족도 별점 (내 예약 · 출석 처리된 체험만) ─────────
 const surveyOn = () => !!((S.status.limits || {}).survey !== false);
 const surveyTest = () => !!(S.status.limits || {}).surveyTest; // 설정 탭 '만족도 테스트 모드' = 예 → 시간 조건 무시, 출석만 되면 평가
@@ -2200,7 +2205,7 @@ function renderMyList() {
   const nextUp = sorted.find(r => r.status === ST.OK && !noSlot(r.slot) && (r.date ? r.date === now.date : isEventDay(now)) && !resPast(r, now)) || null;
   const nOk = list.filter(r => r.status === ST.OK).length, nWait = list.filter(r => r.status === ST.WAIT).length;
   const fam = (S.my.family || []).filter(n => n && n !== S.my.name);
-  host.innerHTML = `<p class="sign-remind">${SIGN_REMIND}</p><div class="note" style="margin:4px 0 -2px">${esc(S.my.name)} 님의 예약 ${list.length}건 · 확정 ${nOk}${nWait ? ' · 대기 ' + nWait : ''} · 시간 순${myReloadHTML()}</div>` +
+  host.innerHTML = `<p class="sign-remind">${SIGN_REMIND}</p><div class="note" style="margin:4px 0 -2px">${esc(S.my.name)} 님의 예약 ${list.length}건 · 확정 ${nOk}${nWait ? ' · 대기 ' + nWait : ''} · 시간 순</div>${myReloadHTML()}` +
     rateBannerHTML(list) +
     (fam.length ? `<div class="fam"><span>같은 휴대폰의 다른 어린이:</span>${fam.map(n => `<button type="button" data-action="my-switch" data-name="${attr(n)}">${esc(n)}</button>`).join('')}<button type="button" class="all" data-action="my-group">전체 한눈에 보기</button></div>` : '') + sorted.map(r => {
     const cls = r.status === ST.OK ? 'ok' : (r.status === ST.WAIT || r.status === ST.PENDING) ? 'wait' : 'cancel';
@@ -3173,7 +3178,7 @@ document.addEventListener('click', e => {
   else if (a === 'my-star') { setStar(Number(act.dataset.score)); }
   else if (a === 'my-rate-send') { sendRate(act.dataset.res); }
   else if (a === 'my-rate-close') { const g = /^g:/.test(S.my.rate); S.my.rate = ''; S.my.rateScore = 0; S.my.rateComment = ''; if (g) renderGroupView(true); else renderMyList(); }
-  else if (a === 'my-reload') { act.disabled = true; myLiveTick(true); }
+  else if (a === 'my-reload') { act.disabled = true; act.textContent = '↻ 새로 보는 중…'; myLiveTick(true); }
   else if (a === 'my-kid') { S.my.kid = act.dataset.name || ''; S.my.rate = ''; renderGroupView(true); const h = $('[data-my-list]'); if (h) { try { h.scrollIntoView({ block: 'start', behavior: 'smooth' }); } catch (x) { } } }
   else if (a === 'go-staff') { e.preventDefault(); S.admin.staffPick = true; S.admin.staff = true; S.admin.f.booth = ''; S.admin.err = ''; go('admin'); }
   else if (a === 'go-admin') { S.admin.staffPick = false; S.admin.staff = false; S.admin.f.booth = ''; if (PREVIEW || !WEB || STATIC) { e.preventDefault(); go('admin'); } } // 방법 B 는 같은 페이지 안에서 이동 (주소는 pushNav 가 바꿈)
