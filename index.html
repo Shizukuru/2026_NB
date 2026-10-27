@@ -653,7 +653,9 @@ button.slot-row:disabled{cursor:default}
 .cong-ctrl .note{color:var(--fg-muted);flex-basis:100%}
 .cong-ctrl.busy{opacity:.6;pointer-events:none}
 .filter-note .walkin{margin-left:auto;background:var(--accent);color:#fff;border-radius:8px;padding:4px 10px;text-decoration:none;font-weight:700}
-.my-list{display:grid;gap:10px;margin-top:14px}
+.my-list{display:grid;gap:10px;margin-top:14px;position:relative}
+.my-list.loading>*{opacity:.55;transition:opacity .15s}
+.my-list.loading::before{content:'불러오는 중…';position:sticky;top:8px;z-index:3;justify-self:center;padding:5px 14px;border-radius:999px;background:var(--accent);color:var(--accent-ink);font-size:13px;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.15)}
 .my-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;display:grid;gap:8px;box-shadow:var(--shadow)}
 .my-card.cancel{opacity:.6}
 .my-title .seq{display:inline-block;background:var(--mark);color:var(--mark-ink);font:800 12.5px/1 var(--font-body);padding:5px 8px;border-radius:999px;margin-right:8px;vertical-align:2px;white-space:nowrap}
@@ -1913,6 +1915,30 @@ function watchSchedule() { if (watchTimer) return; if (!hasWaiting(loadSnap())) 
 function watchStart() { const me = loadMe(); if (!me.name || !me.phone) return; const snap = loadSnap(); if (!hasWaiting(snap) && snap._t && Date.now() - snap._t < WATCH_OPEN_MIN_MS) { updateMyBadge(); watchSchedule(); return; } clearTimeout(watchTimer); watchTimer = setTimeout(() => watchTick(true), PREVIEW ? 1000 : 1200); }
 
 // ───────── 방문객: 내 예약 확인·취소 ─────────
+// 목록을 지우고 '조회 중…'을 띄우지 않음: 이미 보이는 목록이 있으면 그대로 두고 위에 '불러오는 중…'만 얹음 (처음 조회 때만 '조회 중…')
+const myKeyNow = () => S.my.name + '|' + phoneDigits(S.my.phone || '');
+function myLoading(on) {
+  const host = $('[data-my-list]'); if (!host) return false;
+  if (!on) { host.classList.remove('loading'); return false; }
+  if (host.querySelector('.my-card, .cancel-all, .fam')) { host.classList.add('loading'); return true; }
+  host.innerHTML = `<div class="empty">조회 중…</div>`; return false;
+}
+/** 취소처럼 결과를 이미 아는 동작 뒤: 화면은 바로 고쳐 그리고, 서버 목록은 뒤에서 조용히 받아 맞춤 (표시 없음) */
+async function myQuietRefresh() {
+  const tok = S.my.tok, key = myKeyNow(), grouped = S.my.shown === 'group';
+  try {
+    if (grouped) {
+      const g = await rpc('findPhoneReservations', S.my.name, S.my.phone);
+      if (tok !== S.my.tok || key !== myKeyNow() || S.my.shown !== 'group' || !g || !g.list) return;
+      S.my.group = g; applyMyList(g.list, true);
+    } else {
+      const list = await rpc('findMyReservations', S.my.name, S.my.phone);
+      if (tok !== S.my.tok || key !== myKeyNow() || S.my.shown !== 'list' || !Array.isArray(list)) return;
+      S.my.list = list; const snap = loadSnap(); list.forEach(r => { snap[r.no] = Object.assign(snap[r.no] || {}, { status: r.status, booth: r.booth, boothName: r.boothName, slot: r.slot, date: r.date || '', name: r.name || '' }); }); saveSnap(snap); updateMyBadge();
+    }
+    if (($('#app') || {}).dataset && $('#app').dataset.view === 'my' && !S.my.rate && !S.my.confirm) (grouped ? renderGroupView(true) : renderMyList());
+  } catch (e) { /* 다음 자동 새로 보기 때 맞춰짐 */ }
+}
 function renderMy() {
   const app = $('#app');
   app.dataset.view = 'my';
@@ -1931,6 +1957,7 @@ function renderMy() {
     </form>
     <div class="my-list" data-my-list></div>
   </div>`;
+  if (S.my.name && S.my.phone && S.my.shownKey === myKeyNow() && myShownList().length) { S.my.confirm = ''; (S.my.shown === 'group' ? renderGroupView(true) : renderMyList()); } // 다녀온 사이 받아 둔 목록을 먼저 보여 주고 뒤에서 새로 받음
   if (S.my.name && S.my.phone) lookupMy();
 }
 async function lookupMy() {
@@ -1940,7 +1967,8 @@ async function lookupMy() {
   const pi = $('#myphone'); if (pi && pi.value !== S.my.phone) pi.value = S.my.phone;
   const remember = $('#myremember') ? $('#myremember').checked : true;
   saveMe({ name: S.my.name, phone: S.my.phone }, remember);
-  const host = $('[data-my-list]'); if (host) host.innerHTML = `<div class="empty">조회 중…</div>`;
+  const host = $('[data-my-list]'); const same = S.my.shownKey === myKeyNow(), kept = (S.my.shownKey || '').split('|')[1] === phoneDigits(S.my.phone || '') && myLoading(true); // 같은 휴대폰 목록이 보이고 있으면 지우지 않고 '불러오는 중…'만 (다른 어린이로 바꿔 볼 때도). 다른 휴대폰이면 '조회 중…'
+  if (!kept && host && !host.classList.contains('loading')) host.innerHTML = `<div class="empty">조회 중…</div>`;
   const tok = S.my.tok = (S.my.tok || 0) + 1; // 조회가 겹치면 마지막 것만 그림
   try {
     // 보호자 이름이면 한눈에 보기(어린이 전체)로, 어린이 이름이면 그 어린이만
@@ -1952,7 +1980,7 @@ async function lookupMy() {
       applyMyList(grp.list); watchStart(); S.my.confirm = ''; S.my.hint = null; S.my.list = [];
       if (S.my.rateWant) { const w = grp.list.find(x => x.no === S.my.rateWant && canRate(x)); S.my.rateWant = ''; if (w) { S.my.rate = gKeyOf(w); S.my.rateScore = 0; S.my.rateComment = ''; } }
       S.my.group = grp; renderGroupView(true); // 방금 받은 목록으로 바로 그림 (같은 조회를 두 번 하지 않음)
-      if (host) { try { host.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (x) { } }
+      if (host && !same) { try { host.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (x) { } }
       return;
     }
     const mine = await rpc('findMyReservations', S.my.name, S.my.phone); if (tok !== S.my.tok) return; S.my.list = mine;
@@ -1962,9 +1990,10 @@ async function lookupMy() {
     S.my.hint = null;
     if (S.my.rateWant) { const w = S.my.list.find(x => x.no === S.my.rateWant && canRate(x)); S.my.rateWant = ''; if (w) { S.my.rate = w.no; S.my.rateScore = 0; S.my.rateComment = ''; } }
     renderMyList();
-    if (host && S.my.list.length) { try { host.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (x) { } }
+    if (host && S.my.list.length) { if (!same) { try { host.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (x) { } } }
     else if (host) { try { S.my.hint = await rpc('lookupHint', S.my.name, S.my.phone); renderMyList(); } catch (x) { /* 실마리는 없어도 됨 */ } }
-  } catch (e) { if (host) host.innerHTML = `<div class="empty">${esc(e.message || '조회에 실패했습니다')}</div>`; }
+  } catch (e) { if (tok !== S.my.tok) return; if (kept) { myLoading(false); toast(e.message || '조회에 실패했습니다', 'err'); } else if (host) host.innerHTML = `<div class="empty">${esc(e.message || '조회에 실패했습니다')}</div>`; }
+  finally { if (tok === S.my.tok) myLoading(false); }
 }
 /** 조회 결과가 없을 때: 서버가 알아들은 번호와, 연락처만/이름만 맞는 예약이 있는지 알려 줘서 무엇을 고쳐 칠지 바로 알게 */
 function myEmptyHTML() {
@@ -1980,12 +2009,13 @@ function myEmptyHTML() {
 async function renderGroupView(cached) {
   const host = $('[data-my-list]'); if (!host) return;
   if (!cached || !S.my.group) { // 평가 상자 열기/닫기·어린이 고르기는 이미 받은 목록으로 다시 그림 (서버에 다시 묻지 않음)
-    host.innerHTML = `<div class="empty">조회 중…</div>`;
+    const kept = myLoading(true); const tok = S.my.tok = (S.my.tok || 0) + 1;
     let r0;
-    try { r0 = await rpc('findPhoneReservations', S.my.name, S.my.phone); } catch (e) { host.innerHTML = `<div class="empty">${esc(e.message || '조회에 실패했습니다')}</div>`; return; }
+    try { r0 = await rpc('findPhoneReservations', S.my.name, S.my.phone); } catch (e) { if (tok !== S.my.tok) return; myLoading(false); if (kept) toast(e.message || '조회에 실패했습니다', 'err'); else host.innerHTML = `<div class="empty">${esc(e.message || '조회에 실패했습니다')}</div>`; return; }
+    if (tok !== S.my.tok) return; myLoading(false);
     S.my.group = r0;
   }
-  const r = S.my.group; S.my.shown = 'group';
+  const r = S.my.group; S.my.shown = 'group'; S.my.shownKey = myKeyNow(); myLoading(false);
   const all = (r && r.list) || [];
   if (S.my.kid && !all.some(x => x.name === S.my.kid)) S.my.kid = '';
   const list = S.my.kid ? all.filter(x => x.name === S.my.kid) : all; // 어린이 이름을 누르면 그 어린이 예약만
@@ -2020,6 +2050,12 @@ async function renderGroupView(cached) {
 /** 한눈에 보기에서 취소할 수 있는 예약: 취소 전 · 출석 전 · 시간이 지나지 않음 */
 function grpCancellable(x, now) { return x.status !== ST.CANCEL && x.att !== '출석' && !(!noSlot(x.slot) && resPast(x, now)); }
 /** 인솔자·보호자 일괄 취소 */
+/** 취소된 예약을 받아 둔 목록에서 바로 반영: 한눈에 보기는 빼고(서버도 취소는 안 보냄), 개인 목록은 '취소'로 표시 */
+function myDropLocal(gone) {
+  if (S.my.group && S.my.group.list) { S.my.group.list = S.my.group.list.filter(x => !gone[x.no]); const k = {}; S.my.group.list.forEach(x => { k[x.name] = 1; }); S.my.group.kids = (S.my.group.kids || []).filter(n => k[n]); }
+  (S.my.list || []).forEach(r => { if (gone[r.no]) { r.status = ST.CANCEL; r.memo = r.memo || '본인 취소'; } });
+  const snap = loadSnap(); Object.keys(gone).forEach(n => { if (snap[n]) snap[n].status = ST.CANCEL; }); saveSnap(snap); updateMyBadge();
+}
 async function cancelMany(nos, what) {
   nos = String(nos || '').split(',').filter(Boolean); if (!nos.length) return;
   if (!window.confirm(what + ' ' + nos.length + '건을 모두 취소할까요?\n취소하면 되돌릴 수 없고 자리는 바로 다른 분(대기자)에게 넘어갑니다.')) return;
@@ -2028,18 +2064,20 @@ async function cancelMany(nos, what) {
     const r = await rpc('cancelMyReservations', S.my.name, S.my.phone, nos);
     const skipped = (r.results || []).filter(x => !x.ok).length;
     toast((r.n || 0) + '건을 취소했습니다' + (skipped ? ' · ' + skipped + '건은 출석 처리됐거나 시간이 지나 그대로 둠' : ''));
-    S.my.rate = ''; await renderGroupView();
-    try { S.status = await rpc('getPublicStatus'); onStatus(S.status); } catch (x) { }
+    const gone = {}; (r.results || []).forEach(x => { if (x.ok) gone[x.no] = 1; }); if (!(r.results || []).length && r.n) nos.forEach(n => { gone[n] = 1; });
+    myDropLocal(gone); S.my.rate = ''; renderGroupView(true); // 취소된 것은 바로 빼고 그림 (조회 중 없이)
+    myQuietRefresh(); try { S.status = await rpc('getPublicStatus'); onStatus(S.status); } catch (x) { }
   } catch (e) { toast(e.message || '취소에 실패했습니다', 'err'); btns.forEach(b => { b.disabled = false; }); }
 }
 async function cancelGroupItem(resNo, name) {
   if (!window.confirm(name + ' 어린이의 이 예약을 취소할까요?\n취소하면 되돌릴 수 없고 자리는 바로 다른 분에게 열립니다.')) return;
+  const btn = $(`[data-action="my-group-cancel"][data-res="${CSS.escape(resNo)}"]`); if (btn) btn.disabled = true;
   try {
     const res = await rpc('cancelMyReservation', name, S.my.phone, resNo);
     toast(res && res.already ? '이미 취소된 예약입니다' : name + ' 예약을 취소했습니다');
-    renderGroupView();
-    try { S.status = await rpc('getPublicStatus'); onStatus(S.status); } catch (x) { }
-  } catch (e) { toast(e.message || '취소에 실패했습니다', 'err'); }
+    myDropLocal({ [resNo]: 1 }); renderGroupView(true); // 바로 반영
+    myQuietRefresh(); try { S.status = await rpc('getPublicStatus'); onStatus(S.status); } catch (x) { }
+  } catch (e) { toast(e.message || '취소에 실패했습니다', 'err'); if (btn) btn.disabled = false; }
 }
 /** 진행이 끝난 예약: 취소됨 · 출석/결석 처리됨 · 수업 시간이 지남 → 내 예약 목록에서 흐리게, 맨 아래로 */
 function resFinished(r, now) {
@@ -2189,7 +2227,7 @@ async function sendRate(resNo) {
 }
 function renderMyList() {
   const host = $('[data-my-list]'); if (!host) return;
-  const list = S.my.list || []; S.my.shown = 'list';
+  const list = S.my.list || []; S.my.shown = 'list'; S.my.shownKey = myKeyNow(); myLoading(false);
   if (!list.length) {
     const famE = (S.my.family || []).filter(n => n && n !== S.my.name);
     if (famE.length) { host.innerHTML = `<div class="fam" style="margin-top:10px"><span><b>${esc(S.my.name)}</b> 님 본인 예약은 없고, 같은 휴대폰으로 예약된 어린이가 있습니다. 이름을 누르면 그 어린이의 예약을 봅니다:</span>${famE.map(n => `<button type="button" data-action="my-switch" data-name="${attr(n)}">${esc(n)}</button>`).join('')}<button type="button" class="all" data-action="my-group">전체 ${famE.length}명 한눈에 보기</button></div>`; return; }
@@ -2233,9 +2271,8 @@ async function cancelMy(resNo) {
     const res = await rpc('cancelMyReservation', S.my.name, S.my.phone, resNo);
     toast(res && res.already ? '이미 취소된 예약입니다' : '예약이 취소되었습니다');
     S.my.confirm = '';
-    S.my.list = await rpc('findMyReservations', S.my.name, S.my.phone);
-    { const snap = loadSnap(); S.my.list.forEach(r => { snap[r.no] = Object.assign(snap[r.no] || {}, { status: r.status, booth: r.booth, boothName: r.boothName, slot: r.slot, date: r.date || '', name: r.name || '' }); }); saveSnap(snap); } // 본인 취소는 알림 대상 아님
-    renderMyList();
+    myDropLocal({ [resNo]: 1 }); renderMyList(); // 바로 '취소'로 내려 보이고, 서버 목록은 뒤에서 맞춤 (본인 취소는 알림 대상 아님)
+    myQuietRefresh();
     try { S.status = await rpc('getPublicStatus'); onStatus(S.status); } catch (x) { }
   } catch (e) { toast(e.message || '취소에 실패했습니다', 'err'); S.my.confirm = ''; renderMyList(); }
 }
