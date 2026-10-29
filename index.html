@@ -163,6 +163,7 @@ body::before{content:'';position:fixed;top:0;left:0;right:0;height:5px;z-index:7
 .stat .v{font-family:var(--font-display);font-size:30px;line-height:1.1;margin-top:2px}
 .stat .v small{font-family:var(--font-body);font-size:13px;color:var(--fg-muted);margin-left:4px}
 .stat .v.small{font-size:22px;margin-top:8px}
+.stats.vstats{padding-block:0 12px}.stat.vs{background:var(--accent-soft);border-color:transparent}.stat.vs .k{color:var(--accent)}
 .days{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 2px}
 .days .day{border:1.5px solid var(--line);background:var(--surface);color:var(--fg);border-radius:999px;padding:7px 14px;font-weight:700;font-size:14px;display:inline-flex;gap:6px;align-items:center}
 .days .day small{font-size:11px;font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:999px;padding:1px 6px}
@@ -502,6 +503,7 @@ a.brand:hover .brand-name{color:var(--accent)}
 .hs-n{width:40px;height:40px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;font:700 18px/1 var(--font-display)}
 .hs.faq .hs-n{background:var(--fg-muted)}
 .hs h2{margin:6px 0 8px;font-size:18px;font-family:var(--font-display)}.hs p,.hs li{font-size:15px;line-height:1.6}.hs p{margin:0 0 8px}.hs ul,.hs ol{margin:0 0 8px;padding-left:1.3em}
+.hs .tip.geo{background:#FFF4D6;border-left-color:#E0A800}
 .hs .tip{background:var(--surface-2);border-left:3px solid var(--accent);border-radius:8px;padding:8px 12px;font-size:14px}
 .hs code{background:var(--surface-2);padding:1px 6px;border-radius:5px;font-size:.92em}
 .hs .swl{display:inline-flex;align-items:center;gap:4px;white-space:nowrap;margin-right:6px}.hs .sw{display:inline-block;width:.9em;height:.9em;border-radius:3px;flex:none}.hs .sw.ok{background:var(--ok)}.hs .sw.warn{background:var(--warn)}.hs .sw.full{background:var(--full)}.hs .sw.gray{background:var(--surface-2);border:1px solid var(--line)}
@@ -1116,7 +1118,7 @@ async function refresh() {
       S.admin.data = d; S.status = d; onStatus(d);
       renderAdminParts();
     } else {
-      S.status = await rpc('getPublicStatus'); onStatus(S.status);
+      S.status = await rpc('getPublicStatus', visitArg()); onStatus(S.status);
       updateView();
     }
     failures = 0;
@@ -1129,6 +1131,14 @@ async function refresh() {
     lastRefreshAt = Date.now();
     refreshing = false;
   }
+}
+/** 방문자 집계용 기기 번호 (이 브라우저에 한 번 만들어 둠 · 무작위 · 개인정보 없음). 방문객 화면의 현황 요청에만 실어 보냄 — 운영자·TV·QR 화면은 세지 않음 */
+let VID = '', VID_AT = 0; // 마지막으로 번호를 실어 보낸 시각 — 약 2분에 한 번만 (현재 접속자는 2분 단위로 세므로 충분, 서버 부담은 절반 아래로)
+function visitArg() {
+  if (/[?&]page=(admin|tv|qr)\b/.test(location.search) || S.view === 'admin' || S.view === 'tv' || S.view === 'qr') return undefined;
+  if (!VID) { try { VID = localStorage.getItem('vid') || ''; } catch (x) { } if (!/^[a-z0-9]{8}$/.test(VID)) { VID = (Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2) + '00000000').replace(/[^a-z0-9]/g, '').slice(0, 8); try { localStorage.setItem('vid', VID); } catch (x) { } } }
+  if (Date.now() - VID_AT < 100000) return undefined;
+  VID_AT = Date.now(); return { id: VID };
 }
 function isVisitorView() { return S.view === 'home' || S.view === 'booth' || S.view === 'map'; }
 function nextDelay() {
@@ -2399,6 +2409,7 @@ function renderAdmin() {
         </div>
       </header>
       <section class="stats" data-stats></section>
+      <section class="stats vstats" data-vstats hidden></section>
       <section class="sess-panel no-print" data-sess-panel></section>
       ${legendHTML()}
       <nav class="tabs" style="margin-top:10px"><button type="button" class="tab${S.admin.tab === 'matrix' ? ' on' : ''}" data-tab="matrix">현황표</button><button type="button" class="tab${S.admin.tab === 'list' ? ' on' : ''}" data-tab="list">예약 명단</button></nav>
@@ -2446,6 +2457,11 @@ function renderAdminParts() {
     `<div class="stat"><div class="k">마감 시간대</div><div class="v">${fullSlots}<small>/ ${totalSlots}</small></div></div>` +
     (alwaysCheck() ? `<div class="stat"><div class="k">상시운영 누적 참여</div><div class="v">${visitsIn}<small>명 · 방문 대기자 ${Math.max(0, visits - visitsIn - visitsAbs)}</small></div></div>` : `<div class="stat"><div class="k">상시운영 누적 참여</div><div class="v">${visits}<small>명</small></div></div>`) +
     `<div class="stat"><div class="k">${cur.now ? '지금 진행 중' : cur.next ? '다음 시간대' : '행사일'}</div><div class="v small">${esc(cur.now || cur.next || (d.event && d.event.date) || '-')}</div></div>`;
+  { const vh = $('[data-vstats]'); if (vh) { const v = d.visitors; vh.hidden = !v || !!S.admin.staff;
+    vh.innerHTML = v ? `<div class="stat vs" title="최근 약 5분 안에 예약 화면을 켜 둔 휴대폰 수"><div class="k">현재 접속자</div><div class="v">${v.now}<small>대</small></div></div>` +
+      `<div class="stat vs" title="오늘 예약 홈페이지를 한 번이라도 연 휴대폰(브라우저) 수 — 1분마다 합산"><div class="k">오늘 방문자</div><div class="v">${v.today}<small>대</small></div></div>` +
+      `<div class="stat vs" title="행사일(${esc((d.event && d.event.dates || []).join(', '))}) 동안 연 휴대폰 수 (같은 폰은 한 번)"><div class="k">총 방문자</div><div class="v">${v.event || v.total ? v.total : '-'}<small>${v.event || v.total ? '대 (행사일)' : '행사일부터'}</small></div></div>` +
+      `<p class="note" style="grid-column:1/-1;margin:0">휴대폰(브라우저) 수 기준 참고값이에요 — 가족이 한 폰을 쓰면 1, 정식 인원은 접수처 등록부. 동시에 몰릴 때 몇 % 덜 셀 수 있어요.</p>` : ''; } }
   const u = $('[data-updated]'); if (u) u.textContent = d.updatedAt || '';
   renderSessionPanel(d);
   renderMatrix(d, now);
@@ -2924,7 +2940,7 @@ function updateQR() {
 
 // ───────── 라우팅·렌더 ─────────
 // ───────── 방문객 이용 안내 (처음 한 번 · 동의해야 사용) ─────────
-const GUIDE_VER = '2026-10-b'; // 안내 내용을 바꾸면 이 값을 바꿔 모두에게 다시 보이게
+const GUIDE_VER = '2026-10-c'; // 안내 내용을 바꾸면 이 값을 바꿔 모두에게 다시 보이게
 // 위치 제한이 켜져 있으면 '위치 제한 항목까지 본 동의'(guideGeo)도 있어야 함 → 켜기 전에 동의한 분에게도 안내가 한 번 더 뜸
 function guideAgreed() { try { return localStorage.getItem('guideOk') === GUIDE_VER && (!geoOn() || localStorage.getItem('guideGeo') === '1'); } catch (x) { return !!S.guideOk; } }
 function setGuideAgreed() { S.guideOk = true; try { localStorage.setItem('guideOk', GUIDE_VER); if (geoOn()) localStorage.setItem('guideGeo', '1'); } catch (x) { } }
@@ -2934,7 +2950,7 @@ function guideItemsHTML() {
   const L = S.status.limits || {}, per = L.perSlot || 1, tot = L.total || 0, wm = waitMax();
   const items = [
     ['👨‍👩‍👧', '<b>보호자(인솔자) 이름·휴대폰</b>으로 예약하고, 참가 어린이를 추가해요. 한 번에 여러 명도 됩니다.'],
-    ...(geoOn() ? [['📍', '<b>위치 제한</b>: 예약·방문 등록은 <b>' + esc(geoPlaceText()) + '에서만</b> 할 수 있어요. [예약하기]를 누르면 휴대폰이 <b>위치 사용 허용</b>을 물어요 — <b>\'허용\'</b>을 눌러 주세요. 거부했다면 휴대폰 설정에서 이 브라우저의 위치 권한을 켜고 다시 눌러 주세요. 위치는 행사장 안인지 확인하는 데만 쓰고 저장하지 않아요. (예약 확인·취소는 어디서나 돼요)']] : []),
+    ['📍', (geoOn() ? '<b>위치 제한</b>: 예약·방문 등록은 <b>' + esc(geoPlaceText()) + '에서만</b> 할 수 있어요.' : '<b>위치 제한</b>: 행사 당일에는 예약·방문 등록이 <b>' + esc(geoPlaceText()) + '에서만</b> 되도록 바뀔 수 있어요.') + ' [예약하기]를 누르면 휴대폰이 <b>위치 사용 허용</b>을 물어요 — <b>\'허용\'</b>을 눌러 주세요. 거부했다면 휴대폰 설정에서 이 브라우저의 위치 권한을 켜고 다시 눌러 주세요. 위치는 행사장 안인지 확인하는 데만 쓰고 저장하지 않아요. (예약 확인·취소는 어디서나 돼요)'],
     ['🕘', '<b>수업형 부스</b>는 시간대를 골라 예약해요. 정원이 차면 ' + (wm ? '<b>대기</b>(시간대당 ' + wm + '명)로 신청할 수 있고, 취소가 생기면 순서대로 자동 확정되어 이 화면에 알려 드려요.' : '마감됩니다.')],
     ['✋', '한 어린이당 <b>같은 시간대 ' + per + '개</b>' + (tot ? ', <b>동시에 ' + tot + '개</b>까지 예약할 수 있어요. 앞 수업에 출석하거나 수업이 끝나면 다음 예약이 가능해요.' : '까지 예약할 수 있어요.')],
     ['🚶', '<b>상시운영 부스</b>는 시간 예약이 아니라 예약시스템에 <b>등록 후 선착순 진행</b>이에요. 부스에 온 순서대로 들어가요.'],
@@ -2988,20 +3004,21 @@ function renderGuidePage() {
     ${step('②', '<span id="h2"></span>부스 고르기', `<p>첫 화면에 모든 부스가 카드로 나옵니다. <b>층 · 권역 · 분야 · 방식</b>으로 거르거나, 검색 칸에 부스 번호·프로그램 이름·<code>#태그</code>를 쳐 보세요. <b>예약 가능만</b>을 켜면 자리가 남은 부스만 보입니다.</p>
       <ul><li>부스 번호의 <b>색 = 구역(층)</b>. 배치도(🗺)에서 같은 색 핀을 찾으면 됩니다.</li><li>카드 아래 시간대 칸의 색: <span class="swl"><i class="sw ok"></i>초록 = 여유</span> <span class="swl"><i class="sw warn"></i>주황 = 잔여 30% 이하</span> <span class="swl"><i class="sw full"></i>빨강 = 마감(대기 가능)</span> <span class="swl"><i class="sw gray"></i>회색 = 종료</span></li><li>카드를 누르면 설명·시간대 전체가 보이는 <b>부스 페이지</b>로 갑니다. 부스에 붙은 QR을 찍어도 바로 그 페이지예요.</li></ul>`)}
     ${step('③', '<span id="h3"></span>예약하기 (수업형 부스)', `<ol><li>부스 페이지에서 <b>시간대</b>를 고릅니다 (마감이면 '대기'로 신청 가능).</li><li><b>보호자(인솔자) 이름 · 휴대폰</b>을 적고, <b>참가 어린이</b>를 [＋ 어린이 추가]로 넣습니다 (이름·학년, 소속). 형제·학급 전체를 한 번에 넣어도 돼요.</li><li>학생이 직접 하려면 위의 <b>[🙋 학생 본인이 등록]</b>으로 바꾸고 <b>본인 휴대폰(예약 확인 번호)</b>을 적습니다. 보호자 휴대폰은 선택이에요(같은 번호여도 돼요).</li><li>개인정보 동의에 체크하고 <b>[예약하기]</b>.</li></ol>
-      <p class="tip">한 어린이는 <b>같은 시간대 1개</b>, <b>동시에 ${max}개</b>까지 예약할 수 있어요. 출석하거나 수업이 끝나면 다시 예약할 수 있습니다. 화면 위 <b>'예약 가능 n개 남음'</b> 표시가 빨간색이면 한도에 찬 거예요.</p>`)}
+      <p class="tip">한 어린이는 <b>같은 시간대 1개</b>, <b>동시에 ${max}개</b>까지 예약할 수 있어요. 출석하거나 수업이 끝나면 다시 예약할 수 있습니다. 화면 위 <b>'예약 가능 n개 남음'</b> 표시가 빨간색이면 한도에 찬 거예요.</p>
+      <p class="tip geo" data-guide-geo>📍 <b>[예약하기]를 누르면 휴대폰이 위치 사용을 물어요 → '허용'</b>을 눌러 주세요. ${geoOn() ? `예약은 <b>${esc(geoPlaceText())}</b>에서만 돼요.` : `행사 당일에는 <b>${esc(geoPlaceText())}</b>에서만 예약되도록 바뀔 수 있어요.`} 위치는 확인에만 쓰고 저장하지 않아요. 거부했다면 <a href="#h9">아래 자주 묻는 질문</a>을 보세요.</p>`)}
     ${step('④', '<span id="h4"></span>결과 확인', `<p>누르자마자 어린이마다 결과가 뜹니다.</p><ul><li><b>확정</b> — 자리가 잡혔어요. 수업 시작 전에 부스로 가세요.</li><li><b>대기</b> — 자리가 다 찼지만 순서를 잡아 뒀어요. 누가 취소하면 <b>자동으로 확정</b>되고 이 휴대폰에 알림이 뜹니다.</li><li><b>접수되지 않음</b> — 이유가 함께 나옵니다 (마감, 한도 초과, 같은 시간대 중복 등).</li></ul><p class="tip">예약번호(예: <code>6오전-08-01</code>)는 내 예약에서 언제든 다시 볼 수 있어요.</p>`)}
-    ${hasAlways ? step('⑤', '<span id="h5"></span>상시운영 부스', `<p>시간 예약이 없는 부스예요. 예약시스템에 <b>등록 후 선착순 진행</b>: 부스 페이지에서 [등록하기]를 누르고 부스로 가면, <b>부스에 온 순서대로</b> 들어갑니다. 카드의 <b>혼잡도(여유·보통·혼잡)</b>를 보고 덜 붐빌 때 가세요.</p>${hasOnsite ? '<p class="tip"><b>현장접수</b> 프로그램은 등록 없이 부스에서 직접 접수합니다.</p>' : ''}`) : ''}
+    ${hasAlways ? step('⑤', '<span id="h5"></span>상시운영 부스', `<p>시간 예약이 없는 부스예요. 예약시스템에 <b>등록 후 선착순 진행</b>: 부스 페이지에서 [등록하기]를 누르고 부스로 가면, <b>부스에 온 순서대로</b> 들어갑니다. 카드의 <b>혼잡도(여유·보통·혼잡)</b>를 보고 덜 붐빌 때 가세요.</p><p class="tip geo">📍 [등록하기]를 누를 때도 위치 사용을 물어요 → <b>'허용'</b>.</p>${hasOnsite ? '<p class="tip"><b>현장접수</b> 프로그램은 등록 없이 부스에서 직접 접수합니다.</p>' : ''}`) : ''}
     ${step('⑥', '<span id="h6"></span>내 예약 확인 · 취소', `<p>첫 화면 위 <b>[내 예약 확인·취소]</b>에서 예약할 때 적은 <b>이름 + 휴대폰</b>으로 봅니다. 보호자 이름으로 보면 어린이 전체가 한눈에, 어린이 이름으로 보면 그 어린이만 나와요.</p><ul><li>갈 순서대로 1번째·2번째… 번호가 붙고, 끝난 예약은 아래로 내려갑니다.</li><li>못 가게 되면 <b>[예약 취소]</b> — 그 자리는 바로 대기자에게 갑니다. 출석 처리된 예약과 지난 시간대는 취소할 수 없어요.</li></ul>`)}
     ${step('⑦', '<span id="h7"></span>체험하러 가기', `<p>수업 시작 전에 부스로 가서 담당자에게 <b>어린이 이름</b>을 말하고 <b>부스의 종이 서명부</b>에 서명하세요. 담당자가 [출석]을 누르면 내 예약에 <span class="pill ok">출석</span>이 붙습니다.</p><p class="tip">늦으면 자리가 다른 분에게 갈 수 있어요. 수업이 끝나고 5분이 지나도 안 오면 자동으로 결석 처리됩니다.</p>`)}
     ${step('⑧', '<span id="h8"></span>체험 뒤 별점 남기기', `<p>체험이 끝나면 휴대폰에 <b>"체험은 어떠셨나요?"</b> 팝업이 뜹니다. 내 예약의 그 카드에도 <b>[⭐ 평가하기]</b>가 생겨요. 별 5개(반 개 단위)와 한 줄 의견, 10초면 끝. 형제가 같이 들었으면 한 번만 평가하면 됩니다.</p>`)}
     <section class="hs faq"><div class="hs-n">?</div><div class="hs-b"><h2><span id="h9"></span>자주 묻는 질문</h2>
       <dl>
         <dt>예약 버튼이 없어요.</dt><dd>아직 공개 시각 전이거나(오전반 ${esc(am)} · 오후반 ${esc(pm)}), 그 시간대가 끝났거나, 현장접수 프로그램입니다. 화면 위 초록 표시가 '접수 중'인지 보세요.</dd>
-        ${geoOn() ? `<dt>위치 사용을 허용하라고 나와요.</dt><dd>예약·방문 등록은 <b>${esc(geoPlaceText())}</b>에서만 할 수 있어 위치를 한 번 확인해요. '허용'을 눌러 주세요. 이미 거부했다면 휴대폰 설정 → 이 브라우저(크롬·사파리 등) → 위치를 '허용'으로 바꾼 뒤 다시 누르세요. 실내에서 잘 안 잡히면 창가나 실외에서 다시 해 보세요. 위치는 확인에만 쓰고 저장하지 않습니다.</dd>` : ''}
+        ${true ? `<dt>위치 사용을 허용하라고 나와요.</dt><dd>${geoOn() ? '' : '운영본부가 위치 제한을 켜면 '}예약·방문 등록은 <b>${esc(geoPlaceText())}</b>에서만 할 수 있어 위치를 한 번 확인해요. '허용'을 눌러 주세요. 이미 거부했다면 휴대폰 설정 → 이 브라우저(크롬·사파리 등) → 위치를 '허용'으로 바꾼 뒤 다시 누르세요. 실내에서 잘 안 잡히면 창가나 실외에서 다시 해 보세요. 위치는 확인에만 쓰고 저장하지 않습니다.</dd>` : ''}
         <dt>"한도 초과"라고 나와요.</dt><dd>그 어린이가 이미 ${max}개를 들고 있어요. 하나를 다녀오거나(출석) 취소하면 다시 예약할 수 있습니다.</dd>
         <dt>내 예약이 안 보여요.</dt><dd>예약할 때 적은 이름·휴대폰과 똑같이 넣어야 해요. 하이픈(-)은 있어도 없어도 됩니다. 그래도 안 되면 안내 데스크에 이름이나 예약번호를 말씀하세요.</dd>
         <dt>글씨가 작아요.</dt><dd>화면 오른쪽 위 <b>가</b> 버튼을 누르면 큰 글씨로 바뀝니다.</dd>
-        <dt>휴대폰이 없는 학생은요?</dt><dd>부스에서 현장등록 또는 인솔 선생님이나 보호자 휴대폰으로 '함께 온 어린이'에 넣어 예약합니다.</dd>
+        <dt>휴대폰이 없는 학생은요?</dt><dd>인솔 선생님이나 보호자 휴대폰으로 '함께 온 어린이'에 넣어 예약합니다.</dd>
         <dt>개인정보는 어떻게 쓰이나요?</dt><dd>예약 확인·비상 연락·출석 확인에만 쓰고, 행사 뒤 정해진 기간이 지나면 지웁니다. 자세한 내용은 예약 화면의 [내용 보기].</dd>
       </dl></div></section>
     <p class="howto-foot"><a class="btn primary big" href="${attr(WEB || '#')}" data-action="home">전체 부스 보러 가기</a><button type="button" class="btn big" data-action="guide-open">이용 규칙(동의 내용) 다시 보기</button></p>
@@ -3328,7 +3345,7 @@ async function bootstrap() {
   renderSplash('불러오는 중…');
   let err = null;
   for (let i = 0; i < 4; i++) {
-    try { S.status = await rpc('getPublicStatus'); onStatus(S.status); return true; }
+    try { S.status = await rpc('getPublicStatus', visitArg()); onStatus(S.status); return true; }
     catch (e) { err = e; if (API_PROBLEM) break; await new Promise(res => setTimeout(res, 1200 * (i + 1))); }
   }
   renderSplash('서버에 연결하지 못했습니다', (err && err.message) || '');
