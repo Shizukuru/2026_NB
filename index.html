@@ -237,6 +237,7 @@ tr:last-child td{border-bottom:0}
 .tv-top{display:flex;align-items:flex-end;justify-content:space-between;gap:2vw;border-bottom:2px solid var(--line);padding-bottom:.8vh}
 .tv-title{font-family:var(--font-display);color:var(--accent);font-size:2.6em;line-height:1.05}
 .tv-sub{color:var(--fg-muted);font-size:1.05em;margin-top:.3em;display:flex;gap:1.5em;flex-wrap:wrap}
+.tv-pt{display:flex;flex-direction:column;gap:.25em;align-self:center;white-space:nowrap}.tv-pt:empty{display:none}.tv-pt .stat{display:flex;align-items:baseline;justify-content:space-between;gap:.6em;background:var(--accent-soft);border:0;border-radius:.5em;padding:.05em .7em;min-width:16em}.tv-pt .stat .k{font-size:.85em;color:var(--accent);font-weight:700}.tv-pt .stat .v{font-family:var(--font-body);font-size:1em;font-weight:800;margin:0;line-height:1.35}.tv-pt .stat .v small{font-size:.8em;margin-left:.2em}.tv-pt .ps-sub{font-size:.8em!important;margin-left:.5em!important;display:inline!important}
 .tv-sub .now{background:var(--mark);color:var(--mark-ink);padding:.1em .7em;border-radius:999px;font-weight:600}
 .tv-clock{font-family:var(--font-display);font-size:4.2em;line-height:1;letter-spacing:.02em}
 .tv-upd{color:var(--fg-muted);text-align:right;font-size:.95em}
@@ -1235,7 +1236,7 @@ function headerHTML(sub) {
   return `<header class="top">
     <a class="brand" href="${attr(WEB || '#')}" data-action="home-title" title="처음 화면으로">${ANCHOR_SVG}<div><div class="brand-name">${esc(ev.name || '부스 현황판')}</div><div class="brand-sub">${sub}</div></div></a>
     <div class="live"><button type="button" class="font-toggle${bigFont() ? ' on' : ''}" data-action="font" title="글씨 크게/작게" aria-pressed="${bigFont()}">가</button><span class="dot${S.online ? '' : ' off'}" data-dot aria-hidden="true"></span><span class="clock" data-clock>--:--</span><button type="button" class="upd" data-action="refresh-now" title="지금 새로고침">업데이트 <b data-updated>${esc(S.status.updatedAt || '')}</b> <span class="rf" aria-hidden="true">↻</span></button></div>
-  </header>${S.view === 'home' ? `<section class="stats pstats" data-ptotal aria-label="전체 참여 현황">${pTotalHTML()}</section>` : ''}<div class="quota-host" data-quota-host>${quotaChipHTML()}</div>${dayTabsHTML()}`;
+  </header>${pTotalHTML() ? `<section class="stats pstats" data-ptotal aria-label="전체 참여 현황">${pTotalHTML()}</section>` : ''}<div class="quota-host" data-quota-host>${quotaChipHTML()}</div>${dayTabsHTML()}`;
 }
 /** 큰 글씨 모드 (localStorage 'bigfont') — 조부모·어르신 방문객용 */
 function bigFont() { try { return localStorage.getItem('bigfont') === '1'; } catch (x) { return false; } }
@@ -1323,11 +1324,11 @@ function pTotalHTML() {
       if (b.state || i.full) done++; else open++; });
   });
   const card = (k, v, unit, sub, tip) => `<div class="stat ps-card" title="${attr(tip)}"><div class="k">${k}</div><div class="v">${v}${unit ? `<small>${unit}</small>` : ''}${sub ? `<small class="ps-sub">${sub}</small>` : ''}</div></div>`;
-  return card('예약 가능', open, '개', alw ? '상시 ' + alw + '곳 포함' : '', '예약할 수 있는 시간대 (아직 시작 안 했고 자리가 남은 수업 + 등록받는 상시운영 부스)') +
+  return card('예약 가능 시간대', open, '개', '', '예약할 수 있는 시간대 (아직 시작 안 했고 자리가 남은 수업 + 등록받는 상시운영 부스)') +
     (today ? card('현재 참여', running, '개', running ? '참여 ' + join + '명' : '', '지금 진행 중인 수업 시간대 수 · 참여 = 그 수업에 출석한 어린이 (강사가 출석을 누르면 올라가요)') : card('현재 참여', '-', '', '행사일부터', '지금 진행 중인 수업에 출석한 어린이')) +
-    card('마감', done, '개', '/ 전체 ' + (open + running + done) + '개', '자리가 다 찬 시간대 + 강사가 오늘 마감을 누른 부스 / 전체 = 아직 안 끝난 시간대(상시운영 포함)');
+    card('예약 마감', done, '개', '/ 전체 ' + (open + running + done) + '개', '자리가 다 찬 시간대 + 강사가 오늘 마감을 누른 부스 / 전체 = 아직 안 끝난 시간대(상시운영 포함)');
 }
-function updatePTotal() { const x = pTotalHTML(); $$('[data-ptotal]').forEach(h => { h.innerHTML = x; h.hidden = !x; }); }
+function updatePTotal() { const x = pTotalHTML(); $$('[data-ptotal]').forEach(h => { h.innerHTML = x; h.hidden = !x; }); $$('[data-tv-pt]').forEach(h => { h.innerHTML = x; h.hidden = !x; }); } // TV 현황판·소개 맨 위에도 같은 카드
 function updateHome() {
   updatePTotal();
   const now = kstNow();
@@ -2871,7 +2872,7 @@ function renderTV() {
     app.dataset.view = 'tv';
     app.innerHTML = `<div class="tv">
       <div class="tv-top"><div><div class="tv-title" data-tv-title></div><div class="tv-sub" data-tv-sub></div></div>
-        <div class="tv-right">${dayTabsHTML()}<div style="text-align:right"><div class="tv-clock" data-clock="hms">--:--:--</div><div class="tv-upd">업데이트 <b data-updated></b> · ${POLL.tv / 1000}초마다 갱신</div></div></div></div>
+        <div class="tv-right"><div class="tv-pt" data-tv-pt></div>${dayTabsHTML()}<div style="text-align:right"><div class="tv-clock" data-clock="hms">--:--:--</div><div class="tv-upd">업데이트 <b data-updated></b> · ${POLL.tv / 1000}초마다 갱신</div></div></div></div>
       <div class="tv-body" data-tv-body></div>
       <div class="tv-legend"><span><i style="background:var(--ok)"></i>잔여 좌석</span><span><i style="background:var(--warn)"></i>잔여 30% 이하</span><span><i style="background:var(--full)"></i>마감</span><span><i style="background:var(--surface-2)"></i>종료</span><span><i style="background:var(--mark)"></i>진행 중</span><span><i style="background:#FFF1C2"></i>참여 중 (지금 수업 출석 인원)</span><span class="tv-zones">번호 색 = 구역 ${Object.keys(ZONES).map(f => `<span class="zl${zc(f)}"><i></i>${esc(f)}</span>`).join('')}</span></div>
       ${sponsorsHTML(true)}
@@ -2887,6 +2888,7 @@ function tvLiveCell(b, now) {
   return `<span class="tc pj" title="${attr(shortTime(v.nowSlot))} 수업 참여 중 ${v.join}명 · 예약 중 ${v.reserved}명">${v.join}</span>`;
 }
 function updateTV() {
+  updatePTotal();
   if (S.tvIntro) { updateTVIntro(false); return; }
   const now = kstNow();
   const booths = (S.status.booths || []).slice().sort((a, b) => a.no - b.no);
@@ -2925,7 +2927,7 @@ function renderTVIntro(app) {
     app.dataset.view = 'tvi';
     app.innerHTML = `<div class="tv tvi">
       <div class="tv-top"><div><div class="tv-title" data-tv-title></div><div class="tv-sub"><span>프로그램 소개 · QR을 찍으면 바로 예약</span>${sessionPillsHTML()}</div>${dayTabsHTML()}</div>
-        <div style="text-align:right"><div class="tv-clock" data-clock="hms">--:--:--</div><div class="tv-upd">업데이트 <b data-updated></b></div></div></div>
+        <div class="tv-pt" data-tv-pt style="margin-left:auto"></div><div style="text-align:right"><div class="tv-clock" data-clock="hms">--:--:--</div><div class="tv-upd">업데이트 <b data-updated></b></div></div></div>
       <div class="tvi-stage" data-tvi></div>
       <div class="tvi-foot"><span data-tvi-pos></span><span class="tvi-bar"><i data-tvi-bar></i></span><span class="tvi-next" data-tvi-next></span></div>
       ${sponsorsHTML(true)}
@@ -3064,7 +3066,7 @@ function guideItemsHTML() {
     ['👨‍👩‍👧', '<b>보호자(인솔자) 이름·휴대폰</b>으로 예약하고, 참가 어린이를 추가해요. 한 번에 여러 명도 됩니다.'],
     ['📍', (geoOn() ? '<b>위치 제한</b>: 예약·방문 등록은 <b>' + esc(geoPlaceText()) + '에서만</b> 할 수 있어요.' : '<b>위치 제한</b>: 행사 당일에는 예약·방문 등록이 <b>' + esc(geoPlaceText()) + '에서만</b> 되도록 바뀔 수 있어요.') + ' [예약하기]를 누르면 휴대폰이 <b>위치 사용 허용</b>을 물어요 — <b>\'허용\'</b>을 눌러 주세요. 거부했다면 휴대폰 설정에서 이 브라우저의 위치 권한을 켜고 다시 눌러 주세요. 위치는 행사장 안인지 확인하는 데만 쓰고 저장하지 않아요. (예약 확인·취소는 어디서나 돼요)'],
     ['🕘', '<b>수업형 부스</b>는 시간대를 골라 예약해요. 정원이 차면 ' + (wm ? '<b>대기</b>(시간대당 ' + wm + '명)로 신청할 수 있고, 취소가 생기면 순서대로 자동 확정되어 이 화면에 알려 드려요.' : '마감됩니다.')],
-    ['📊', '맨 위 <b>참여 현황</b>은 시간대 수예요 — <b>예약 가능</b>(예약할 수 있는 시간대, 상시운영 부스 포함) · <b>현재 참여</b>(지금 진행 중인 수업, 작은 글씨는 참여 어린이 수) · <b>마감</b>(자리가 다 찬 시간대 / 전체). 부스 카드에는 그 부스의 <b>예약 가능 석 · 예약 중 · 참여 중</b> 인원이 나와요. 숫자를 보고 붐비지 않는 부스부터 가 보세요. 상시운영 부스는 <b>방문 대기자</b>·<b>혼잡도</b>를 봐 주세요.'],
+    ['📊', '맨 위 <b>참여 현황</b>은 시간대 수예요 — <b>예약 가능 시간대</b>(예약할 수 있는 시간대, 상시운영 부스 포함) · <b>현재 참여</b>(지금 진행 중인 수업, 작은 글씨는 참여 어린이 수) · <b>예약 마감</b>(자리가 다 찬 시간대 / 전체). 부스 카드에는 그 부스의 <b>예약 가능 석 · 예약 중 · 참여 중</b> 인원이 나와요. 숫자를 보고 붐비지 않는 부스부터 가 보세요. 상시운영 부스는 <b>방문 대기자</b>·<b>혼잡도</b>를 봐 주세요.'],
     ['✋', '한 어린이당 <b>같은 시간대 ' + per + '개</b>' + (tot ? ', <b>동시에 ' + tot + '개</b>까지 예약할 수 있어요. 앞 수업에 출석하거나 수업이 끝나면 다음 예약이 가능해요.' : '까지 예약할 수 있어요.')],
     ['🚶', '<b>상시운영 부스</b>는 시간 예약이 아니라 예약시스템에 <b>등록 후 선착순 진행</b>이에요. 부스에 온 순서대로 들어가요.'],
     ['🏃', '<b>현장접수 부스</b>는 이 화면에서 예약을 받지 않아요. 부스에 가서 <b>직접 접수</b>해 주세요.'],
@@ -3116,7 +3118,7 @@ function renderGuidePage() {
     <div class="howto-toc"><a href="#h1">① 접수처</a><a href="#h2">② 부스 고르기</a><a href="#h3">③ 예약하기</a><a href="#h4">④ 결과</a>${hasAlways ? '<a href="#h5">⑤ 상시운영</a>' : ''}<a href="#h6">⑥ 내 예약</a><a href="#h7">⑦ 체험·출석</a><a href="#h8">⑧ 별점</a><a href="#h9">자주 묻는 질문</a></div>
     ${step('①', '<span id="h1"></span>접수처에서 먼저', `<p>행사장 접수처의 <b>종이 등록부에 서명</b>한 뒤 이 예약 홈페이지를 엽니다. 처음 열면 이용 안내가 뜨는데, <b>두 칸을 체크</b>해야 시작됩니다.</p><p class="tip">예약은 ${multi ? '날짜마다 ' : ''}오전반 <b>${esc(am)}</b>, 오후반 <b>${esc(pm)}</b>에 열립니다. 그 전에는 부스를 둘러볼 수만 있어요.</p>`)}
     ${step('②', '<span id="h2"></span>부스 고르기', `<p>첫 화면에 모든 부스가 카드로 나옵니다. <b>층 · 권역 · 분야 · 방식</b>으로 거르거나, 검색 칸에 부스 번호·프로그램 이름·<code>#태그</code>를 쳐 보세요. <b>예약 가능만</b>을 켜면 자리가 남은 부스만 보입니다.</p>
-      <ul><li>부스 번호의 <b>색 = 구역(층)</b>. 배치도(🗺)에서 같은 색 핀을 찾으면 됩니다.</li><li>카드 아래 시간대 칸의 색: <span class="swl"><i class="sw ok"></i>초록 = 여유</span> <span class="swl"><i class="sw warn"></i>주황 = 잔여 30% 이하</span> <span class="swl"><i class="sw full"></i>빨강 = 마감(대기 가능)</span> <span class="swl"><i class="sw gray"></i>회색 = 종료</span></li><li>첫 화면 맨 위 카드(시간대 수): <b>예약 가능 n개</b>(예약할 수 있는 시간대, 상시운영 부스 포함) · <b>현재 참여 n개</b>(지금 진행 중인 수업, 옆에 참여 어린이 수) · <b>마감 n개 / 전체</b>(자리가 다 찬 시간대).</li><li>시간대 칸 위의 <b>참여 현황</b>: <b>예약 가능</b>(지금 남은 자리) · <b>예약 중</b>(예약했지만 아직 안 온 어린이) · <b>참여 중</b>(지금 진행 중인 수업에 출석한 어린이, 강사가 출석을 확인하면 올라가요). 숫자를 보고 <b>붐비지 않는 부스부터</b> 가 보세요. 상시운영 부스는 방문 대기자·혼잡도로 봅니다.</li><li>카드를 누르면 설명·시간대 전체가 보이는 <b>부스 페이지</b>로 갑니다. 부스에 붙은 QR을 찍어도 바로 그 페이지예요.</li></ul>`)}
+      <ul><li>부스 번호의 <b>색 = 구역(층)</b>. 배치도(🗺)에서 같은 색 핀을 찾으면 됩니다.</li><li>카드 아래 시간대 칸의 색: <span class="swl"><i class="sw ok"></i>초록 = 여유</span> <span class="swl"><i class="sw warn"></i>주황 = 잔여 30% 이하</span> <span class="swl"><i class="sw full"></i>빨강 = 마감(대기 가능)</span> <span class="swl"><i class="sw gray"></i>회색 = 종료</span></li><li>첫 화면 맨 위 카드(시간대 수): <b>예약 가능 시간대 n개</b>(예약할 수 있는 시간대, 상시운영 부스 포함) · <b>현재 참여 n개</b>(지금 진행 중인 수업, 옆에 참여 어린이 수) · <b>예약 마감 n개 / 전체</b>(자리가 다 찬 시간대).</li><li>시간대 칸 위의 <b>참여 현황</b>: <b>예약 가능</b>(지금 남은 자리) · <b>예약 중</b>(예약했지만 아직 안 온 어린이) · <b>참여 중</b>(지금 진행 중인 수업에 출석한 어린이, 강사가 출석을 확인하면 올라가요). 숫자를 보고 <b>붐비지 않는 부스부터</b> 가 보세요. 상시운영 부스는 방문 대기자·혼잡도로 봅니다.</li><li>카드를 누르면 설명·시간대 전체가 보이는 <b>부스 페이지</b>로 갑니다. 부스에 붙은 QR을 찍어도 바로 그 페이지예요.</li></ul>`)}
     ${step('③', '<span id="h3"></span>예약하기 (수업형 부스)', `<ol><li>부스 페이지에서 <b>시간대</b>를 고릅니다 (마감이면 '대기'로 신청 가능).</li><li><b>보호자(인솔자) 이름 · 휴대폰</b>을 적고, <b>참가 어린이</b>를 [＋ 어린이 추가]로 넣습니다 (이름·학년, 소속). 형제·학급 전체를 한 번에 넣어도 돼요.</li><li>학생이 직접 하려면 위의 <b>[🙋 학생 본인이 등록]</b>으로 바꾸고 <b>본인 휴대폰(예약 확인 번호)</b>을 적습니다. 보호자 휴대폰은 선택이에요(같은 번호여도 돼요).</li><li>개인정보 동의에 체크하고 <b>[예약하기]</b>.</li></ol>
       <p class="tip">한 어린이는 <b>같은 시간대 1개</b>, <b>동시에 ${max}개</b>까지 예약할 수 있어요. 출석하거나 수업이 끝나면 다시 예약할 수 있습니다. 화면 위 <b>'예약 가능 n개 남음'</b> 표시가 빨간색이면 한도에 찬 거예요.</p>
       <p class="tip geo" data-guide-geo>📍 <b>[예약하기]를 누르면 휴대폰이 위치 사용을 물어요 → '허용'</b>을 눌러 주세요. ${geoOn() ? `예약은 <b>${esc(geoPlaceText())}</b>에서만 돼요.` : `행사 당일에는 <b>${esc(geoPlaceText())}</b>에서만 예약되도록 바뀔 수 있어요.`} 위치는 확인에만 쓰고 저장하지 않아요. 거부했다면 <a href="#h9">아래 자주 묻는 질문</a>을 보세요.</p>`)}
@@ -3154,7 +3156,7 @@ function render() {
   schedule();
 }
 function updateView() {
-  if ($('#guide-modal [data-ptotal]')) updatePTotal(); // 이용 안내 창이 떠 있으면 그 안의 참여 현황도
+  updatePTotal(); // 방문객 화면 맨 위(첫 화면·부스·배치도·내 예약·사용 안내)와 이용 안내 창의 전체 참여 현황
   if (S.view === 'home') updateHome();
   else if (S.view === 'booth') updateBooth();
   else if (S.view === 'tv') updateTV();
