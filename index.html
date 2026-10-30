@@ -93,6 +93,10 @@ body::before{content:'';position:fixed;top:0;left:0;right:0;height:5px;z-index:7
 .tag.alw{background:var(--neutral-soft);color:var(--neutral)}
 .tag.ons{background:#FDE9D7;color:#A3521A}
 .no.onsite{background:#F28C3A;color:#fff}
+.bst{display:inline-block;font-weight:800;font-size:.86em;border-radius:999px;padding:.05em .7em;margin-left:.4em;white-space:nowrap;background:#F3E1E1;color:#8A1F1F}
+.bst-line{display:block;font-size:14px;line-height:1.55;color:#5A2A2A;background:#FBEDED;border:1px solid #E7B9B9;border-radius:10px;padding:9px 12px}.bst-line b{color:#8A1F1F}
+.bst-ctrl .seg button.soldout.on,.bst-ctrl .seg button.closed.on{background:#8A1F1F}.bst-ctrl .seg button.open.on{background:var(--ok)}
+.tv-always.tv-bst{background:#F3E1E1;color:#8A1F1F;font-weight:700}
 .onsite-line{display:block;font-size:13px;line-height:1.55;color:var(--fg-muted);background:#FFF3EA;border:1px dashed #F2B48C;border-radius:10px;padding:9px 12px}.onsite-line b{color:var(--fg)}
 .slots{display:grid;grid-template-columns:repeat(auto-fit,minmax(54px,1fr));gap:6px}
 .slot{border-radius:8px;padding:6px 4px;text-align:center;line-height:1.15;border:2px solid transparent}
@@ -746,6 +750,8 @@ body.phone .app{width:393px;max-width:100%;height:min(852px,calc(100vh - var(--c
 .pin.zc.ok,.pin.zc.lv-ok{--dot:var(--ok)}.pin.zc.warn,.pin.zc.lv-warn{--dot:var(--warn)}.pin.zc.full,.pin.zc.lv-full{--dot:var(--full)}
 .pin.zc.ok::after,.pin.zc.warn::after,.pin.zc.full::after,.pin.zc[class*=" lv-"]::after{display:block}
 .pin.zc.past,.pin.zc.closed,.pin.always.closed{opacity:.45}
+.pin.bst{opacity:.5;filter:grayscale(.7)}.pin.bst::before{content:'마감';position:absolute;left:50%;bottom:-1.25em;transform:translateX(-50%);font-size:max(10px,.36em);line-height:1.3;padding:0 .4em;border-radius:4px;background:#5A2A2A;color:#fff;white-space:nowrap;font-weight:800}
+.map-row .pin.bst::before{display:none}
 .legend b{color:var(--fg);font-weight:700}.legend i.dot{border-radius:50%}
 .map-zones .zl{color:var(--z);font-weight:700}.map-zones .zl i{background:var(--z);border-radius:50%}
 </style>
@@ -828,7 +834,7 @@ function applyDay(st) {
   if (!st.allBooths) st.allBooths = st.booths || [];
   st.allBooths.forEach(b => { if (b.days) { const v = b.days[S.day]; b.off = !v; if (v) Object.assign(b, v); } });
   st.booths = st.allBooths.filter(b => !b.off);
-  (st.booths || []).forEach(b => { if (b.countsByDate) b.counts = b.countsByDate[S.day] || {}; });
+  (st.booths || []).forEach(b => { if (b.countsByDate) b.counts = b.countsByDate[S.day] || {}; b.state = ((st.bstate || {})[S.day] || {})[String(b.no)] || ''; }); // 부스 운영 상태는 날짜별
   if (st.sessionsByDate) st.sessions = st.sessionsByDate[S.day] || st.sessions;
   if (st.event) st.event.date = S.day; // isEventDay(now): 보는 날짜가 오늘일 때만 '진행 중 / 종료' 판정
 }
@@ -1365,6 +1371,23 @@ function alwaysCountText(b, html) {
  *  절반 미만 = 여유 · 수용 인원 미만 = 보통 · 수용 인원 이상 = 혼잡 (한 차례 이상 기다림). 수용 인원이 비어 있으면 표시하지 않음
  */
 const CONG_T = { ok: '여유', warn: '보통', full: '혼잡' };
+/** 부스 운영 상태 (모든 부스 · 날짜별): 담당자·운영자가 [마감 (재료 소진)] · [운영 마감]을 누르면 그날 새 예약·등록이 막히고 화면 곳곳에 표시됨 */
+const BST_T = { soldout: '마감 · 재료 소진', closed: '운영 마감' };
+const bstHTML = b => b && b.state && BST_T[b.state] ? `<span class="bst" title="부스 담당자가 표시한 오늘 운영 상태">⛔ ${BST_T[b.state]}</span>` : '';
+const bstLineHTML = b => `<div class="bst-line">⛔ <b>오늘 ${b.state === 'soldout' ? '재료가 모두 떨어져 마감' : '운영을 마감'}했어요</b> · 새 예약·등록은 받지 않아요. 다른 부스를 둘러봐 주세요.</div>`;
+function bstCtrlHTML(b) {
+  const cur = b.state || '';
+  const opt = [['', '운영 중', 'open'], ['soldout', '마감 (재료 소진)', 'soldout'], ['closed', '운영 마감', 'closed']];
+  return `<div class="cong-ctrl bst-ctrl" data-bst-ctrl><span class="t">부스 운영 상태 <small>(${esc(fmtDay(S.day) || '오늘')} · 마감이면 새 예약·등록을 받지 않음)</small></span><span class="seg">${opt.map(([v, t, c]) => `<button type="button" class="${c}${cur === v ? ' on' : ''}" data-action="bst-set" data-booth="${b.no}" data-v="${v}" aria-pressed="${cur === v}">${t}</button>`).join('')}</span><span class="note">방문객 카드·부스 페이지·배치도·TV에 1분 안에 보입니다. 이미 받은 예약과 [＋ 현장 등록]은 그대로예요.</span></div>`;
+}
+async function setBst(boothNo, v) {
+  const b = booth(boothNo); const label = v ? (v === 'soldout' ? '마감 (재료 소진)' : '운영 마감') : '운영 중';
+  if (v && !window.confirm(boothNo + '번 부스를 "' + label + '"으로 표시할까요?\n' + (fmtDay(S.day) || '오늘') + ' 하루 동안 방문객의 새 예약·대기·방문 등록이 막힙니다 (이미 받은 예약은 그대로). 다시 [운영 중]을 누르면 풀립니다.')) return;
+  const host = $('[data-bst-ctrl]'); if (host) host.classList.add('busy');
+  try { await rpc('setBoothState', S.admin.pin, boothNo, v, S.day || ''); toast(boothNo + '번 부스: ' + label);
+    if (b) b.state = v; await refresh();
+  } catch (e) { toast(e.message || '저장하지 못했습니다', 'err'); if (host) host.classList.remove('busy'); }
+}
 function alwaysLevel(b) {
   if (!b || (b.mode !== ALWAYS && b.mode !== ONSITE)) return null;
   if (b.cong && CONG_T[b.cong]) return { k: b.cong, t: CONG_T[b.cong], cap: Number(b.cap) || 0, w: alwaysCounts(b).wait, manual: true }; // 담당자가 직접 정한 혼잡도
@@ -1390,9 +1413,9 @@ function cardHTML(b, now) {
     <div class="booth-head"><div class="no${always ? ' always' : onsite ? ' onsite' : ''}${zc(b.floor)}">${b.no}</div>
       <div class="booth-title"><h3>${esc(b.name)}</h3><p class="meta"><span>${esc(b.org)}</span>${b.floor ? `<span class="tag floor${zc(b.floor)}">${esc(placeText(b))}</span>` : ''}<span class="tag">${esc(b.field)}</span><span class="tag ${always ? 'alw' : onsite ? 'ons' : 'cls'}">${esc(b.mode)}</span></p></div></div>
     ${tagsHTML(b)}${b.desc ? `<p class="booth-desc">${esc(b.desc)}</p>` : ''}
-    ${onsite ? `<div class="onsite-line"><b>현장접수 프로그램</b> · 예약 없이 부스에 가서 직접 접수해요${congHTML(b)}</div>` : always ? `<div class="always-line"><b>등록 후 선착순 진행</b> · ${alwaysCountText(b, true)}${congHTML(b, true)}</div>` : slotChipsHTML(b, now)}
-    <div class="booth-foot">${onsite ? `<span class="avail">예약 없음 · 부스에서 현장접수</span>` : always ? `<span class="avail">${alClosedText() ? esc(alClosedText()) : alwaysLevel(b) ? '동시 수용 ' + alwaysLevel(b).cap + '명 · 부스 도착 순 입장' : '정원 제한 없음 · 등록 후 참여'}</span>` : sum.total === 0 ? `<span class="avail">${sum.closed ? esc(closedNote(b.slots)) : '오늘 운영 종료'}</span>` : `<span class="avail${sum.left === 0 ? ' full' : ''}">${sum.left === 0 ? '<b>전 시간대 마감</b>' : '잔여 <b>' + sum.left + '석</b> · ' + sum.open + '개 시간대'}${sum.closed ? ' · ' + esc(closedNote(b.slots)) : ''}</span>`}
-      <span class="btn card-cta ${onsite ? 'ons' : always ? 'alw' : 'cls'}${!onsite && !always && (sum.total === 0 || sum.left === 0) ? ' off' : always && alClosedText() ? ' off' : ''}">${onsite ? '부스 안내 보기' : always ? '방문 등록' : '예약하기'}</span></div>
+    ${b.state ? bstLineHTML(b) : onsite ? `<div class="onsite-line"><b>현장접수 프로그램</b> · 예약 없이 부스에 가서 직접 접수해요${congHTML(b)}</div>` : always ? `<div class="always-line"><b>등록 후 선착순 진행</b> · ${alwaysCountText(b, true)}${congHTML(b, true)}</div>` : slotChipsHTML(b, now)}
+    <div class="booth-foot">${b.state ? `<span class="avail">오늘 새 예약·등록 없음 · 예약한 분은 내 예약 확인</span>` : onsite ? `<span class="avail">예약 없음 · 부스에서 현장접수</span>` : always ? `<span class="avail">${alClosedText() ? esc(alClosedText()) : alwaysLevel(b) ? '동시 수용 ' + alwaysLevel(b).cap + '명 · 부스 도착 순 입장' : '정원 제한 없음 · 등록 후 참여'}</span>` : sum.total === 0 ? `<span class="avail">${sum.closed ? esc(closedNote(b.slots)) : '오늘 운영 종료'}</span>` : `<span class="avail${sum.left === 0 ? ' full' : ''}">${sum.left === 0 ? '<b>전 시간대 마감</b>' : '잔여 <b>' + sum.left + '석</b> · ' + sum.open + '개 시간대'}${sum.closed ? ' · ' + esc(closedNote(b.slots)) : ''}</span>`}
+      <span class="btn card-cta ${onsite ? 'ons' : always ? 'alw' : 'cls'}${b.state || (!onsite && !always && (sum.total === 0 || sum.left === 0)) ? ' off' : always && alClosedText() ? ' off' : ''}">${b.state ? '오늘 마감 · 안내 보기' : onsite ? '부스 안내 보기' : always ? '방문 등록' : '예약하기'}</span></div>
   </article>`;
 }
 
@@ -1436,7 +1459,11 @@ function updateBooth() {
   const now = kstNow();
   const always = b.mode === ALWAYS, onsite = b.mode === ONSITE;
   let body = '', note = '';
-  if (onsite) {
+  if (b.state) { // 마감(재료 소진·운영 마감): 시간대·폼 없이 안내만
+    body = bstLineHTML(b);
+    note = `<p class="note">부스 담당자가 오늘 운영을 마감으로 표시했습니다. 이미 예약한 분은 <b>내 예약</b>을 확인하거나 부스·안내 데스크에 문의해 주세요.</p>`;
+    const rh = $('[data-rsv]'); if (rh && rh.innerHTML) rh.innerHTML = '';
+  } else if (onsite) {
     body = `<div class="onsite-line" style="font-size:15px">이 프로그램은 <b>현장접수</b>로 운영됩니다. <b>예약 없이</b> 부스에 가서 직접 접수해 주세요.${congHTML(b)}</div>`;
     note = `<p class="note">이 화면에서는 예약·방문 등록을 받지 않습니다${b.floor || b.pos ? ' — 위치는 위의 📍 표시와 배치도를 참고하세요' : ''}. 접수 방법·정원은 부스 운영기관(${esc(b.org)})이 현장에서 안내합니다.</p>`;
   } else if (always) {
@@ -1552,7 +1579,7 @@ function showKidPaste() {
 function renderRsvForm() {
   const host = $('[data-rsv]'); const b = booth(S.boothNo);
   if (!host || !b) return;
-  if (b.mode === ONSITE) { host.innerHTML = ''; return; } // 현장접수: 예약 폼 없음
+  if (b.mode === ONSITE || b.state) { host.innerHTML = ''; return; } // 현장접수·마감 부스: 예약 폼 없음
   const me = loadMe();
   const grades = S.status.grades || [];
   const known = grades.indexOf(me.grade) > -1;
@@ -1639,6 +1666,8 @@ function renderCta() {
   if (S.rsv.busy) {
     html = `<button type="button" class="btn big" disabled><span class="spin" aria-hidden="true"></span> 접수 중… 잠시만요</button>` +
       (S.rsv.retry ? `<div class="retry"><span class="spin" aria-hidden="true"></span><span>접속이 많아 다시 시도 중입니다 (${S.rsv.retry.n}/${RETRY_DELAYS.length}) — 화면을 닫지 마세요</span></div>` : '');
+  } else if (b.state) {
+    html = `<span class="btn big" aria-disabled="true">⛔ 오늘 ${esc(BST_T[b.state] || '마감')} — 다른 부스를 둘러봐 주세요</span>`;
   } else if (b.mode === ONSITE) {
     html = (posOf(b) || mapOfFloor(b.floor)) ? `<a class="btn big primary" href="${attr(WEB ? WEB + '?page=map&booth=' + b.no : '#')}" data-action="map" data-no="${b.no}">현장접수 프로그램 · 배치도에서 부스 위치 보기</a>` : `<span class="btn big" aria-disabled="true">현장접수 프로그램 · 예약 없이 부스로 오세요</span>`;
   } else if (b.mode === ALWAYS && alClosedText()) {
@@ -1729,7 +1758,7 @@ async function submitRsv(opts) {
   }
   renderCta();
   showResult(Object.assign({ kind: 'fail', booth: b.no, boothName: b.name, slot: payload.slot || ALWAYS, canWait: b.mode !== ALWAYS && !wait && res && res.code === 'FULL' && !!S.rsv.slot && (res.waitMax == null || (res.waiting || 0) < res.waitMax) }, res || { code: 'ERR', message: '접수되지 않았습니다.' }));
-  if (res && (res.code === 'FULL' || res.code === 'WAITFULL' || res.code === 'CLOSED' || res.code === 'PAST' || res.code === 'SLOT')) { try { S.status = await rpc('getPublicStatus'); onStatus(S.status); updateView(); } catch (x) { } }
+  if (res && (res.code === 'BSTATE' || res.code === 'FULL' || res.code === 'WAITFULL' || res.code === 'CLOSED' || res.code === 'PAST' || res.code === 'SLOT')) { try { S.status = await rpc('getPublicStatus'); onStatus(S.status); updateView(); } catch (x) { } }
 }
 /** 서버 반영(10초 캐시) 전에 이 화면의 숫자를 먼저 맞춤 */
 const PATCHES = []; // 이 화면에서 방금 한 예약(시각·부스·시간대·상태) — 서버 현황이 그보다 오래된 직전본이면 다시 얹음
@@ -2313,7 +2342,7 @@ function renderMap() {
   updateMap();
 }
 /** 배치도 핀: 바탕 = 구역 색, 오른쪽 위 점 = 예약 상태(상시운영은 혼잡도) */
-function pinClass(b, now) { const alOff = b.mode === ALWAYS && !!alClosedText(); const L = alOff ? null : alwaysLevel(b); return markerClass(b, now) + zc(b.floor) + (L ? ' lv-' + L.k : ''); }
+function pinClass(b, now) { if (b.state) return markerClass(b, now) + zc(b.floor) + ' bst'; const alOff = b.mode === ALWAYS && !!alClosedText(); const L = alOff ? null : alwaysLevel(b); return markerClass(b, now) + zc(b.floor) + (L ? ' lv-' + L.k : ''); }
 function markerClass(b, now) {
   if (b.mode === ALWAYS) return alClosedText() ? 'always closed' : 'always'; // 상시운영 공개 전·중지 = 흐린 핀
   if (b.mode === ONSITE) return 'onsite';
@@ -2335,16 +2364,21 @@ function updateMap() {
   // 핀 크기: 약도의 자리 상자에 맞춰 키움 (최소 26px). 상자 안에 번호가 들어가 보이도록
   const canvasPx = Math.max(200, (wrap.clientWidth || 360) * (S.map.zoom || 1));
   const pinPx = p => { const wpx = canvasPx * (p[3] || 5) / 100, hpx = canvasPx * (m.h / m.w) * (p[4] || 5) / 100; return Math.max(26, Math.round(Math.min(wpx, hpx) * 0.86)); };
+  // 같은 자리(배치도 위치)에 부스가 여럿이면 핀을 나란히 놓아 번호가 모두 보이고 각각 누를 수 있게 (예: 1-3 자리의 50·52번)
+  const samePos = {}; placed.forEach(b => { (samePos[b.pos] = samePos[b.pos] || []).push(b); });
+  Object.keys(samePos).forEach(k => samePos[k].sort((a, c) => a.no - c.no));
   wrap.innerHTML = `<div class="map-canvas" style="aspect-ratio:${m.w}/${m.h};width:${(S.map.zoom || 1) * 100}%"><div class="fp">${m.svg || ''}</div>${placed.map(b => {
     const p = posOf(b); const cls = markerClass(b, now); const sum = b.mode !== CLASS ? null : boothSummary(b, now);
-    const tip = b.no + '. ' + b.name + ' (' + (b.pos || '') + ') · ' + (b.mode === ONSITE ? '현장접수 · 예약 없이 부스에서 접수' + (alwaysLevel(b) ? ' · 혼잡도 ' + alwaysLevel(b).t : '') : b.mode === ALWAYS ? '상시운영' + (alClosedText() ? ' · ' + alClosedText() : alwaysLevel(b) ? ' · 혼잡도 ' + alwaysLevel(b).t : '') : sum.total === 0 ? (sum.closed ? '공개 전' : '운영 종료') : sum.left === 0 ? '전 시간대 마감' : '잔여 ' + sum.left + '석');
-    const px = pinPx(p), hl = S.map.hl === b.no;
-    return `<button type="button" class="pin ${pinClass(b, now)}${hl ? ' hl' : ''}" style="left:${p[1]}%;top:${p[2]}%;width:${px}px;height:${px}px;font-size:${Math.round(px * 0.42)}px" data-action="open-booth" data-no="${b.no}" title="${attr(tip)}" aria-label="${attr(tip)}"><span>${b.no}</span></button>`;
+    const grp = samePos[b.pos] || [b], gi = grp.indexOf(b), gn = grp.length;
+    const tip = b.no + '. ' + b.name + ' (' + (b.pos || '') + (gn > 1 ? ' · 같은 자리 ' + grp.map(x => x.no + '번').join('·') : '') + ') · ' + (b.state ? '오늘 ' + BST_T[b.state] : b.mode === ONSITE ? '현장접수 · 예약 없이 부스에서 접수' + (alwaysLevel(b) ? ' · 혼잡도 ' + alwaysLevel(b).t : '') : b.mode === ALWAYS ? '상시운영' + (alClosedText() ? ' · ' + alClosedText() : alwaysLevel(b) ? ' · 혼잡도 ' + alwaysLevel(b).t : '') : sum.total === 0 ? (sum.closed ? '공개 전' : '운영 종료') : sum.left === 0 ? '전 시간대 마감' : '잔여 ' + sum.left + '석');
+    const px = gn > 1 ? Math.max(24, Math.round(pinPx(p) * Math.min(1, 1.5 / gn))) : pinPx(p), hl = S.map.hl === b.no;
+    const off = gn > 1 ? Math.round((gi - (gn - 1) / 2) * (px * 1.25 + 4)) : 0; // 같은 자리: 가운데를 기준으로 좌우로 나란히
+    return `<button type="button" class="pin ${pinClass(b, now)}${hl ? ' hl' : ''}${gn > 1 ? ' grp' : ''}" style="left:${off ? `calc(${p[1]}% + ${off}px)` : p[1] + '%'};top:${p[2]}%;width:${px}px;height:${px}px;font-size:${Math.round(px * 0.42)}px" data-action="open-booth" data-no="${b.no}" title="${attr(tip)}" aria-label="${attr(tip)}"><span>${b.no}</span></button>`;
   }).join('')}</div>`;
   const list = $('[data-map-list]');
   if (list) {
     const row = b => { const cls = markerClass(b, now); const sum = b.mode !== CLASS ? null : boothSummary(b, now);
-      const st = b.mode === ONSITE ? '현장접수 · 예약 없이 부스에서 접수' + (alwaysLevel(b) ? ' · 혼잡도 ' + alwaysLevel(b).t : '') : b.mode === ALWAYS ? (alClosedText() ? '상시운영 · ' + esc(alClosedText()) : '상시운영 · 등록 후 선착순 진행' + (alwaysLevel(b) ? ' · 혼잡도 ' + alwaysLevel(b).t + ' (수용 ' + alwaysLevel(b).cap + '명)' : '')) : sum.total === 0 ? (sum.closed ? esc(closedNote(b.slots)) : '오늘 운영 종료') : sum.left === 0 ? '전 시간대 마감' : '잔여 ' + sum.left + '석 · ' + sum.open + '개 시간대';
+      const st = b.state ? '⛔ 오늘 ' + BST_T[b.state] : b.mode === ONSITE ? '현장접수 · 예약 없이 부스에서 접수' + (alwaysLevel(b) ? ' · 혼잡도 ' + alwaysLevel(b).t : '') : b.mode === ALWAYS ? (alClosedText() ? '상시운영 · ' + esc(alClosedText()) : '상시운영 · 등록 후 선착순 진행' + (alwaysLevel(b) ? ' · 혼잡도 ' + alwaysLevel(b).t + ' (수용 ' + alwaysLevel(b).cap + '명)' : '')) : sum.total === 0 ? (sum.closed ? esc(closedNote(b.slots)) : '오늘 운영 종료') : sum.left === 0 ? '전 시간대 마감' : '잔여 ' + sum.left + '석 · ' + sum.open + '개 시간대';
       return `<button type="button" class="map-row${S.map.hl === b.no ? ' hl' : ''}" data-action="open-booth" data-no="${b.no}"><span class="pin ${pinClass(b, now)}"><span>${b.no}</span></span><span class="mr-name">${esc(b.name)}<small>${esc(b.org)}${b.pos ? ' · ' + esc(b.pos) : ' · 자리 추후 안내'}</small></span><span class="mr-st ${cls}">${st}</span></button>`; };
     const groups = (m.floors || []).map(f => { const bs = placed.concat(unplaced).filter(b => b.floor === f).sort((a, b) => a.no - b.no); return bs.length ? `<h3>${esc(f)} <small>${bs.length}개 부스</small></h3>${bs.map(row).join('')}` : ''; }).join('');
     list.innerHTML = groups || `<div class="empty">이 층에 배정된 부스가 없습니다.</div>`;
@@ -2533,7 +2567,7 @@ function renderMatrix(d, now) {
   const slots = allSlots(booths.filter(b => b.mode === CLASS));
   const head = `<tr><th>부스</th>${slots.map(s => `<th class="${phaseOf(s, now) === 'now' ? 'now' : ''}" style="text-align:center">${esc(s)}</th>`).join('')}</tr>`;
   const rows = booths.map(b => {
-    const name = `<td><span class="bno${zc(b.floor)}">${b.no}</span><span class="bname">${esc(b.name)}</span><span class="org">${esc(b.org)}${b.floor ? ' · ' + esc(placeText(b)) : ''}</span></td>`;
+    const name = `<td><span class="bno${zc(b.floor)}">${b.no}</span><span class="bname">${esc(b.name)}${bstHTML(b)}</span><span class="org">${esc(b.org)}${b.floor ? ' · ' + esc(placeText(b)) : ''}</span></td>`;
     if (b.mode === ALWAYS) {
       return `<tr>${name}<td class="cell always" colspan="${slots.length}" data-action="pick" data-booth="${b.no}" data-slot="${ALWAYS}">상시운영 · ${alwaysCountText(b, true)}${congHTML(b, true)}</td></tr>`;
     }
@@ -2598,7 +2632,7 @@ function renderList(d, now) {
   const bulk = bulkP + (bulkable.length ? `<span class="bulk-note">끝난 시간대 미처리 ${bulkable.length}건 <button type="button" data-action="bulk-absent" data-booth="${attr(f.booth)}" data-slot="${attr(f.slot)}" data-n="${bulkable.length}">모두 결석 처리</button></span>` : '');
   if (f.booth || f.slot) {
     const b = booths.find(x => String(x.no) === f.booth);
-    noteHost.innerHTML = `<div class="filter-note">${b ? esc(b.no + '. ' + b.name) : ''} ${f.slot ? esc(f.slot) : ''} 명단 <button type="button" data-action="clear-filter">전체 보기</button>${b ? `<button type="button" class="walkin" data-action="walkin" data-booth="${b.no}" title="예약 없이 온 학생을 이 부스 명단에 바로 넣고 출석 처리">＋ 현장 등록</button>` : ''}</div>` + (b && b.mode !== CLASS ? congCtrlHTML(b) : '') + bulk;
+    noteHost.innerHTML = `<div class="filter-note">${b ? esc(b.no + '. ' + b.name) : ''} ${f.slot ? esc(f.slot) : ''} 명단 <button type="button" data-action="clear-filter">전체 보기</button>${b ? `<button type="button" class="walkin" data-action="walkin" data-booth="${b.no}" title="예약 없이 온 학생을 이 부스 명단에 바로 넣고 출석 처리">＋ 현장 등록</button>` : ''}</div>` + (b ? bstCtrlHTML(b) : '') + (b && b.mode !== CLASS && !b.state ? congCtrlHTML(b) : '') + bulk;
   } else noteHost.innerHTML = '';
   const listHost = $('[data-list]');
   if ($('#app').classList.contains('narrow')) {
@@ -2797,7 +2831,7 @@ function updateTV() {
   const rowsPerCol = Math.max(half, 1);
   $('[data-tv-body]').innerHTML = cols.map(col => `<div class="tv-col" style="--rows:${rowsPerCol};--cols:${slots.length}">
     <div class="tv-row head"><span></span><span>부스</span>${slots.map(s => `<span class="tc${phaseOf(s, now) === 'now' ? ' now' : ''}">${esc(shortTime(s))}</span>`).join('')}</div>
-    ${col.map(b => `<div class="tv-row"><span class="tv-no${zc(b.floor)}">${b.no}</span>${S.tvDesc === true && b.desc ? `<span class="tv-name two"><span>${esc(b.name)}<small>${esc(b.org)}${b.pos ? ' · ' + esc(b.pos) : b.floor ? ' · ' + esc(b.floor) : ''}</small></span><span class="tv-desc">${esc(String(b.desc).replace(/\s+/g, ' '))}</span></span>` : `<span class="tv-name">${esc(b.name)}<small>${esc(b.org)}${b.pos ? ' · ' + esc(b.pos) : b.floor ? ' · ' + esc(b.floor) : ''}</small></span>`}${b.mode === ONSITE ? `<span class="tv-always"><span>현장접수 · 예약 없이 부스에서 접수</span><span class="tv-alw-n">${congHTML(b)}<span class="j">참여 <b>${alwaysCounts(b).joined}</b></span></span></span>` : b.mode === ALWAYS ? `<span class="tv-always"><span class="tv-alw-t">상시운영 · 등록 후 선착순 진행</span><span class="tv-alw-n">${congHTML(b, true)}${alwaysCheck() ? `<span class="w">방문 대기자 <b>${alwaysCounts(b).wait}</b></span>` : ''}<span class="j">누적 참여 <b>${alwaysCounts(b).joined}</b></span></span></span>` : slots.map(s => {
+    ${col.map(b => `<div class="tv-row"><span class="tv-no${zc(b.floor)}">${b.no}</span>${S.tvDesc === true && b.desc ? `<span class="tv-name two"><span>${esc(b.name)}<small>${esc(b.org)}${b.pos ? ' · ' + esc(b.pos) : b.floor ? ' · ' + esc(b.floor) : ''}</small></span><span class="tv-desc">${esc(String(b.desc).replace(/\s+/g, ' '))}</span></span>` : `<span class="tv-name">${esc(b.name)}<small>${esc(b.org)}${b.pos ? ' · ' + esc(b.pos) : b.floor ? ' · ' + esc(b.floor) : ''}</small></span>`}${b.state ? `<span class="tv-always tv-bst"><span>⛔ 오늘 ${BST_T[b.state]}</span><span>다른 부스를 이용해 주세요</span></span>` : b.mode === ONSITE ? `<span class="tv-always"><span>현장접수 · 예약 없이 부스에서 접수</span><span class="tv-alw-n">${congHTML(b)}<span class="j">참여 <b>${alwaysCounts(b).joined}</b></span></span></span>` : b.mode === ALWAYS ? `<span class="tv-always"><span class="tv-alw-t">상시운영 · 등록 후 선착순 진행</span><span class="tv-alw-n">${congHTML(b, true)}${alwaysCheck() ? `<span class="w">방문 대기자 <b>${alwaysCounts(b).wait}</b></span>` : ''}<span class="j">누적 참여 <b>${alwaysCounts(b).joined}</b></span></span></span>` : slots.map(s => {
       if ((b.slots || []).indexOf(s) === -1) return `<span class="tc na">·</span>`;
       const i = slotInfo(b, s, now);
       return `<span class="tc ${i.cls}${i.phase === 'now' ? ' now' : ''}">${i.phase === 'past' ? '종료' : i.closed ? '공개전' : i.waitFull ? '마감' : i.full ? '대기' : i.left}</span>`;
@@ -2828,6 +2862,7 @@ function renderTVIntro(app) {
   updateTVIntro(true);
 }
 function tviAvailHTML(b, now) {
+  if (b.state) return `<div class="t">오늘 운영 상태</div><div class="tvi-big" style="color:#8A1F1F">⛔ ${esc(BST_T[b.state])}</div><div style="margin-top:.8vh;color:var(--fg-muted)">다른 부스를 이용해 주세요</div>`;
   if (b.mode === ONSITE) return `<div class="t">현장접수 프로그램</div><div class="tvi-big">예약 없이 부스에서 바로 접수</div>${congHTML(b) ? `<div style="margin-top:.8vh">${congHTML(b)}</div>` : ''}${alwaysCounts(b).joined ? `<div style="margin-top:.8vh">참여 <b>${alwaysCounts(b).joined}</b>명</div>` : ''}`;
   if (b.mode === ALWAYS) {
     const c = alwaysCounts(b), L = alwaysLevel(b), off = alClosedText();
@@ -3018,7 +3053,7 @@ function renderGuidePage() {
         <dt>"한도 초과"라고 나와요.</dt><dd>그 어린이가 이미 ${max}개를 들고 있어요. 하나를 다녀오거나(출석) 취소하면 다시 예약할 수 있습니다.</dd>
         <dt>내 예약이 안 보여요.</dt><dd>예약할 때 적은 이름·휴대폰과 똑같이 넣어야 해요. 하이픈(-)은 있어도 없어도 됩니다. 그래도 안 되면 안내 데스크에 이름이나 예약번호를 말씀하세요.</dd>
         <dt>글씨가 작아요.</dt><dd>화면 오른쪽 위 <b>가</b> 버튼을 누르면 큰 글씨로 바뀝니다.</dd>
-        <dt>휴대폰이 없는 학생은요?</dt><dd>부스에서 현장접수 또는 인솔 선생님이나 보호자 휴대폰으로 '함께 온 어린이'에 넣어 예약합니다.</dd>
+        <dt>휴대폰이 없는 학생은요?</dt><dd>인솔 선생님이나 보호자 휴대폰으로 '함께 온 어린이'에 넣어 예약합니다.</dd>
         <dt>개인정보는 어떻게 쓰이나요?</dt><dd>예약 확인·비상 연락·출석 확인에만 쓰고, 행사 뒤 정해진 기간이 지나면 지웁니다. 자세한 내용은 예약 화면의 [내용 보기].</dd>
       </dl></div></section>
     <p class="howto-foot"><a class="btn primary big" href="${attr(WEB || '#')}" data-action="home">전체 부스 보러 가기</a><button type="button" class="btn big" data-action="guide-open">이용 규칙(동의 내용) 다시 보기</button></p>
@@ -3239,6 +3274,7 @@ document.addEventListener('click', e => {
   else if (a === 'my-star') { setStar(Number(act.dataset.score)); }
   else if (a === 'my-rate-send') { sendRate(act.dataset.res); }
   else if (a === 'my-rate-close') { const g = /^g:/.test(S.my.rate); S.my.rate = ''; S.my.rateScore = 0; S.my.rateComment = ''; if (g) renderGroupView(true); else renderMyList(); }
+  else if (a === 'bst-set') { setBst(Number(act.dataset.booth), act.dataset.v || ''); }
   else if (a === 'my-reload') { act.disabled = true; act.textContent = '↻ 새로 보는 중…'; myLiveTick(true); }
   else if (a === 'my-kid') { S.my.kid = act.dataset.name || ''; S.my.rate = ''; renderGroupView(true); const h = $('[data-my-list]'); if (h) { try { h.scrollIntoView({ block: 'start', behavior: 'smooth' }); } catch (x) { } } }
   else if (a === 'go-staff') { e.preventDefault(); S.admin.staffPick = true; S.admin.staff = true; S.admin.f.booth = ''; S.admin.err = ''; go('admin'); }
