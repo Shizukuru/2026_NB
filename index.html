@@ -1599,7 +1599,7 @@ async function tryRoster(force) {
   r.kids.forEach(k => { if ($$('[data-kid]').length >= KIDS_MAX || have.indexOf(k.name) > -1) return; host.insertAdjacentHTML('beforeend', kidRowHTML({ name: k.name, grade: k.grade, org: k.org, on: true, roster: true }, grades)); have.push(k.name); added++; });
   S.rsv.leader = true; S.rsv.rosterFound = true; const lc = $('#rleader'); if (lc) lc.checked = true; // 사전 명단이 있으면 위 이름은 인솔자
   syncKidTools();
-  const note = $('[data-roster-note]'); if (note) { note.hidden = false; note.className = 'roster-note'; note.dataset.state = 'found'; note.innerHTML = `📋 사전 등록 명단 <b>${esc(r.group || '단체')}</b> ${r.kids.length}명을 불러왔어요${added < r.kids.length ? ' (' + (r.kids.length - added) + '명은 이미 있음)' : ''}. 안 온 어린이는 <b>✕로 빼 주세요</b>. <button type="button" class="btn small" data-action="roster-reload" title="명단에서 빠진 어린이를 다시 넣습니다">↺ 명단 다시 불러오기</button>`; }
+  const note = $('[data-roster-note]'); if (note) { note.hidden = false; note.className = 'roster-note'; note.dataset.state = 'found'; note.innerHTML = `📋 사전 등록 명단 <b>${esc(r.group || '단체')}</b> ${r.kids.length}명을 불러왔어요${added < r.kids.length ? ' (' + (r.kids.length - added) + '명은 이미 있음)' : ''}. 안 온 어린이는 <b>체크를 풀어 주세요</b>. <button type="button" class="btn small" data-action="roster-reload" title="명단에서 빠진 어린이를 다시 넣습니다">↺ 명단 다시 불러오기</button>`; }
   if (added) toast((force ? '사전 명단에서 ' : '사전 등록 명단 ') + added + '명을 불러왔습니다');
   return { found: true, added: added, total: r.kids.length };
 }
