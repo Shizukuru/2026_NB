@@ -620,7 +620,7 @@ button.slot-row:disabled{cursor:default}
 .kid-row.off input[type="text"],.kid-row.off select{opacity:.45}
 .kids .note{margin:0;font-size:12.5px}
 .leader-box{font-size:13.5px;line-height:1.4;align-items:flex-start}.leader-box input{margin-top:2px;flex:none}
-.op-preview{margin:8px 0 4px;padding:8px 12px;border-radius:10px;background:#FFF1E0;border:1.5px dashed #E08A1E;color:#6B3D00;font-size:13.5px;line-height:1.45}.op-preview .btn{margin-left:6px}.days.day-only .day{cursor:default}.apstats{padding-block:6px 0}.kid-tips{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:3px;font-size:13.5px;color:var(--fg-muted);line-height:1.4}.kid-tips b{color:var(--fg)}.roster-note.busy{background:var(--surface-2);color:var(--fg-muted)}.roster-note.muted{background:var(--surface-2);color:var(--fg-muted)}.roster-note .spin{display:inline-block;width:13px;height:13px;margin-right:6px;vertical-align:-2px;border:2px solid var(--accent);border-right-color:transparent;border-radius:50%;animation:rnspin .8s linear infinite}@keyframes rnspin{to{transform:rotate(360deg)}}.roster-note{font-size:13.5px;background:var(--accent-soft);color:var(--fg);border-radius:8px;padding:8px 10px;line-height:1.45}
+.op-preview{margin:8px 0 4px;padding:8px 12px;border-radius:10px;background:#FFF1E0;border:1.5px dashed #E08A1E;color:#6B3D00;font-size:13.5px;line-height:1.45}.op-preview .btn{margin-left:6px}.days.day-only .day{cursor:default}.apstats{padding-block:0 12px}.admin-live{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start}.admin-live>.stats{grid-template-columns:repeat(3,minmax(0,1fr));align-content:start}.admin-live>[hidden]{display:none}.admin-live:has(>[hidden]){grid-template-columns:1fr}.admin-live>.stats .note{font-size:12.5px}@media (max-width:900px){.admin-live{grid-template-columns:1fr}}.app.narrow .admin-live{grid-template-columns:1fr}.kid-tips{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:3px;font-size:13.5px;color:var(--fg-muted);line-height:1.4}.kid-tips b{color:var(--fg)}.roster-note.busy{background:var(--surface-2);color:var(--fg-muted)}.roster-note.muted{background:var(--surface-2);color:var(--fg-muted)}.roster-note .spin{display:inline-block;width:13px;height:13px;margin-right:6px;vertical-align:-2px;border:2px solid var(--accent);border-right-color:transparent;border-radius:50%;animation:rnspin .8s linear infinite}@keyframes rnspin{to{transform:rotate(360deg)}}.roster-note{font-size:13.5px;background:var(--accent-soft);color:var(--fg);border-radius:8px;padding:8px 10px;line-height:1.45}
 .group-list{display:grid;gap:6px;text-align:left;margin:4px 0}
 .group-list .g{display:flex;gap:8px;align-items:flex-start;font-size:14px;line-height:1.4;padding:8px 10px;border-radius:10px;background:var(--surface-2)}
 .group-list .g b{min-width:4em}.group-list .g.ok{background:var(--ok-soft)}.group-list .g.wait{background:var(--warn-soft)}.group-list .g.fail{background:var(--full-soft)}
@@ -1324,6 +1324,7 @@ function selOpts(values, allLabel) {
 function pTotalHTML() {
   const now = kstNow(); const today = isEventDay(now);
   const list = (S.status.booths || []).filter(b => b.mode === CLASS || b.mode === ALWAYS); if (!list.length) return '';
+  const onsite = (S.status.booths || []).filter(b => b.mode === ONSITE && !b.state).length; // 2026-11-02: 현장접수는 따로 짧게 (그날 운영 중인 곳 — 강사가 마감·운영 마감을 누르면 빠짐)
   let open = 0, alw = 0, running = 0, done = 0, join = 0;
   list.forEach(b => {
     if (b.mode === ALWAYS) { if (b.state) done++; else { open++; alw++; } return; }
@@ -1332,7 +1333,7 @@ function pTotalHTML() {
       if (b.state || i.full) done++; else open++; });
   });
   const card = (k, v, unit, sub, tip) => `<div class="stat ps-card" title="${attr(tip)}"><div class="k">${k}</div><div class="v">${v}${unit ? `<small>${unit}</small>` : ''}${sub ? `<small class="ps-sub">${sub}</small>` : ''}</div></div>`;
-  return card('예약 가능 시간대', open, '개', '', '예약할 수 있는 시간대 (아직 시작 안 했고 자리가 남은 수업 + 등록받는 상시운영 부스)') +
+  return card('예약 가능 시간대', open, '개', onsite ? '+ 현장접수 ' + onsite + '곳' : '', '예약할 수 있는 시간대 (아직 시작 안 했고 자리가 남은 수업 + 등록받는 상시운영 부스)' + (onsite ? ' · 현장접수 ' + onsite + '곳은 예약 없이 부스에서 바로 (마감하면 빠짐)' : '')) +
     (today ? card('현재 참여', running, '개', running ? '참여 ' + join + '명' : '', '지금 진행 중인 수업 시간대 수 · 참여 = 그 수업에 출석한 어린이 (강사가 출석을 누르면 올라가요)') : card('현재 참여', '-', '', '행사일부터', '지금 진행 중인 수업에 출석한 어린이')) +
     card('예약 마감', done, '개', '/ 전체 ' + (open + running + done) + '개', '자리가 다 찬 시간대 + 강사가 오늘 마감을 누른 부스 / 전체 = 아직 안 끝난 시간대(상시운영 포함)');
 }
@@ -2536,8 +2537,8 @@ function renderAdmin() {
         </div>
       </header>
       <section class="stats" data-stats></section>
-      <section class="stats pstats apstats" data-admin-pt hidden></section>
-      <section class="stats vstats" data-vstats hidden></section>
+      <div class="admin-live"><section class="stats pstats apstats" data-admin-pt hidden></section>
+      <section class="stats vstats" data-vstats hidden></section></div>
       <section class="sess-panel no-print" data-sess-panel></section>
       ${legendHTML()}
       <nav class="tabs" style="margin-top:10px"><button type="button" class="tab${S.admin.tab === 'matrix' ? ' on' : ''}" data-tab="matrix">현황표</button><button type="button" class="tab${S.admin.tab === 'list' ? ' on' : ''}" data-tab="list">예약 명단</button></nav>
