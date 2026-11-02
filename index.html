@@ -620,7 +620,7 @@ button.slot-row:disabled{cursor:default}
 .kid-row.off input[type="text"],.kid-row.off select{opacity:.45}
 .kids .note{margin:0;font-size:12.5px}
 .leader-box{font-size:13.5px;line-height:1.4;align-items:flex-start}.leader-box input{margin-top:2px;flex:none}
-.roster-note{font-size:13.5px;background:var(--accent-soft);color:var(--fg);border-radius:8px;padding:8px 10px;line-height:1.45}
+.kid-tips{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:3px;font-size:13.5px;color:var(--fg-muted);line-height:1.4}.kid-tips b{color:var(--fg)}.roster-note.busy{background:var(--surface-2);color:var(--fg-muted)}.roster-note.muted{background:var(--surface-2);color:var(--fg-muted)}.roster-note .spin{display:inline-block;width:13px;height:13px;margin-right:6px;vertical-align:-2px;border:2px solid var(--accent);border-right-color:transparent;border-radius:50%;animation:rnspin .8s linear infinite}@keyframes rnspin{to{transform:rotate(360deg)}}.roster-note{font-size:13.5px;background:var(--accent-soft);color:var(--fg);border-radius:8px;padding:8px 10px;line-height:1.45}
 .group-list{display:grid;gap:6px;text-align:left;margin:4px 0}
 .group-list .g{display:flex;gap:8px;align-items:flex-start;font-size:14px;line-height:1.4;padding:8px 10px;border-radius:10px;background:var(--surface-2)}
 .group-list .g b{min-width:4em}.group-list .g.ok{background:var(--ok-soft)}.group-list .g.wait{background:var(--warn-soft)}.group-list .g.fail{background:var(--full-soft)}
@@ -1585,9 +1585,12 @@ async function tryRoster(force) {
   const key = name.replace(/\s+/g, '') + '|' + phone;
   if (rosterAsked[key] && !force) return rosterAsked[key] === 'found' ? { found: true, added: 0, total: 0 } : { found: false, added: 0, total: 0 };
   rosterAsked[key] = true;
+  const curKey = () => (((($('#rname') || {}).value || '').trim()).replace(/\s+/g, '') + '|' + phoneDigits(($('#rphone') || {}).value || ''));
+  const prevNote = rosterNoteState('busy'); // 2026-11-02: 찾는 동안 '⏳ 사전 등록 명단을 찾는 중…' 표시
   let r = null;
-  try { r = await rpc('groupRoster', name, phone); } catch (x) { rosterAsked[key] = false; return null; }
-  if (!r || !r.kids || !r.kids.length) { if (S.rsv.leader && !S.rsv.rosterFound) { S.rsv.leader = false; const lc = $('#rleader'); if (lc) lc.checked = false; } return { found: false, added: 0, total: 0 }; }
+  try { r = await rpc('groupRoster', name, phone); } catch (x) { rosterAsked[key] = false; if (curKey() === key) rosterNoteState('err'); return null; }
+  if (curKey() !== key) { rosterNoteState(prevNote === 'found' ? 'restore' : 'hide'); if (!r || !r.kids || !r.kids.length) return { found: false, added: 0, total: 0 }; } // 찾는 사이 이름·번호를 바꿈 → 표시만 정리
+  if (!r || !r.kids || !r.kids.length) { if (S.rsv.leader && !S.rsv.rosterFound) { S.rsv.leader = false; const lc = $('#rleader'); if (lc) lc.checked = false; } if (curKey() === key) rosterNoteState(prevNote === 'found' ? 'restore' : ($$('[data-kid]').length ? 'hide' : 'none')); return { found: false, added: 0, total: 0 }; }
   rosterAsked[key] = 'found';
   const host = $('[data-kid-rows]'); if (!host) return null;
   const have = $$('[data-kid] .kid-name').map(i => i.value.trim()).filter(Boolean);
@@ -1596,9 +1599,20 @@ async function tryRoster(force) {
   r.kids.forEach(k => { if ($$('[data-kid]').length >= KIDS_MAX || have.indexOf(k.name) > -1) return; host.insertAdjacentHTML('beforeend', kidRowHTML({ name: k.name, grade: k.grade, org: k.org, on: true, roster: true }, grades)); have.push(k.name); added++; });
   S.rsv.leader = true; S.rsv.rosterFound = true; const lc = $('#rleader'); if (lc) lc.checked = true; // 사전 명단이 있으면 위 이름은 인솔자
   syncKidTools();
-  const note = $('[data-roster-note]'); if (note) { note.hidden = false; note.innerHTML = `📋 사전 등록 명단 <b>${esc(r.group || '단체')}</b> ${r.kids.length}명을 불러왔습니다${added < r.kids.length ? ' (' + (r.kids.length - added) + '명은 이미 목록에 있음)' : ''}. 오늘 안 온 어린이는 체크를 풀어 주세요. <button type="button" class="btn small" data-action="roster-reload" title="명단에서 빠진 어린이를 다시 넣습니다">↺ 명단 다시 불러오기</button>`; }
+  const note = $('[data-roster-note]'); if (note) { note.hidden = false; note.className = 'roster-note'; note.dataset.state = 'found'; note.innerHTML = `📋 사전 등록 명단 <b>${esc(r.group || '단체')}</b> ${r.kids.length}명을 불러왔어요${added < r.kids.length ? ' (' + (r.kids.length - added) + '명은 이미 있음)' : ''}. 안 온 어린이는 <b>✕로 빼 주세요</b>. <button type="button" class="btn small" data-action="roster-reload" title="명단에서 빠진 어린이를 다시 넣습니다">↺ 명단 다시 불러오기</button>`; }
   if (added) toast((force ? '사전 명단에서 ' : '사전 등록 명단 ') + added + '명을 불러왔습니다');
   return { found: true, added: added, total: r.kids.length };
+}
+/** 사전 명단 안내 줄 상태: busy(찾는 중) · none(없음) · err(확인 못 함) · hide · restore(찾기 전 '불러옴' 안내로 되돌림). 이전 상태를 돌려줌 */
+let rosterNoteSaved = '';
+function rosterNoteState(st) {
+  const note = $('[data-roster-note]'); if (!note) return '';
+  const prev = note.hidden ? '' : (note.dataset.state || '');
+  if (st === 'busy') { if (prev === 'found') rosterNoteSaved = note.innerHTML; note.hidden = false; note.className = 'roster-note busy'; note.dataset.state = 'busy'; note.innerHTML = '<span class="spin" aria-hidden="true"></span> 사전 등록 명단을 찾는 중… <small>(학교 단체 인솔자라면 명단이 자동으로 채워져요)</small>'; note.setAttribute('role', 'status'); return prev; }
+  if (st === 'restore' && rosterNoteSaved) { note.hidden = false; note.className = 'roster-note'; note.dataset.state = 'found'; note.innerHTML = rosterNoteSaved; return prev; }
+  if (st === 'none') { note.hidden = false; note.className = 'roster-note muted'; note.dataset.state = 'none'; note.innerHTML = '이 이름·휴대폰으로 등록된 사전 명단은 없어요. 아래 <b>[＋ 어린이 추가]</b>로 넣어 주세요.'; return prev; }
+  if (st === 'err') { note.hidden = false; note.className = 'roster-note muted'; note.dataset.state = 'err'; note.innerHTML = '사전 명단을 확인하지 못했어요 (연결 지연). <button type="button" class="btn small" data-action="roster-reload">다시 확인</button>'; return prev; }
+  note.hidden = true; note.dataset.state = ''; return prev;
 }
 /** 어린이 줄 학교명 칸: 비어 있으면 대표 소속을 흐리게 보여 줌 (비워 두면 대표 소속으로 접수) */
 function syncKidOrgPh() { const v = (($('#rorg') || {}).value || '').trim(); $$('[data-kid] .kid-org').forEach(el => { el.placeholder = v || '학교명'; }); }
@@ -1678,7 +1692,7 @@ function renderRsvForm() {
       <div class="roster-note" data-roster-note hidden></div>
       <div data-kid-rows>${loadKids().map(k => kidRowHTML(k, grades)).join('')}</div>
       <div class="kids-tools${loadKids().length ? '' : ' hidden'}" data-kid-tools><label>전원 학년<select id="kidgradeall" aria-label="전원 학년"><option value="">선택</option>${grades.map(g => `<option value="${attr(g)}">${esc(g)}</option>`).join('')}</select></label><span class="note" data-kid-count></span></div>
-      <p class="note">예약 명단에는 어린이 이름만 들어가고, 보호자 휴대폰은 <b>예약 확인 번호</b>(비상 연락처)로 함께 기록됩니다. 어린이마다 따로 접수되어 확정/대기가 각각 표시됩니다. 학교명 칸은 <b>대표 소속</b>이 자동으로 들어가고, 학교가 다른 어린이만 고쳐 적으면 됩니다. 체크를 풀면 이번 예약에서 빠집니다. 한 번에 ${KIDS_MAX}명까지.</p>
+      <ul class="kid-tips"><li>📱 보호자 휴대폰 = <b>예약 확인 번호</b></li><li>🏫 학교명은 <b>다른 학교일 때만</b> 고쳐 주세요</li><li>☑️ 체크를 풀면 빠져요 · 한 번에 <b>${KIDS_MAX}명</b>까지</li></ul>
     </div>
 `}
     <label class="chk consent"><input type="checkbox" id="rconsent" required><span>개인정보 수집·이용에 동의합니다 <button type="button" data-action="privacy">${S.rsv.privacy ? '내용 닫기' : '내용 보기'}</button></span></label>
@@ -3298,14 +3312,13 @@ document.addEventListener('click', e => {
   if (a === 'pick-slot') { pickSlot(act.dataset.slot); return; }
   if (a === 'submit-rsv') { submitRsv(); return; }
   if (a === 'day') { setDay(act.dataset.day); return; }
-  if (a === 'kid-add') { const host = $('[data-kid-rows]'); if (!host) return; if ($$('[data-kid]').length >= KIDS_MAX) { toast('함께 온 어린이는 ' + KIDS_MAX + '명까지입니다', 'err'); return; } host.insertAdjacentHTML('beforeend', kidRowHTML({ on: true }, S.status.grades || [])); syncKidTools(); const last = $$('[data-kid] .kid-name').pop(); if (last) last.focus(); return; }
+  if (a === 'kid-add') { const host = $('[data-kid-rows]'); if (!host) return; if ($$('[data-kid]').length >= KIDS_MAX) { toast('함께 온 어린이는 ' + KIDS_MAX + '명까지입니다. 오늘 안 온 어린이를 ✕로 빼면 추가할 수 있어요', 'err'); return; } host.insertAdjacentHTML('beforeend', kidRowHTML({ on: true }, S.status.grades || [])); syncKidTools(); { const rn = $('[data-roster-note]'); if (rn && rn.dataset.state === 'none') rosterNoteState('hide'); } const last = $$('[data-kid] .kid-name').pop(); if (last) last.focus(); return; }
   if (a === 'kid-del') {
     const row = act.closest('[data-kid]'); if (!row) return;
-    if (row.hasAttribute('data-roster')) { // 사전 명단 어린이는 지우지 않고 체크만 풂 (실수로 지워 다시 못 찾는 일 방지)
-      const cb = row.querySelector('.kid-on'); if (cb) { cb.checked = false; row.classList.add('off'); }
-      toast('사전 명단 어린이는 체크만 풀립니다 (이번 예약에서 빠짐). 다시 넣으려면 체크'); return;
-    }
-    row.remove(); syncKidTools(); return;
+    const fromRoster = row.hasAttribute('data-roster'); // 2026-11-02: 사전 명단 어린이도 ✕로 뺌 → 자리가 생겨 다른 어린이 추가 가능. 되돌리기는 [↺ 명단 다시 불러오기]
+    row.remove(); syncKidTools();
+    if (fromRoster) toast('목록에서 뺐습니다. 다시 넣으려면 [↺ 명단 다시 불러오기]');
+    return;
   }
   if (a === 'roster-reload') {
     act.disabled = true; toast('사전 명단을 불러오는 중입니다…');
@@ -3408,6 +3421,7 @@ document.addEventListener('submit', e => {
 let qTimer = null;
 document.addEventListener('input', e => {
   if (e.target.id === 'rphone' || e.target.id === 'myphone' || e.target.id === 'wphone' || e.target.id === 'sphone' || e.target.id === 'sgphone') formatPhoneField(e.target);
+  if (e.target.id === 'rphone' && phoneDigits(e.target.value).length === 11 && (($('#rname') || {}).value || '').trim()) { clearTimeout(window.__rosterT); window.__rosterT = setTimeout(() => tryRoster(), 400); } // 번호를 다 치면 바로 명단 찾기 (칸을 벗어날 때까지 기다리지 않음)
   if (e.target.id === 'rorg') syncKidOrgPh();
   if (e.target.closest && e.target.closest('[data-form="rsv"]')) { e.target.classList.remove('bad'); return; }
   if (e.target.id === 'q') { S.f.q = e.target.value; clearTimeout(qTimer); qTimer = setTimeout(updateHome, 120); }
