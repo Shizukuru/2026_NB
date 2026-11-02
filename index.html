@@ -237,9 +237,9 @@ tr:last-child td{border-bottom:0}
 .tv-top{display:flex;align-items:flex-end;justify-content:space-between;gap:2vw;border-bottom:2px solid var(--line);padding-bottom:.8vh}
 .tv-title{font-family:var(--font-display);color:var(--accent);font-size:2.6em;line-height:1.05}
 .tv-sub{color:var(--fg-muted);font-size:1.05em;margin-top:.3em;display:flex;gap:1.5em;flex-wrap:wrap}
-.tv-pt{display:flex;flex-direction:column;gap:.25em;align-self:center;white-space:nowrap}.tv-pt:empty{display:none}.tv-pt .stat{display:flex;align-items:baseline;justify-content:space-between;gap:.6em;background:var(--accent-soft);border:0;border-radius:.5em;padding:.05em .7em;min-width:16em}.tv-pt .stat .k{font-size:.85em;color:var(--accent);font-weight:700}.tv-pt .stat .v{font-family:var(--font-body);font-size:1em;font-weight:800;margin:0;line-height:1.35}.tv-pt .stat .v small{font-size:.8em;margin-left:.2em}.tv-pt .ps-sub{font-size:.8em!important;margin-left:.5em!important;display:inline!important}
+.tv-pt{display:flex;flex-direction:row;gap:.5em;align-self:center;white-space:nowrap}.tv-pt:empty{display:none}.tv-pt .stat{display:block;background:var(--accent-soft);border:0;border-radius:.6em;padding:.3em .8em .35em;min-width:6.4em}.tv-pt .stat .k{font-size:.95em;color:var(--accent);font-weight:700;line-height:1.2}.tv-pt .stat .v{font-family:var(--font-display);font-size:2.3em;font-weight:700;margin:0;line-height:1.05;font-variant-numeric:tabular-nums}.tv-pt .stat .v small{font-family:var(--font-body);font-size:.42em;margin-left:.15em;font-weight:600}.tv-pt .ps-sub{font-size:.4em!important;margin:.15em 0 0!important;display:block!important;font-family:var(--font-body);line-height:1.2}@media (max-width:1500px){.tv-pt .stat{min-width:5.6em;padding:.25em .65em .3em}.tv-pt .stat .v{font-size:2em}}
 .tv-sub .now{background:var(--mark);color:var(--mark-ink);padding:.1em .7em;border-radius:999px;font-weight:600}
-.tv-clock{font-family:var(--font-display);font-size:4.2em;line-height:1;letter-spacing:.02em}
+.tv-clock{font-family:var(--font-display);font-size:4.2em;line-height:1;letter-spacing:.02em;font-variant-numeric:tabular-nums;display:inline-block;min-width:4.6em;text-align:right} /* 2026-11-02: 숫자 폭이 매초 바뀌어 왼쪽 현황이 흔들리던 것 — 폭 고정 */
 .tv-upd{color:var(--fg-muted);text-align:right;font-size:.95em}
 .tv-body{flex:1;min-height:0;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:minmax(0,1fr);gap:0 1.6vw}
 .tv-col{display:grid;grid-template-rows:auto repeat(var(--rows,26),minmax(0,1fr));min-height:0}
@@ -319,7 +319,7 @@ tr:last-child td{border-bottom:0}
 .qr-card{background:#fff;color:#15231F;border:1px solid var(--line);border-radius:14px;padding:22px 20px;display:grid;gap:12px;justify-items:center;text-align:center;break-inside:avoid;page-break-inside:avoid}
 .qr-card .ev{font-size:12px;letter-spacing:.08em;color:#5C6C66}
 .qr-card .num{font-family:var(--font-display);font-size:64px;line-height:.95;color:#0E7C6B}
-.qr-card .num small{display:block;font-family:var(--font-body);font-size:12px;letter-spacing:.2em;color:#5C6C66;margin-bottom:4px}
+.qr-card .num.home{font-size:44px;color:#1c6dd0;line-height:1.05}.qr-card.qr-home{border:3px solid #1c6dd0}.qr-card .num small{display:block;font-family:var(--font-body);font-size:12px;letter-spacing:.2em;color:#5C6C66;margin-bottom:4px}
 .qr-card h3{font-size:20px;font-weight:700;line-height:1.3;color:#15231F}
 .qr-card .org{font-size:13.5px;color:#5C6C66}
 .qr-card .qr{width:min(70%,260px);aspect-ratio:1;max-width:100%}
@@ -620,7 +620,7 @@ button.slot-row:disabled{cursor:default}
 .kid-row.off input[type="text"],.kid-row.off select{opacity:.45}
 .kids .note{margin:0;font-size:12.5px}
 .leader-box{font-size:13.5px;line-height:1.4;align-items:flex-start}.leader-box input{margin-top:2px;flex:none}
-.kid-tips{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:3px;font-size:13.5px;color:var(--fg-muted);line-height:1.4}.kid-tips b{color:var(--fg)}.roster-note.busy{background:var(--surface-2);color:var(--fg-muted)}.roster-note.muted{background:var(--surface-2);color:var(--fg-muted)}.roster-note .spin{display:inline-block;width:13px;height:13px;margin-right:6px;vertical-align:-2px;border:2px solid var(--accent);border-right-color:transparent;border-radius:50%;animation:rnspin .8s linear infinite}@keyframes rnspin{to{transform:rotate(360deg)}}.roster-note{font-size:13.5px;background:var(--accent-soft);color:var(--fg);border-radius:8px;padding:8px 10px;line-height:1.45}
+.op-preview{margin:8px 0 4px;padding:8px 12px;border-radius:10px;background:#FFF1E0;border:1.5px dashed #E08A1E;color:#6B3D00;font-size:13.5px;line-height:1.45}.op-preview .btn{margin-left:6px}.days.day-only .day{cursor:default}.apstats{padding-block:6px 0}.kid-tips{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:3px;font-size:13.5px;color:var(--fg-muted);line-height:1.4}.kid-tips b{color:var(--fg)}.roster-note.busy{background:var(--surface-2);color:var(--fg-muted)}.roster-note.muted{background:var(--surface-2);color:var(--fg-muted)}.roster-note .spin{display:inline-block;width:13px;height:13px;margin-right:6px;vertical-align:-2px;border:2px solid var(--accent);border-right-color:transparent;border-radius:50%;animation:rnspin .8s linear infinite}@keyframes rnspin{to{transform:rotate(360deg)}}.roster-note{font-size:13.5px;background:var(--accent-soft);color:var(--fg);border-radius:8px;padding:8px 10px;line-height:1.45}
 .group-list{display:grid;gap:6px;text-align:left;margin:4px 0}
 .group-list .g{display:flex;gap:8px;align-items:flex-start;font-size:14px;line-height:1.4;padding:8px 10px;border-radius:10px;background:var(--surface-2)}
 .group-list .g b{min-width:4em}.group-list .g.ok{background:var(--ok-soft)}.group-list .g.wait{background:var(--warn-soft)}.group-list .g.fail{background:var(--full-soft)}
@@ -842,8 +842,14 @@ function eventDates() { const ev = S.status.event || {}; return ev.dates && ev.d
 function fmtDay(d) { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(d || '')); if (!m) return String(d || ''); const w = ['일', '월', '화', '수', '목', '금', '토'][new Date(+m[1], +m[2] - 1, +m[3]).getDay()]; return (+m[2]) + '/' + (+m[3]) + '(' + w + ')'; }
 function todayStr() { return (S.status.event && S.status.event.today) || kstNow().date; }
 function pickDay(pref) { const ds = eventDates(); if (!ds.length) return ''; if (pref && ds.indexOf(pref) > -1) return pref; const t = todayStr(); if (ds.indexOf(t) > -1) return t; return ds.filter(d => d > t)[0] || ds[ds.length - 1]; } // 오늘 → 다음 행사일 → 마지막 날
+/** 2026-11-02: 방문객 화면은 그날만 (6일엔 6일, 7일엔 7일 · 행사 전엔 첫날, 끝나면 마지막 날). 날짜 탭 없음. 대학운영진·강사·TV·QR 화면은 그대로 날짜 탭 */
+function isAdminView() { return ['admin', 'tv', 'qr', 'gate'].indexOf(S.view) > -1; }
+/** 운영진 날짜 미리보기: 이 브라우저에서 대학운영진 PIN으로 로그인하면 12시간 동안 방문객 화면에도 날짜 탭(행사 전 6일·7일 테스트용). [잠금]·[미리보기 끝내기]로 끝 */
+function opPreview() { try { return Number(localStorage.getItem('opPreview') || 0) > Date.now(); } catch (x) { return false; } }
+function visitorDayLock() { if (isAdminView()) return false; if (opPreview()) return false; return S.routed || !/[?&]page=(admin|tv|qr)\b/.test(location.search); } // 처음 열 때(화면 정하기 전)는 주소로 판단
 function applyDay(st) {
   st = st || S.status; const ds = eventDates(); if (!ds.length) return;
+  if (visitorDayLock()) { S.day = pickDay(''); $$('[data-day-label]').forEach(el => { if (el.dataset.dayLabel !== S.day) { el.dataset.dayLabel = S.day; el.innerHTML = esc(fmtDay(S.day)) + (S.day === todayStr() ? '<small>오늘</small>' : '<small>행사일</small>'); } }); } // 방문객: 늘 오늘(자정이 지나면 다음 갱신 때 저절로 다음 날)
   if (!S.day || ds.indexOf(S.day) === -1) S.day = pickDay(S.day);
   // 같은 번호를 날마다 다른 기관이 운영하면(부스 탭 '(6일)' '(7일)') 보는 날짜의 내용으로 바꾸고, 그날 운영 안 하는 부스는 숨김
   if (!st.allBooths) st.allBooths = st.booths || [];
@@ -860,10 +866,12 @@ function resPast(r, now) { const d = r.date || ''; if (d && d < now.date) return
 function dayTabsHTML() {
   const ds = eventDates(); if (ds.length < 2) return '';
   const t = todayStr();
-  return `<nav class="days no-print" aria-label="행사 날짜">${ds.map(d => `<button type="button" class="day${d === S.day ? ' on' : ''}" data-action="day" data-day="${attr(d)}">${esc(fmtDay(d))}${d === t ? '<small>오늘</small>' : ''}</button>`).join('')}</nav>`;
+  const pv = !isAdminView() && opPreview() ? `<div class="op-preview no-print">🔧 <b>운영진 날짜 미리보기</b> — 이 브라우저만 날짜를 바꿔 볼 수 있어요 (방문객에겐 오늘만 보여요) <button type="button" class="btn small" data-action="preview-off">미리보기 끝내기</button></div>` : '';
+  if (visitorDayLock()) return `<nav class="days day-only no-print" aria-label="행사 날짜"><span class="day on" data-day-label="${attr(S.day)}">${esc(fmtDay(S.day))}${S.day === t ? '<small>오늘</small>' : '<small>행사일</small>'}</span></nav>`; // 방문객: 그날 날짜만 (누를 수 없음)
+  return pv + `<nav class="days no-print" aria-label="행사 날짜">${ds.map(d => `<button type="button" class="day${d === S.day ? ' on' : ''}" data-action="day" data-day="${attr(d)}">${esc(fmtDay(d))}${d === t ? '<small>오늘</small>' : ''}</button>`).join('')}</nav>`;
 }
 function setDay(d) {
-  if (!d || d === S.day || eventDates().indexOf(d) === -1) return;
+  if (!d || d === S.day || eventDates().indexOf(d) === -1 || visitorDayLock()) return;
   S.day = d; applyDay();
   $$('.days .day').forEach(b => b.classList.toggle('on', b.dataset.day === S.day));
   if (S.view === 'admin' && S.admin.data) renderAdminParts();
@@ -1179,7 +1187,7 @@ async function refresh() {
   } catch (e) {
     failures++;
     setOnline(false);
-    if (S.view === 'admin' && /PIN/.test(e.message || '')) { S.admin.pin = ''; try { sessionStorage.removeItem('pin'); } catch (x) { } render(); }
+    if (S.view === 'admin' && /PIN/.test(e.message || '')) { S.admin.pin = ''; try { sessionStorage.removeItem('pin'); localStorage.removeItem('opPreview'); } catch (x) { } render(); }
   } finally {
     lastRefreshAt = Date.now();
     refreshing = false;
@@ -2528,6 +2536,7 @@ function renderAdmin() {
         </div>
       </header>
       <section class="stats" data-stats></section>
+      <section class="stats pstats apstats" data-admin-pt hidden></section>
       <section class="stats vstats" data-vstats hidden></section>
       <section class="sess-panel no-print" data-sess-panel></section>
       ${legendHTML()}
@@ -2576,10 +2585,11 @@ function renderAdminParts() {
     `<div class="stat"><div class="k">마감 시간대</div><div class="v">${fullSlots}<small>/ ${totalSlots}</small></div></div>` +
     (alwaysCheck() ? `<div class="stat"><div class="k">상시운영 누적 참여</div><div class="v">${visitsIn}<small>명 · 방문 대기자 ${Math.max(0, visits - visitsIn - visitsAbs)}</small></div></div>` : `<div class="stat"><div class="k">상시운영 누적 참여</div><div class="v">${visits}<small>명</small></div></div>`) +
     `<div class="stat"><div class="k">${cur.now ? '지금 진행 중' : cur.next ? '다음 시간대' : '행사일'}</div><div class="v small">${esc(cur.now || cur.next || (d.event && d.event.date) || '-')}</div></div>`;
+  { const ph = $('[data-admin-pt]'); if (ph) { const x = S.admin.staff ? '' : pTotalHTML(); ph.hidden = !x; ph.innerHTML = x ? x + '<p class="note" style="grid-column:1/-1;margin:0">방문객 화면 맨 위와 같은 숫자예요 (시간대 수 기준 · 상시운영 부스는 1곳 = 1개).</p>' : ''; } } // 2026-11-02: 대학운영진 현황판에도 전체 참여 현황
   { const vh = $('[data-vstats]'); if (vh) { const v = d.visitors; vh.hidden = !v || !!S.admin.staff;
-    vh.innerHTML = v ? `<div class="stat vs" title="최근 약 5분 안에 예약 화면을 켜 둔 휴대폰 수"><div class="k">현재 접속자</div><div class="v">${v.now}<small>명</small></div></div>` +
-      `<div class="stat vs" title="오늘 예약 홈페이지를 한 번이라도 연 휴대폰(브라우저) 수 — 1분마다 합산"><div class="k">오늘 방문자</div><div class="v">${v.today}<small>명</small></div></div>` +
-      `<div class="stat vs" title="행사일(${esc((d.event && d.event.dates || []).join(', '))}) 동안 연 휴대폰 수 (같은 폰은 한 번)"><div class="k">총 방문자</div><div class="v">${v.event || v.total ? v.total : '-'}<small>${v.event || v.total ? '명 (행사일)' : '행사일부터'}</small></div></div>` +
+    vh.innerHTML = v ? `<div class="stat vs" title="최근 약 5분 안에 예약 화면을 켜 둔 휴대폰 수"><div class="k">현재 접속자</div><div class="v">${v.now}<small>대</small></div></div>` +
+      `<div class="stat vs" title="오늘 예약 홈페이지를 한 번이라도 연 휴대폰(브라우저) 수 — 1분마다 합산"><div class="k">오늘 방문자</div><div class="v">${v.today}<small>대</small></div></div>` +
+      `<div class="stat vs" title="행사일(${esc((d.event && d.event.dates || []).join(', '))}) 동안 연 휴대폰 수 (같은 폰은 한 번)"><div class="k">총 방문자</div><div class="v">${v.event || v.total ? v.total : '-'}<small>${v.event || v.total ? '대 (행사일)' : '행사일부터'}</small></div></div>` +
       `<p class="note" style="grid-column:1/-1;margin:0">휴대폰(브라우저) 수 기준 참고값이에요 — 가족이 한 폰을 쓰면 1, 정식 인원은 접수처 등록부. 동시에 몰릴 때 몇 % 덜 셀 수 있어요.</p>` : ''; } }
   const u = $('[data-updated]'); if (u) u.textContent = d.updatedAt || '';
   renderSessionPanel(d);
@@ -2869,7 +2879,7 @@ async function loginAdmin(pin) {
   try {
     const d = await adminFetch(pin);
     S.admin.pin = pin; S.admin.data = d; S.status = d; onStatus(d); S.admin.err = '';
-    try { sessionStorage.setItem('pin', pin); } catch (x) { }
+    try { sessionStorage.setItem('pin', pin); if (!S.admin.staff) localStorage.setItem('opPreview', String(Date.now() + 12 * 3600 * 1000)); } catch (x) { }
     render();
   } catch (e) {
     S.admin.err = e.message || 'PIN 확인에 실패했습니다';
@@ -3046,8 +3056,21 @@ function updateQR() {
     `<div class="note" style="margin-bottom:10px">이 QR의 배포 ID: <b class="mono">${esc(depId.slice(0, 12))}…</b> — Apps Script [배포 &gt; 배포 관리]의 <b>현재 배포</b> URL과 같은지 확인하세요. 배포를 새로 만들어(새 배포) ID가 바뀌거나 이전 배포를 보관 처리하면 그 전에 인쇄한 QR은 "현재 파일을 열 수 없습니다"가 뜹니다. 코드 수정 뒤에는 [새 배포]가 아니라 <b>[배포 관리 &gt; 새 버전]</b>으로 올려야 QR이 그대로 유지됩니다. 주소 중간에 <b class="mono">/u/숫자/</b>(로그인 계정 번호)가 끼어 있어도 같은 오류가 나는데, 이 화면은 그 부분을 자동으로 뺍니다 — 주소창에서 복사한 주소를 따로 QR로 만들지 마세요.<br><b>Google 계정이 여러 개 로그인된 휴대폰에서 QR이 안 열리는 문제</b>는 이 방식(방법 A)에서는 완전히 막을 수 없습니다. index.html 을 GitHub Pages 등에 올리고 시트 설정 탭 [외부 화면 URL]에 그 주소를 적는 방법 B 를 권장합니다 (가이드 참고).</div>`;
   const ev = (S.status.event || {}).name || '';
   const list = (S.status.booths || []).filter(b => !S.qr.region || b.region === S.qr.region);
-  $('[data-count]').textContent = list.length + '개 부스';
-  grid.innerHTML = list.map(b => {
+  $('[data-count]').textContent = '예약하기 1장 + ' + list.length + '개 부스';
+  // 2026-11-02: 맨 앞에 부스와 상관없는 '예약하기'(첫 화면) QR 카드 — 접수처·입구·안내 데스크용
+  const homeCard = `<article class="qr-card qr-home${PREVIEW ? ' sample' : ''}">
+      ${PREVIEW ? '<div class="sample-mark">예시 · 실제 QR 아님</div>' : ''}
+      ${LOGO_FULL ? `<img class="qr-logo" src="${LOGO_FULL}" alt="충남 ANCHOR 늘봄학교">` : ''}
+      <div class="ev">${esc(ev)}</div>
+      <div class="num home"><small>RESERVATION</small>📱 예약하기</div>
+      <h3>체험 부스 예약 홈페이지</h3>
+      <div class="org">모든 부스를 한눈에 보고 골라서 예약해요</div>
+      <div class="qr">${WEB ? qrSVG(WEB) : '<div class="note">주소 없음</div>'}</div>
+      <div class="how">QR을 찍어 하고 싶은 체험을 고르고 바로 예약하세요</div>
+      <div class="url">${esc(WEB)}</div>
+      ${STATIC && !PREVIEW ? '' : `<div class="tip">접속이 안 되면 브라우저 <b>시크릿(사생활 보호) 탭</b>이나 다른 브라우저로 여세요</div>`}
+    </article>`;
+  grid.innerHTML = homeCard + list.map(b => {
     const url = boothPageUrl(b.no);
     const how = b.mode === ONSITE ? '현장접수 프로그램 — 예약 없이 부스에서 직접 접수하세요 (QR은 프로그램 안내)' : b.mode === ALWAYS ? 'QR을 찍어 예약시스템에 등록 후 부스에서 선착순 진행' : 'QR을 찍어 시간대를 고르고 바로 예약하세요';
     return `<article class="qr-card${PREVIEW ? ' sample' : ''}">
@@ -3158,6 +3181,7 @@ function renderGuidePage() {
   </div>`;
 }
 function render() {
+  if (visitorDayLock() && eventDates().length > 1 && S.day !== pickDay('')) applyDay(); // 대학운영진 화면에서 방문객 화면으로 왔을 때도 오늘로
   if (S.view !== 'tv') document.documentElement.removeAttribute('data-theme');
   applyBigFont();
   if (S.view === 'admin') renderAdmin();
@@ -3378,7 +3402,8 @@ document.addEventListener('click', e => {
   else if (a === 'go-staff') { e.preventDefault(); S.admin.staffPick = true; S.admin.staff = true; S.admin.f.booth = ''; S.admin.err = ''; go('admin'); }
   else if (a === 'go-admin') { S.admin.staffPick = false; S.admin.staff = false; S.admin.f.booth = ''; if (PREVIEW || !WEB || STATIC) { e.preventDefault(); go('admin'); } } // 방법 B 는 같은 페이지 안에서 이동 (주소는 pushNav 가 바꿈)
   else if (a === 'refresh') { refresh(); toast('새로고침 중…'); }
-  else if (a === 'logout') { S.admin.pin = ''; S.admin.data = null; try { sessionStorage.removeItem('pin'); } catch (x) { } render(); }
+  else if (a === 'logout') { S.admin.pin = ''; S.admin.data = null; try { sessionStorage.removeItem('pin'); localStorage.removeItem('opPreview'); } catch (x) { } render(); }
+  else if (a === 'preview-off') { try { localStorage.removeItem('opPreview'); } catch (x) { } applyDay(); $('#app').dataset.view = ''; render(); toast('미리보기를 끝냈습니다 — 방문객처럼 오늘만 보여요'); }
   else if (a === 'pick') { S.admin.f.booth = act.dataset.booth; S.admin.f.slot = act.dataset.slot; S.admin.f.status = ''; S.admin.tab = 'list'; $$('[data-tab]').forEach(t => t.classList.toggle('on', t.dataset.tab === 'list')); $$('[data-panel]').forEach(p => { p.hidden = p.dataset.panel !== 'list'; }); renderList(S.admin.data, kstNow()); }
   else if (a === 'clear-filter') { S.admin.f.booth = ''; S.admin.f.slot = ''; renderList(S.admin.data, kstNow()); }
   else if (a === 'print') { try { window.print(); } catch (x) { toast('브라우저 메뉴에서 인쇄(Ctrl+P)해 주세요'); } }
@@ -3513,6 +3538,7 @@ async function bootstrap() {
     S.phone = window.innerWidth >= 760; // 넓은 화면에서는 휴대폰 프레임으로 시작 (실제 휴대폰에서는 그대로)
     try { const v = localStorage.getItem('phonePreview'); if (v === '0') S.phone = false; if (v === '1') S.phone = true; } catch (x) { }
   }
+  S.routed = true;
   loadFilters();
   syncNarrow();
   if (window.ResizeObserver) new ResizeObserver(syncNarrow).observe($('#app'));
