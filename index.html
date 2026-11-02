@@ -1608,7 +1608,7 @@ async function tryRoster(force) {
   rosterAsked[key] = 'found';
   const host = $('[data-kid-rows]'); if (!host) return null;
   const have = $$('[data-kid] .kid-name').map(i => i.value.trim()).filter(Boolean);
-  const grades = S.status.grades || [];
+  const grades = gradeList();
   let added = 0;
   r.kids.forEach(k => { if ($$('[data-kid]').length >= KIDS_MAX || have.indexOf(k.name) > -1) return; host.insertAdjacentHTML('beforeend', kidRowHTML({ name: k.name, grade: k.grade, org: k.org, on: true, roster: true }, grades)); have.push(k.name); added++; });
   S.rsv.leader = true; S.rsv.rosterFound = true; const lc = $('#rleader'); if (lc) lc.checked = true; // 사전 명단이 있으면 위 이름은 인솔자
@@ -1658,6 +1658,8 @@ function rosterNoteState(st) {
 /** 어린이 줄 학교명 칸: 비어 있으면 대표 소속을 흐리게 보여 줌 (비워 두면 대표 소속으로 접수) */
 function syncKidOrgPh() { const v = (($('#rorg') || {}).value || '').trim(); $$('[data-kid] .kid-org').forEach(el => { el.placeholder = v || '학교명'; }); }
 function syncKidTools() { syncKidOrgPh(); const rows = $$('[data-kid]'); const n = rows.length; rows.forEach((r, i) => { const el = r.querySelector('[data-kid-no]'); if (el) el.textContent = i + 1; }); const t = $('[data-kid-tools]'); if (t) t.classList.toggle('hidden', !n); const c = $('[data-kid-count]'); if (c) c.textContent = n ? '어린이 ' + n + '명' : ''; const lb = $('[data-leader-box]'); if (lb) lb.classList.toggle('hidden', !n || !S.rsv.rosterFound); } // 인솔자 체크는 사전 명단이 불러와진 경우(단체)에만 — 가족 예약에서 첫째 아이가 빠지는 실수 방지
+/** 학년 선택지: 서버(설정)의 목록에서 '기타'는 뺌 — 화면이 '기타(직접 입력)'를 늘 맨 끝에 하나 붙이므로 두 번 나오지 않게 (2026-11-02) */
+function gradeList() { return ((S.status && S.status.grades) || []).filter(g => !/^\s*기타/.test(String(g))); }
 const KIDS_MAX = 15; // 함께 온 어린이 최대 (인솔자 제외 15명 / 보호자 본인 포함 16명)
 function kidRowHTML(k, grades) {
   k = k || {}; const on = k.on !== false;
@@ -1691,7 +1693,7 @@ function parseKidList(text, grades) {
   return out;
 }
 function showKidPaste() {
-  const grades = S.status.grades || [];
+  const grades = gradeList();
   const old = $('#result-modal'); if (old) old.remove();
   const el = document.createElement('div'); el.id = 'result-modal'; el.className = 'modal'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true');
   el.innerHTML = `<div class="modal-card"><h2>명단 붙여넣기</h2>
@@ -1707,7 +1709,7 @@ function renderRsvForm() {
   if (!host || !b) return;
   if (b.mode === ONSITE || b.state) { host.innerHTML = ''; return; } // 현장접수·마감 부스: 예약 폼 없음
   const me = loadMe();
-  const grades = S.status.grades || [];
+  const grades = gradeList();
   const known = grades.indexOf(me.grade) > -1;
   const other = me.grade && !known;
   const self = !!S.rsv.self;
@@ -1717,7 +1719,7 @@ function renderRsvForm() {
     <div class="who" role="tablist" aria-label="누가 등록하나요"><button type="button" role="tab" class="${self ? '' : 'on'}" aria-selected="${!self}" data-action="who" data-self="0">👨‍👩‍👧 보호자·인솔자가 등록</button><button type="button" role="tab" class="${self ? 'on' : ''}" aria-selected="${self}" data-action="who" data-self="1">🙋 학생 본인이 등록</button></div>
     ${self ? `<div class="grid2">
       <label class="field"><span>학생 이름</span><input id="sname" name="name" type="text" autocomplete="name" placeholder="예: 김하늘" value="${attr(me.self ? me.name : '')}" maxlength="30" required></label>
-      <label class="field"><span>학년</span><select id="sgrade" required><option value="">선택</option>${grades.map(g => `<option value="${attr(g)}"${selfGrade === g ? ' selected' : ''}>${esc(g)}</option>`).join('')}</select></label>
+      <label class="field"><span>학년</span><select id="sgrade" required><option value="">선택</option>${grades.map(g => `<option value="${attr(g)}"${selfGrade === g ? ' selected' : ''}>${esc(g)}</option>`).join('')}<option value="기타"${selfGrade === '기타' ? ' selected' : ''}>기타</option></select></label>
       <label class="field"><span>본인 휴대폰 <em class="ftag req">예약 확인 번호</em></span><input id="sphone" name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="숫자만 입력 (010-1234-5678)" value="${attr(me.self ? me.phone : '')}" maxlength="20" required></label>
       <label class="field"><span>보호자 휴대폰 <em class="ftag opt">선택</em></span><input id="sgphone" name="gphone" type="tel" inputmode="tel" placeholder="비워도 돼요 · 본인 번호와 같아도 OK" value="${attr(me.gphone || '')}" maxlength="20"></label>
     </div>
@@ -1970,7 +1972,7 @@ function showWalkIn(boothNo) {
   const always = b.mode !== CLASS, onsite = b.mode === ONSITE, now = kstNow();
   const cur = currentSlot(b.slots, now);
   const def = S.admin.f.slot && (b.slots || []).indexOf(S.admin.f.slot) > -1 ? S.admin.f.slot : (cur.now || cur.next || (b.slots || [])[0] || '');
-  const grades = S.status.grades || [];
+  const grades = gradeList();
   const old = $('#result-modal'); if (old) old.remove();
   const el = document.createElement('div'); el.id = 'result-modal'; el.className = 'modal'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true');
   el.innerHTML = `<div class="modal-card"><h2>현장 등록</h2><div class="what">${b.no}. ${esc(b.name)}${eventDates().length > 1 ? ' · ' + esc(fmtDay(S.day)) : ''}</div>
@@ -3386,7 +3388,7 @@ document.addEventListener('click', e => {
   if (a === 'pick-slot') { pickSlot(act.dataset.slot); { const rn = $('[data-roster-note]'); if (S.rsv.teams && rn && rn.dataset.state === 'found' && S.rsv.teamsKey) teamNoteShow(); } return; }
   if (a === 'submit-rsv') { submitRsv(); return; }
   if (a === 'day') { setDay(act.dataset.day); return; }
-  if (a === 'kid-add') { const host = $('[data-kid-rows]'); if (!host) return; if ($$('[data-kid]').length >= KIDS_MAX) { toast('함께 온 어린이는 ' + KIDS_MAX + '명까지입니다. 오늘 안 온 어린이를 ✕로 빼면 추가할 수 있어요', 'err'); return; } host.insertAdjacentHTML('beforeend', kidRowHTML({ on: true }, S.status.grades || [])); syncKidTools(); { const rn = $('[data-roster-note]'); if (rn && rn.dataset.state === 'none') rosterNoteState('hide'); } const last = $$('[data-kid] .kid-name').pop(); if (last) last.focus(); return; }
+  if (a === 'kid-add') { const host = $('[data-kid-rows]'); if (!host) return; if ($$('[data-kid]').length >= KIDS_MAX) { toast('함께 온 어린이는 ' + KIDS_MAX + '명까지입니다. 오늘 안 온 어린이를 ✕로 빼면 추가할 수 있어요', 'err'); return; } host.insertAdjacentHTML('beforeend', kidRowHTML({ on: true }, gradeList())); syncKidTools(); { const rn = $('[data-roster-note]'); if (rn && rn.dataset.state === 'none') rosterNoteState('hide'); } const last = $$('[data-kid] .kid-name').pop(); if (last) last.focus(); return; }
   if (a === 'kid-del') {
     const row = act.closest('[data-kid]'); if (!row) return;
     const fromRoster = row.hasAttribute('data-roster'); // 2026-11-02: 사전 명단 어린이도 ✕로 뺌 → 자리가 생겨 다른 어린이 추가 가능. 되돌리기는 [↺ 명단 다시 불러오기]
@@ -3405,7 +3407,7 @@ document.addEventListener('click', e => {
   if (a === 'howto') { e.preventDefault(); closeModal(); go('guide'); return; }
   if (a === 'kid-paste') { showKidPaste(); return; }
   if (a === 'kid-paste-add') {
-    const grades = S.status.grades || [];
+    const grades = gradeList();
     const list = parseKidList(($('#kidpaste') || {}).value || '', grades);
     const gAll = ($('#kidpastegrade') || {}).value || '';
     if (!list.length) { toast('이름을 한 줄에 한 명씩 적어 주세요', 'err'); return; }
