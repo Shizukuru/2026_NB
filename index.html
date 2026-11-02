@@ -847,7 +847,7 @@ function todayStr() { return (S.status.event && S.status.event.today) || kstNow(
 function pickDay(pref) { const ds = eventDates(); if (!ds.length) return ''; if (pref && ds.indexOf(pref) > -1) return pref; const t = todayStr(); if (ds.indexOf(t) > -1) return t; return ds.filter(d => d > t)[0] || ds[ds.length - 1]; } // 오늘 → 다음 행사일 → 마지막 날
 /** 2026-11-02: 방문객 화면은 그날만 (6일엔 6일, 7일엔 7일 · 행사 전엔 첫날, 끝나면 마지막 날). 날짜 탭 없음. 대학운영진·강사·TV·QR 화면은 그대로 날짜 탭 */
 function isAdminView() { return ['admin', 'tv', 'qr', 'gate'].indexOf(S.view) > -1; }
-/** 운영진 날짜 미리보기: 이 브라우저에서 대학운영진 PIN으로 로그인하면 12시간 동안 방문객 화면에도 날짜 탭(행사 전 6일·7일 테스트용). [잠금]·[미리보기 끝내기]로 끝 */
+/** 운영진 날짜 테스트 모드: 이 브라우저에서 대학운영진 PIN으로 로그인하면 12시간 동안 방문객 화면에도 날짜 탭(행사 전 6일·7일 테스트용). [잠금]·[미리보기 끝내기]로 끝 */
 function opPreview() { try { return Number(localStorage.getItem('opPreview') || 0) > Date.now(); } catch (x) { return false; } }
 function visitorDayLock() { if (isAdminView()) return false; if (opPreview()) return false; return S.routed || !/[?&]page=(admin|tv|qr)\b/.test(location.search); } // 처음 열 때(화면 정하기 전)는 주소로 판단
 function applyDay(st) {
@@ -869,7 +869,7 @@ function resPast(r, now) { const d = r.date || ''; if (d && d < now.date) return
 function dayTabsHTML() {
   const ds = eventDates(); if (ds.length < 2) return '';
   const t = todayStr();
-  const pv = !isAdminView() && opPreview() ? `<div class="op-preview no-print">🔧 <b>운영진 날짜 미리보기</b> — 이 브라우저만 날짜를 바꿔 볼 수 있어요 (방문객에겐 오늘만 보여요) <button type="button" class="btn small" data-action="preview-off">미리보기 끝내기</button></div>` : '';
+  const pv = !isAdminView() && opPreview() ? `<div class="op-preview no-print">🔧 <b>운영진 날짜 테스트 모드</b> — 이 브라우저만 날짜를 바꿔 볼 수 있어요 (방문객에겐 오늘만 보여요) <button type="button" class="btn small" data-action="preview-off">미리보기 끝내기</button></div>` : '';
   if (visitorDayLock()) return `<nav class="days day-only no-print" aria-label="행사 날짜"><span class="day on" data-day-label="${attr(S.day)}">${esc(fmtDay(S.day))}${S.day === t ? '<small>오늘</small>' : '<small>행사일</small>'}</span></nav>`; // 방문객: 그날 날짜만 (누를 수 없음)
   return pv + `<nav class="days no-print" aria-label="행사 날짜">${ds.map(d => `<button type="button" class="day${d === S.day ? ' on' : ''}" data-action="day" data-day="${attr(d)}">${esc(fmtDay(d))}${d === t ? '<small>오늘</small>' : ''}</button>`).join('')}</nav>`;
 }
