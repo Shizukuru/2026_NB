@@ -869,7 +869,7 @@ function resPast(r, now) { const d = r.date || ''; if (d && d < now.date) return
 function dayTabsHTML() {
   const ds = eventDates(); if (ds.length < 2) return '';
   const t = todayStr();
-  const pv = !isAdminView() && opPreview() ? `<div class="op-preview no-print">🔧 <b>운영진 날짜 테스트 모드</b> — 이 브라우저만 날짜를 바꿔 볼 수 있어요 (방문객에겐 오늘만 보여요) <button type="button" class="btn small" data-action="preview-off">미리보기 끝내기</button></div>` : '';
+  const pv = !isAdminView() && opPreview() ? `<div class="op-preview no-print">🔧 <b>운영진 날짜 테스트 모드</b> — 이 브라우저만 날짜를 바꿔 볼 수 있어요 (방문객에겐 오늘만 보여요) <button type="button" class="btn small" data-action="preview-off">테스트 모드 끝내기</button></div>` : '';
   if (visitorDayLock()) return `<nav class="days day-only no-print" aria-label="행사 날짜"><span class="day on" data-day-label="${attr(S.day)}">${esc(fmtDay(S.day))}${S.day === t ? '<small>오늘</small>' : '<small>행사일</small>'}</span></nav>`; // 방문객: 그날 날짜만 (누를 수 없음)
   return pv + `<nav class="days no-print" aria-label="행사 날짜">${ds.map(d => `<button type="button" class="day${d === S.day ? ' on' : ''}" data-action="day" data-day="${attr(d)}">${esc(fmtDay(d))}${d === t ? '<small>오늘</small>' : ''}</button>`).join('')}</nav>`;
 }
