@@ -1604,9 +1604,15 @@ async function tryRoster(force) {
   try { r = await rpc('groupRoster', name, phone); } catch (x) { rosterAsked[key] = false; if (curKey() === key) rosterNoteState('err'); return null; }
   if (curKey() !== key) { rosterNoteState(prevNote === 'found' ? 'restore' : 'hide'); if (!r || !r.kids || !r.kids.length) return { found: false, added: 0, total: 0 }; } // 찾는 사이 이름·번호를 바꿈 → 표시만 정리
   if (r && r.teams && r.teams.length && (!r.kids || !r.kids.length)) { // 2026-11-02: 확정 양식(조별 일정) — 어린이 이름은 없고 우리 조 일정만
-    rosterAsked[key] = 'sched'; S.rsv.teams = r.teams; S.rsv.teamsKey = key;
-    if (curKey() === key) { S.rsv.leader = true; S.rsv.rosterFound = true; const lc = $('#rleader'); if (lc) lc.checked = true; syncKidTools(); teamNoteShow(); }
-    return { found: true, added: 0, total: 0, sched: true };
+    rosterAsked[key] = 'sched'; if (S.rsv.teamsKey !== key) S.rsv.kidTeam = -1; S.rsv.teams = r.teams; S.rsv.teamsKey = key;
+    let added = 0, total = 0;
+    if (curKey() === key) {
+      S.rsv.leader = true; S.rsv.rosterFound = true; const lc = $('#rleader'); if (lc) lc.checked = true;
+      const ki = S.rsv.kidTeam >= 0 ? S.rsv.kidTeam : teamKidsPick(); // 2026-11-03: 학생 명단이 있으면 그 조 어린이를 목록에 (조를 여럿 맡으면 이 부스 일정이 있는 조, 아니면 고르게)
+      if (ki >= 0) { added = teamKidsLoad(ki); total = (r.teams[ki].kids || []).length; if (added) toast('우리 조 명단 ' + added + '명을 불러왔습니다'); }
+      syncKidTools(); teamNoteShow();
+    }
+    return { found: true, added: added, total: total, sched: true };
   }
   if (!r || !r.kids || !r.kids.length) { if (S.rsv.leader && !S.rsv.rosterFound) { S.rsv.leader = false; const lc = $('#rleader'); if (lc) lc.checked = false; } if (curKey() === key) rosterNoteState(prevNote === 'found' ? 'restore' : ($$('[data-kid]').length ? 'hide' : 'none')); return { found: false, added: 0, total: 0 }; }
   rosterAsked[key] = 'found';
@@ -1621,18 +1627,34 @@ async function tryRoster(force) {
   if (added) toast((force ? '사전 명단에서 ' : '사전 등록 명단 ') + added + '명을 불러왔습니다');
   return { found: true, added: added, total: r.kids.length };
 }
+/** 학생 명단이 있는 조 중 어느 조 어린이를 채울지: 하나뿐이면 그 조, 여럿이면 이 부스가 일정에 있는 조(하나일 때만). 못 고르면 -1 → 조마다 [이 조 명단 불러오기] */
+function teamKidsPick() {
+  const ts = S.rsv.teams || []; const withK = ts.map((t, i) => i).filter(i => (ts[i].kids || []).length);
+  if (withK.length <= 1) return withK.length ? withK[0] : -1;
+  const here = withK.filter(i => (ts[i].items || []).some(x => x.booth && x.booth === S.boothNo));
+  return here.length === 1 ? here[0] : -1;
+}
+/** 그 조 어린이를 참가 어린이 목록에 (이미 있는 이름은 건너뜀, 15명까지). 넣은 수 */
+function teamKidsLoad(i) {
+  const t = (S.rsv.teams || [])[i]; const host = $('[data-kid-rows]'); if (!t || !(t.kids || []).length || !host) return 0;
+  const have = $$('[data-kid] .kid-name').map(x => x.value.trim()).filter(Boolean), grades = gradeList(); let added = 0;
+  t.kids.forEach(k => { if ($$('[data-kid]').length >= KIDS_MAX || have.indexOf(k.name) > -1) return; host.insertAdjacentHTML('beforeend', kidRowHTML({ name: k.name, grade: k.grade, org: k.org, on: true, roster: true }, grades)); have.push(k.name); added++; });
+  S.rsv.kidTeam = i; syncKidTools(); return added;
+}
 /** 단체 일정(확정 양식) 안내 줄: 우리 조 · 인원 · 이 부스 시간 + [우리 조 일정 보기] */
 function teamNoteShow() {
   const note = $('[data-roster-note]'); if (!note || !S.rsv.teams) return;
   const b = booth(S.boothNo) || {}, slots = b.slots || [];
-  const lines = S.rsv.teams.map(t => {
+  const kt = S.rsv.kidTeam;
+  const lines = S.rsv.teams.map((t, ti) => {
     const here = t.items.filter(x => x.booth && x.booth === b.no);
+    const kidsTxt = (t.kids || []).length ? (kt === ti ? ` · 👧 명단 <b>${t.kids.length}명</b> 불러옴` : ` <button type="button" class="btn small" data-action="team-kids" data-i="${ti}">이 조 명단 불러오기 (${t.kids.length}명)</button>`) : '';
     return `📋 단체 일정 <b>${esc((t.school + ' ' + t.team).trim())}</b>${t.count ? ' · ' + t.count + '명' : ''} — ` +
       (here.length ? '이 부스: ' + here.map(x => `<b>${esc(x.time)}</b>${x.want ? ' (' + esc(x.want) + ')' : ''}${slots.indexOf(x.time) > -1 && S.rsv.slot !== x.time ? ` <button type="button" class="btn small" data-action="pick-slot" data-slot="${attr(x.time)}">이 시간 고르기</button>` : ''}`).join(', ')
-        : '이 부스는 우리 조 일정에 없어요');
+        : '이 부스는 우리 조 일정에 없어요') + kidsTxt;
   });
   note.hidden = false; note.className = 'roster-note'; note.dataset.state = 'found';
-  note.innerHTML = lines.join('<br>') + ` <button type="button" class="btn small" data-action="team-sched">우리 조 일정 보기</button><div class="team-hint">참가 어린이는 아래 <b>[＋ 어린이 추가]</b> 또는 <b>[명단 붙여넣기]</b>로 넣어 주세요.</div>`;
+  note.innerHTML = lines.join('<br>') + ` <button type="button" class="btn small" data-action="team-sched">우리 조 일정 보기</button><div class="team-hint">${kt >= 0 ? '안 온 어린이는 <b>체크를 풀어 주세요</b>. <button type="button" class="linkish" data-action="roster-reload">↺ 명단 다시 불러오기</button>' : '참가 어린이는 아래 <b>[＋ 어린이 추가]</b> 또는 <b>[명단 붙여넣기]</b>로 넣어 주세요.'}</div>`;
 }
 /** 우리 조 일정표 (창) — 부스를 누르면 그 부스 페이지 */
 function teamSchedHTML(teams, cur) {
@@ -3417,9 +3439,10 @@ document.addEventListener('click', e => {
     if (fromRoster) toast('목록에서 뺐습니다. 다시 넣으려면 [↺ 명단 다시 불러오기]');
     return;
   }
+  if (a === 'team-kids') { const n = teamKidsLoad(Number(act.dataset.i)); teamNoteShow(); toast(n ? n + '명을 불러왔습니다' : '이 조 어린이가 이미 목록에 있어요'); return; }
   if (a === 'roster-reload') {
     act.disabled = true; toast('사전 명단을 불러오는 중입니다…');
-    tryRoster(true).then(r => { if (r && r.sched) toast('단체 일정을 다시 불러왔어요'); else if (r && r.found && !r.added) toast('빠진 어린이가 없습니다 — 명단 ' + r.total + '명이 모두 목록에 있어요'); else if (r && !r.found) toast('이 이름·휴대폰으로 등록된 사전 명단이 없습니다', 'err'); else if (!r) toast('명단을 불러오지 못했습니다. 잠시 후 다시 눌러 주세요', 'err'); }).finally(() => { const b2 = $('[data-action="roster-reload"]'); if (b2) b2.disabled = false; });
+    tryRoster(true).then(r => { if (r && r.sched) toast(r.total ? (r.added ? '빠진 어린이 ' + r.added + '명을 다시 넣었어요' : '빠진 어린이가 없습니다 — 명단 ' + r.total + '명이 모두 목록에 있어요') : '단체 일정을 다시 불러왔어요'); else if (r && r.found && !r.added) toast('빠진 어린이가 없습니다 — 명단 ' + r.total + '명이 모두 목록에 있어요'); else if (r && !r.found) toast('이 이름·휴대폰으로 등록된 사전 명단이 없습니다', 'err'); else if (!r) toast('명단을 불러오지 못했습니다. 잠시 후 다시 눌러 주세요', 'err'); }).finally(() => { const b2 = $('[data-action="roster-reload"]'); if (b2) b2.disabled = false; });
     return;
   }
   if (a === 'guide-agree') { if (!($('#guideok') || {}).checked || !($('#guidesign') || {}).checked) return; setGuideAgreed(); const g = $('#guide-modal'); if (g) g.remove(); return; }
