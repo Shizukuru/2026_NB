@@ -190,6 +190,7 @@ body::before{content:'';position:fixed;top:0;left:0;right:0;height:5px;z-index:7
 .tv-right{display:flex;align-items:flex-end;gap:1.5vw}.tv-right .days{margin:0 0 .4em}
 [data-view="qr"] .days{display:none}
 .tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:12px}
+.tabs .admin-back{margin:0 6px 4px 0;align-self:center}.tabs .admin-back[hidden]{display:none} /* 2026-11-03 대학운영진 [← 뒤로] */
 .tab{background:none;border:0;border-bottom:3px solid transparent;padding:10px 14px;font-weight:600;color:var(--fg-muted);margin-bottom:-1px}
 .tab.on{color:var(--fg);border-color:var(--accent)}
 .scroll{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
@@ -847,7 +848,7 @@ function todayStr() { return (S.status.event && S.status.event.today) || kstNow(
 function pickDay(pref) { const ds = eventDates(); if (!ds.length) return ''; if (pref && ds.indexOf(pref) > -1) return pref; const t = todayStr(); if (ds.indexOf(t) > -1) return t; return ds.filter(d => d > t)[0] || ds[ds.length - 1]; } // 오늘 → 다음 행사일 → 마지막 날
 /** 2026-11-02: 방문객 화면은 그날만 (6일엔 6일, 7일엔 7일 · 행사 전엔 첫날, 끝나면 마지막 날). 날짜 탭 없음. 대학운영진·강사·TV·QR 화면은 그대로 날짜 탭 */
 function isAdminView() { return ['admin', 'tv', 'qr', 'gate'].indexOf(S.view) > -1; }
-/** 운영진 날짜 테스트 모드: 이 브라우저에서 대학운영진 PIN으로 로그인하면 12시간 동안 방문객 화면에도 날짜 탭(행사 전 6일·7일 테스트용). [잠금]·[미리보기 끝내기]로 끝 */
+/** 운영진 날짜 미리보기: 이 브라우저에서 대학운영진 PIN으로 로그인하면 12시간 동안 방문객 화면에도 날짜 탭(행사 전 6일·7일 테스트용). [잠금]·[미리보기 끝내기]로 끝 */
 function opPreview() { try { return Number(localStorage.getItem('opPreview') || 0) > Date.now(); } catch (x) { return false; } }
 function visitorDayLock() { if (isAdminView()) return false; if (opPreview()) return false; return S.routed || !/[?&]page=(admin|tv|qr)\b/.test(location.search); } // 처음 열 때(화면 정하기 전)는 주소로 판단
 function applyDay(st) {
@@ -869,7 +870,7 @@ function resPast(r, now) { const d = r.date || ''; if (d && d < now.date) return
 function dayTabsHTML() {
   const ds = eventDates(); if (ds.length < 2) return '';
   const t = todayStr();
-  const pv = !isAdminView() && opPreview() ? `<div class="op-preview no-print">🔧 <b>운영진 날짜 테스트 모드</b> — 이 브라우저만 날짜를 바꿔 볼 수 있어요 (방문객에겐 오늘만 보여요) <button type="button" class="btn small" data-action="preview-off">테스트 모드 끝내기</button></div>` : '';
+  const pv = !isAdminView() && opPreview() ? `<div class="op-preview no-print">🔧 <b>운영진 날짜 미리보기</b> — 이 브라우저만 날짜를 바꿔 볼 수 있어요 (방문객에겐 오늘만 보여요) <button type="button" class="btn small" data-action="preview-off">미리보기 끝내기</button></div>` : '';
   if (visitorDayLock()) return `<nav class="days day-only no-print" aria-label="행사 날짜"><span class="day on" data-day-label="${attr(S.day)}">${esc(fmtDay(S.day))}${S.day === t ? '<small>오늘</small>' : '<small>행사일</small>'}</span></nav>`; // 방문객: 그날 날짜만 (누를 수 없음)
   return pv + `<nav class="days no-print" aria-label="행사 날짜">${ds.map(d => `<button type="button" class="day${d === S.day ? ' on' : ''}" data-action="day" data-day="${attr(d)}">${esc(fmtDay(d))}${d === t ? '<small>오늘</small>' : ''}</button>`).join('')}</nav>`;
 }
@@ -2595,7 +2596,7 @@ function renderAdmin() {
       <section class="stats vstats" data-vstats hidden></section></div>
       <section class="sess-panel no-print" data-sess-panel></section>
       ${legendHTML()}
-      <nav class="tabs" style="margin-top:10px"><button type="button" class="tab${S.admin.tab === 'matrix' ? ' on' : ''}" data-tab="matrix">현황표</button><button type="button" class="tab${S.admin.tab === 'list' ? ' on' : ''}" data-tab="list">예약 명단</button></nav>
+      <nav class="tabs" style="margin-top:10px"><button type="button" class="btn small admin-back" data-action="admin-back" title="앞 화면으로 (휴대폰 뒤로가기와 같음)"${S.admin.depth > 0 ? '' : ' hidden'}>← 뒤로</button><button type="button" class="tab${S.admin.tab === 'matrix' ? ' on' : ''}" data-tab="matrix">현황표</button><button type="button" class="tab${S.admin.tab === 'list' ? ' on' : ''}" data-tab="list">예약 명단</button></nav>
       <section data-panel="matrix"${S.admin.tab === 'matrix' ? '' : ' hidden'}><div class="scroll matrix" data-matrix></div></section>
       <section data-panel="list"${S.admin.tab === 'list' ? '' : ' hidden'}>
         <div class="toolbar">
@@ -3261,7 +3262,19 @@ function updateView() {
 }
 // ───────── 뒤로가기: 화면 전환을 브라우저 기록에 남겨 휴대폰 뒤로가기가 '이전 화면'으로 가게 함 ─────────
 // 실제 배포(Apps Script)에서는 google.script.history, 미리보기에서는 window.history 사용
-function navState() { return { view: S.view, no: S.boothNo, hl: S.map.hl, key: S.map.key, adminBooth: S.admin.f.booth, adminTab: S.admin.tab, day: S.day }; }
+function navState() { return { view: S.view, no: S.boothNo, hl: S.map.hl, key: S.map.key, adminBooth: S.admin.f.booth, adminTab: S.admin.tab, adminF: S.view === 'admin' ? Object.assign({}, S.admin.f) : null, sy: S.view === 'admin' ? Math.round(window.scrollY || 0) : 0, ad: S.view === 'admin' ? (S.admin.depth || 0) : 0, day: S.day }; }
+/** 2026-11-03: 대학운영진 현황표 ↔ 예약 명단 뒤로가기 — 탭·필터를 바꿀 때 기록을 남기고([← 뒤로]·휴대폰 뒤로가기) 그 자리(스크롤)로 돌아옴 */
+function adminShow(tab, f, sy) {
+  S.admin.tab = tab; if (f) S.admin.f = Object.assign({ q: '', status: '', booth: '', slot: '', sort: 'recent' }, f);
+  $$('[data-tab]').forEach(t => t.classList.toggle('on', t.dataset.tab === tab)); $$('[data-panel]').forEach(p => { p.hidden = p.dataset.panel !== tab; });
+  const q = $('#aq'); if (q) q.value = S.admin.f.q || '';
+  if (S.admin.data) renderList(S.admin.data, kstNow());
+  const bk = $('[data-action="admin-back"]'); if (bk) bk.hidden = !(S.admin.depth > 0);
+  if (sy != null) requestAnimationFrame(() => window.scrollTo(0, sy));
+}
+/** 바꾸기 직전: 지금 화면(스크롤 포함)을 기록에 덮어 적음. 바꾼 뒤 adminPushed() 로 새 기록 */
+function adminMark() { if (S.view === 'admin') pushNav(true); }
+function adminPushed() { if (S.view !== 'admin') return; S.admin.depth = (S.admin.depth || 0) + 1; pushNav(false); const bk = $('[data-action="admin-back"]'); if (bk) bk.hidden = false; }
 function navParams(st) {
   if (st.view === 'booth' && st.no) return { booth: String(st.no) };
   if (st.view === 'map') { const p = { page: 'map' }; if (st.hl) p.booth = String(st.hl); return p; }
@@ -3283,6 +3296,10 @@ function pushNav(replace) {
 }
 function applyNavState(st, params) {
   closeModal();
+  if (st && st.view === 'admin' && S.view === 'admin' && $('#app') && $('#app').dataset.view === 'admin' && S.admin.data) {
+    S.admin.depth = st.ad || 0;
+    adminShow(st.adminTab || 'matrix', st.adminF || { booth: st.adminBooth || '' }, st.sy || 0); return;
+  }
   if (!st || !st.view) { // 기록에 상태가 없으면 주소의 ?page= / ?booth= 로 복원
     params = params || {}; st = { view: 'home' };
     if (params.page === 'map') { st.view = 'map'; st.hl = params.booth ? Number(params.booth) : null; }
@@ -3346,12 +3363,13 @@ document.addEventListener('click', e => {
   const mt = e.target.closest('[data-map]');
   if (mt) { S.map.key = mt.dataset.map; updateMap(); pushNav(true); return; }
   const tab = e.target.closest('[data-tab]');
-  if (tab) { S.admin.tab = tab.dataset.tab; $$('[data-tab]').forEach(t => t.classList.toggle('on', t === tab)); $$('[data-panel]').forEach(p => { p.hidden = p.dataset.panel !== S.admin.tab; }); return; }
+  if (tab) { if (tab.dataset.tab === S.admin.tab) return; adminMark(); S.admin.tab = tab.dataset.tab; $$('[data-tab]').forEach(t => t.classList.toggle('on', t === tab)); $$('[data-panel]').forEach(p => { p.hidden = p.dataset.panel !== S.admin.tab; }); adminPushed(); if (S.admin.tab === 'list') window.scrollTo(0, ($('[data-panel="list"]') || { offsetTop: 0 }).offsetTop - 70); return; }
   const act = e.target.closest('[data-action]');
   if (!act) return;
   const a = act.dataset.action;
   if (a === 'home-title') { e.preventDefault(); if (S.view === 'home') { S.f = { region: '', field: '', mode: '', floor: '', q: '', avail: false }; updateHome(); window.scrollTo({ top: 0, behavior: 'smooth' }); refresh(); } else go('home'); return; }
-  if (a === 'admin-home') { e.preventDefault(); S.admin.f = { q: '', status: '', booth: '', slot: '', sort: 'recent' }; S.admin.tab = 'matrix'; $$('[data-tab]').forEach(t => t.classList.toggle('on', t.dataset.tab === 'matrix')); $$('[data-panel]').forEach(p => { p.hidden = p.dataset.panel !== 'matrix'; }); if (S.admin.data) renderList(S.admin.data, kstNow()); window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
+  if (a === 'admin-back') { try { history.back(); } catch (x) { } return; }
+  if (a === 'admin-home') { e.preventDefault(); const moved = S.admin.tab !== 'matrix' || !!(S.admin.f.booth || S.admin.f.slot || S.admin.f.q); if (moved) adminMark(); S.admin.f = { q: '', status: '', booth: '', slot: '', sort: 'recent' }; S.admin.tab = 'matrix'; $$('[data-tab]').forEach(t => t.classList.toggle('on', t.dataset.tab === 'matrix')); $$('[data-panel]').forEach(p => { p.hidden = p.dataset.panel !== 'matrix'; }); if (S.admin.data) renderList(S.admin.data, kstNow()); if (moved) adminPushed(); window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
   if (a === 'boot-retry') { location.reload(); return; }
   if (a === 'refresh-now') { act.classList.add('busy'); refresh().then(() => act.classList.remove('busy')); toast('새로고침 중…'); return; }
   if (a === 'font') { try { localStorage.setItem('bigfont', bigFont() ? '0' : '1'); } catch (x) { } applyBigFont(); $$('[data-action="font"]').forEach(b => { b.classList.toggle('on', bigFont()); b.setAttribute('aria-pressed', String(bigFont())); }); toast(bigFont() ? '큰 글씨로 보기' : '보통 글씨로 보기'); return; }
@@ -3460,7 +3478,7 @@ document.addEventListener('click', e => {
   else if (a === 'refresh') { refresh(); toast('새로고침 중…'); }
   else if (a === 'logout') { S.admin.pin = ''; S.admin.data = null; try { sessionStorage.removeItem('pin'); localStorage.removeItem('opPreview'); } catch (x) { } render(); }
   else if (a === 'preview-off') { try { localStorage.removeItem('opPreview'); } catch (x) { } applyDay(); $('#app').dataset.view = ''; render(); toast('미리보기를 끝냈습니다 — 방문객처럼 오늘만 보여요'); }
-  else if (a === 'pick') { S.admin.f.booth = act.dataset.booth; S.admin.f.slot = act.dataset.slot; S.admin.f.status = ''; S.admin.tab = 'list'; $$('[data-tab]').forEach(t => t.classList.toggle('on', t.dataset.tab === 'list')); $$('[data-panel]').forEach(p => { p.hidden = p.dataset.panel !== 'list'; }); renderList(S.admin.data, kstNow()); }
+  else if (a === 'pick') { adminMark(); S.admin.f.booth = act.dataset.booth; S.admin.f.slot = act.dataset.slot; S.admin.f.status = ''; S.admin.tab = 'list'; $$('[data-tab]').forEach(t => t.classList.toggle('on', t.dataset.tab === 'list')); $$('[data-panel]').forEach(p => { p.hidden = p.dataset.panel !== 'list'; }); renderList(S.admin.data, kstNow()); adminPushed(); { const lp = $('[data-panel="list"]'); if (lp) window.scrollTo(0, Math.max(0, lp.getBoundingClientRect().top + window.scrollY - 70)); } }
   else if (a === 'clear-filter') { S.admin.f.booth = ''; S.admin.f.slot = ''; renderList(S.admin.data, kstNow()); }
   else if (a === 'print') { try { window.print(); } catch (x) { toast('브라우저 메뉴에서 인쇄(Ctrl+P)해 주세요'); } }
   else if (a === 'geo-mode') { setGeo(act.dataset.on === '1'); }
