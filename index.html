@@ -2699,9 +2699,9 @@ function renderAdminParts() {
     `<div class="stat"><div class="k">${cur.now ? '지금 진행 중' : cur.next ? '다음 시간대' : '행사일'}</div><div class="v small">${esc(cur.now || cur.next || (d.event && d.event.date) || '-')}</div></div>`;
   { const ph = $('[data-admin-pt]'); if (ph) { const x = S.admin.staff ? '' : pTotalHTML(); ph.hidden = !x; ph.innerHTML = x ? x + '<p class="note" style="grid-column:1/-1;margin:0">방문객 화면 맨 위와 같은 숫자예요 (시간대 수 기준 · 상시운영 부스는 1곳 = 1개).</p>' : ''; } } // 2026-11-02: 대학운영진 현황판에도 전체 참여 현황
   { const vh = $('[data-vstats]'); if (vh) { const v = d.visitors; vh.hidden = !v || !!S.admin.staff;
-    vh.innerHTML = v ? `<div class="stat vs" title="최근 약 5분 안에 예약 화면을 켜 둔 휴대폰 수"><div class="k">현재 접속자</div><div class="v">${v.now}<small>대</small></div></div>` +
-      `<div class="stat vs" title="오늘 예약 홈페이지를 한 번이라도 연 휴대폰(브라우저) 수 — 1분마다 합산"><div class="k">오늘 방문자</div><div class="v">${v.today}<small>대</small></div></div>` +
-      `<div class="stat vs" title="행사일(${esc((d.event && d.event.dates || []).join(', '))}) 동안 연 휴대폰 수 (같은 폰은 한 번)"><div class="k">총 방문자</div><div class="v">${v.event || v.total ? v.total : '-'}<small>${v.event || v.total ? '대 (행사일)' : '행사일부터'}</small></div></div>` +
+    vh.innerHTML = v ? `<div class="stat vs" title="최근 약 5분 안에 예약 화면을 켜 둔 휴대폰 수"><div class="k">현재 접속자</div><div class="v">${v.now}<small>명</small></div></div>` +
+      `<div class="stat vs" title="오늘 예약 홈페이지를 한 번이라도 연 휴대폰(브라우저) 수 — 1분마다 합산"><div class="k">오늘 방문자</div><div class="v">${v.today}<small>명</small></div></div>` +
+      `<div class="stat vs" title="행사일(${esc((d.event && d.event.dates || []).join(', '))}) 동안 연 휴대폰 수 (같은 폰은 한 번)"><div class="k">총 방문자</div><div class="v">${v.event || v.total ? v.total : '-'}<small>${v.event || v.total ? '명 (행사일)' : '행사일부터'}</small></div></div>` +
       `<p class="note" style="grid-column:1/-1;margin:0">휴대폰(브라우저) 수 기준 참고값이에요 — 가족이 한 폰을 쓰면 1, 정식 인원은 접수처 등록부. 동시에 몰릴 때 몇 % 덜 셀 수 있어요.</p>` : ''; } }
   const u = $('[data-updated]'); if (u) u.textContent = d.updatedAt || '';
   renderSessionPanel(d);
