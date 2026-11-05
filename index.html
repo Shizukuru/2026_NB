@@ -1390,7 +1390,7 @@ function quotaByChild() {
   const snap = loadSnap(), now = kstNow(), today = todayStr(); const by = {};
   Object.keys(snap).forEach(k => { const x = snap[k]; if (k === '_t' || !x || !x.name) return;
     if (!(x.status === ST.OK || x.status === ST.WAIT || x.status === ST.PENDING)) return;
-    if (x.att) return; if (noSlot(x.slot)) return;
+    if (x.att) return; if (noSlot(x.slot)) return; if (x.team) return; // 단체 일정표 시간 예약은 동시 한도에서 빠짐 (서버와 같게, 2026-11-05)
     const d = x.date || eventDates()[0] || ''; if (d && d < today) return;
     if (d === today && x.slot) { try { if (resPast({ date: d, slot: x.slot }, now)) return; } catch (e) { } }
     by[x.name] = (by[x.name] || 0) + 1; });
@@ -1937,7 +1937,7 @@ async function submitRsv(opts) {
   if (!err && res && res.group) { // 여러 어린이 결과
     const list = res.results || [];
     const snap = loadSnap();
-    list.forEach(r => { if (r.ok) { if (b.mode !== ALWAYS && !r.again) patchCounts(b.no, r.slot, r.status, r.at); snap[r.no] = { status: r.status, booth: r.booth, boothName: r.boothName, slot: r.slot, date: r.date || '', name: r.name || '' }; } });
+    list.forEach(r => { if (r.ok) { if (b.mode !== ALWAYS && !r.again) patchCounts(b.no, r.slot, r.status, r.at); snap[r.no] = { status: r.status, booth: r.booth, boothName: r.boothName, slot: r.slot, date: r.date || '', name: r.name || '' , team: r.team ? 1 : 0}; } });
     saveSnap(snap); watchStart();
     if (list.some(r => r.ok)) { S.rsv.slot = null; updateBooth(); } else renderCta();
     showGroupResult(list, b, payload.slot || ALWAYS, wait, payload.reqId);
@@ -2101,7 +2101,7 @@ function applyMyList(list, full) {
     const promotedUnseen = r.status === ST.OK && /자동 확정/.test(r.memo || '') && !/앱 확인/.test(r.notice || '') && !noticeShown[r.no];
     if (promotedUnseen || (prev && prev.status === ST.WAIT && r.status === ST.OK && !noticeShown[r.no])) notices.push({ kind: 'promoted', r });
     else if (prev && prev.status === ST.OK && r.status === ST.CANCEL && !/본인 취소/.test(r.memo || '') && !noticeShown[r.no]) notices.push({ kind: 'dropped', r });
-    snap[r.no] = { status: r.status, booth: r.booth, boothName: r.boothName, slot: r.slot, date: r.date || '', att: r.att || (r.checkin ? '출석' : ''), rating: r.rating || 0, asked: prev && prev.asked ? 1 : 0, name: r.name || (prev && prev.name) || '' };
+    snap[r.no] = { status: r.status, booth: r.booth, boothName: r.boothName, slot: r.slot, date: r.date || '', att: r.att || (r.checkin ? '출석' : ''), rating: r.rating || 0, asked: prev && prev.asked ? 1 : 0, team: prev && prev.team ? 1 : 0, name: r.name || (prev && prev.name) || '' };
   });
   // 만족도: 수업이 끝나고 출석 처리된 체험이 생겼으면 안내 팝업 (같은 부스·시간대의 형제는 한 묶음, 예약번호마다 한 번만)
   const now = kstNow(); const askedG = askedGroups(snap); const due = (list || []).filter(r => canRate(r, now) && !askedG[gKeyOf(r)]);
@@ -2708,9 +2708,9 @@ function renderAdminParts() {
     `<div class="stat"><div class="k">${cur.now ? '지금 진행 중' : cur.next ? '다음 시간대' : '행사일'}</div><div class="v small">${esc(cur.now || cur.next || (d.event && d.event.date) || '-')}</div></div>`;
   { const ph = $('[data-admin-pt]'); if (ph) { const x = S.admin.staff ? '' : pTotalHTML(); ph.hidden = !x; ph.innerHTML = x ? x + '<p class="note" style="grid-column:1/-1;margin:0">방문객 화면 맨 위와 같은 숫자예요 (시간대 수 기준 · 상시운영 부스는 1곳 = 1개).</p>' : ''; } } // 2026-11-02: 대학운영진 현황판에도 전체 참여 현황
   { const vh = $('[data-vstats]'); if (vh) { const v = d.visitors; vh.hidden = !v || !!S.admin.staff;
-    vh.innerHTML = v ? `<div class="stat vs" title="최근 약 5분 안에 예약 화면을 켜 둔 휴대폰 수"><div class="k">현재 접속자</div><div class="v">${v.now}<small>대</small></div></div>` +
-      `<div class="stat vs" title="오늘 예약 홈페이지를 한 번이라도 연 휴대폰(브라우저) 수 — 1분마다 합산"><div class="k">오늘 방문자</div><div class="v">${v.today}<small>대</small></div></div>` +
-      `<div class="stat vs" title="행사일(${esc((d.event && d.event.dates || []).join(', '))}) 동안 연 휴대폰 수 (같은 폰은 한 번)"><div class="k">총 방문자</div><div class="v">${v.event || v.total ? v.total : '-'}<small>${v.event || v.total ? '대 (행사일)' : '행사일부터'}</small></div></div>` +
+    vh.innerHTML = v ? `<div class="stat vs" title="최근 약 5분 안에 예약 화면을 켜 둔 휴대폰 수"><div class="k">현재 접속자</div><div class="v">${v.now}<small>명</small></div></div>` +
+      `<div class="stat vs" title="오늘 예약 홈페이지를 한 번이라도 연 휴대폰(브라우저) 수 — 1분마다 합산"><div class="k">오늘 방문자</div><div class="v">${v.today}<small>명</small></div></div>` +
+      `<div class="stat vs" title="행사일(${esc((d.event && d.event.dates || []).join(', '))}) 동안 연 휴대폰 수 (같은 폰은 한 번)"><div class="k">총 방문자</div><div class="v">${v.event || v.total ? v.total : '-'}<small>${v.event || v.total ? '명 (행사일)' : '행사일부터'}</small></div></div>` +
       `<p class="note" style="grid-column:1/-1;margin:0">휴대폰(브라우저) 수 기준 참고값이에요 — 가족이 한 폰을 쓰면 1, 정식 인원은 접수처 등록부. 동시에 몰릴 때 몇 % 덜 셀 수 있어요.</p>` : ''; } }
   const u = $('[data-updated]'); if (u) u.textContent = d.updatedAt || '';
   renderSessionPanel(d);
