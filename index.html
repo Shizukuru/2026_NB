@@ -2713,9 +2713,9 @@ function renderSessionPanel(d) {
   if (S.admin.staff) { host.hidden = true; host.innerHTML = ''; return; } // 강사 화면(?page=admin&booth=n)에는 예약 공개 패널을 보이지 않음 — 대학운영진만 조작
   const ss = d.sessions;
   host.hidden = false;
-  if (!ss) { host.innerHTML = `<div class="note" style="font-weight:600;color:var(--fg)">예약 공개 (대학운영진)</div><div class="note">서버 코드(Code.gs)가 아직 이전 버전입니다. 새 Code.gs로 교체하고 [배포 관리 > 새 버전]을 하면 여기에 오전반·오후반 자동/열림/닫힘 버튼이 나타납니다.</div>`; return; }
+  if (!ss) { host.innerHTML = `<div class="note" style="font-weight:600;color:var(--fg)">예약 공개 (호서대_시스템담당자)</div><div class="note">서버 코드(Code.gs)가 아직 이전 버전입니다. 새 Code.gs로 교체하고 [배포 관리 > 새 버전]을 하면 여기에 오전반·오후반 자동/열림/닫힘 버튼이 나타납니다.</div>`; return; }
   const multi = eventDates().length > 1;
-  host.innerHTML = `<div class="note" style="font-weight:600;color:var(--fg)">예약 공개 (대학운영진)${multi ? ` · <span class="sess-day">${esc(fmtDay(S.day))}</span> <small style="font-weight:400">— 날짜마다 따로 열고 닫습니다. 다른 날은 위의 날짜 탭에서</small>` : ''}</div>` + ['am', 'pm', 'al'].map(k => {
+  host.innerHTML = `<div class="note" style="font-weight:600;color:var(--fg)">예약 공개 (호서대_시스템담당자)${multi ? ` · <span class="sess-day">${esc(fmtDay(S.day))}</span> <small style="font-weight:400">— 날짜마다 따로 열고 닫습니다. 다른 날은 위의 날짜 탭에서</small>` : ''}</div>` + ['am', 'pm', 'al'].map(k => {
     const x = ss[k]; if (!x || (k === 'al' ? !(d.booths || []).some(b => b.mode === ALWAYS) : !x.count)) return '';
     const range = k === 'al' ? '' : x.first.split(/[~\-–—]/)[0].trim() + '~' + x.last.split(/[~\-–—]/).pop().trim();
     return `<div class="sess-row"><span class="name">${esc(x.label)}</span><span class="note">${k === 'al' ? '방문 등록 · ' + (d.booths || []).filter(b => b.mode === ALWAYS).length + '개 부스' : esc(range) + ' · ' + x.count + '개 시간대'}</span>
