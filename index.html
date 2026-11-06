@@ -858,6 +858,8 @@ function applyDay(st) {
   st = st || S.status; const ds = eventDates(); if (!ds.length) return;
   if (visitorDayLock()) { S.day = pickDay(''); $$('[data-day-label]').forEach(el => { if (el.dataset.dayLabel !== S.day) { el.dataset.dayLabel = S.day; el.innerHTML = esc(fmtDay(S.day)) + (S.day === todayStr() ? '<small>오늘</small>' : '<small>행사일</small>'); } }); } // 방문객: 늘 오늘(자정이 지나면 다음 갱신 때 저절로 다음 날)
   if (!S.day || ds.indexOf(S.day) === -1) S.day = pickDay(S.day);
+  // 2026-11-06: 자정이 지나 '오늘'이 바뀌면 — 오늘 탭을 보던 화면(TV·대학운영진)은 새 오늘로 저절로 넘어감 (다른 날을 골라 보던 중이면 그대로)
+  { const t = todayStr(); if (S.lastToday && S.lastToday !== t && ds.indexOf(t) > -1 && (S.day === S.lastToday || S.view === 'tv')) { S.day = t; setTimeout(() => { try { $$('.days').forEach(n => { n.outerHTML = dayTabsHTML().replace(/^[\s\S]*?(?=<nav)/, ''); }); if (S.view === 'admin' && S.admin && S.admin.data) renderAdminParts(); else if (S.view === 'booth') { S.rsv.slot = null; updateBooth(); } else updateView(); } catch (x) {} }, 0); } S.lastToday = t; }
   // 같은 번호를 날마다 다른 기관이 운영하면(부스 탭 '(6일)' '(7일)') 보는 날짜의 내용으로 바꾸고, 그날 운영 안 하는 부스는 숨김
   if (!st.allBooths) st.allBooths = st.booths || [];
   st.allBooths.forEach(b => { if (b.days) { const v = b.days[S.day]; b.off = !v; if (v) Object.assign(b, v); } });
@@ -2656,6 +2658,7 @@ function renderAdmin() {
           <button type="button" class="btn small" data-action="refresh">새로고침</button>
           ${links.sheet ? `<a class="btn small" href="${attr(links.sheet)}" target="_blank" rel="noopener">시트 열기</a>` : ''}
           ${WEB ? `<a class="btn small" href="${attr(WEB + '?page=tv')}" target="_blank" rel="noopener">TV 모드</a><a class="btn small" href="${attr(WEB + '?page=tv&mode=intro')}" target="_blank" rel="noopener" title="부스 소개를 하나씩 크게 넘겨 보여 주는 TV 화면">TV 소개</a><a class="btn small" href="${attr(WEB + '?page=qr')}" target="_blank" rel="noopener">QR 인쇄</a><a class="btn small" href="${attr(WEB + '?page=map')}" target="_blank" rel="noopener">배치도</a><a class="btn small" href="${attr(WEB)}" target="_blank" rel="noopener">방문객 화면</a>` : ''}
+          ${S.admin.staff ? '' : `<button type="button" class="btn small" data-action="snap-stats" title="지금 화면 위쪽 숫자들을 구글시트 '일일 결과' 탭에 한 줄로 저장">📌 수치 기록</button>`}
           <button type="button" class="btn small" data-action="logout">잠금</button>
         </div>
       </header>
@@ -3463,6 +3466,21 @@ document.addEventListener('click', e => {
     return;
   }
   if (a === 'walkin') { showWalkIn(Number(act.dataset.booth)); return; }
+  if (a === 'snap-stats') { // 2026-11-06: 화면 위 숫자를 시트 '일일 결과'에 한 줄로 기록
+    const items = [];
+    $$('[data-stats] .stat, [data-admin-pt] .stat, [data-vstats] .stat').forEach(el => {
+      const k = (el.querySelector('.k') || {}).textContent, v = el.querySelector('.v'); if (!k || !v) return; if (/^(지금 진행 중|다음 시간대|행사일)$/.test(k.trim())) return;
+      const sm = [...v.querySelectorAll('small')].map(x => x.textContent.trim()).join(' ');
+      const main = v.cloneNode(true); main.querySelectorAll('small').forEach(x => x.remove());
+      const sub = [...el.children].filter(x => !x.classList.contains('k') && !x.classList.contains('v')).map(x => x.textContent.trim()).join(' ');
+      items.push([k.trim(), main.textContent.trim(), (sm + ' ' + sub).trim()]);
+    });
+    if (!items.length) { toast('기록할 숫자가 아직 없습니다. 잠시 후 다시 눌러 주세요.', 'err'); return; }
+    act.disabled = true;
+    rpc('saveStatsSnapshot', S.admin.pin, S.day || '', items).then(r => { toast(`시트 '${(r && r.sheet) || '일일 결과'}' 탭에 ${(r && r.row) ? r.row - 1 + '번째 ' : ''}기록을 저장했습니다`); })
+      .catch(err => toast(err.message || '기록에 실패했습니다', 'err')).finally(() => { act.disabled = false; });
+    return;
+  }
   if (a === 'bulk-present') {
     const n = act.dataset.n, bno = act.dataset.booth, slot = act.dataset.slot;
     if (!window.confirm(slot + ' 미처리 확정 ' + n + '명을 모두 출석으로 처리할까요?\n안 온 학생은 그다음에 [결석]으로 바꿔 주세요.')) return;
