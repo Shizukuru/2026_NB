@@ -945,7 +945,7 @@ function floorOfCode(code) { const c = String(code || '').charAt(0).toUpperCase(
 /** 부스 탭 '배치도 위치' 칸 → 보는 날짜의 자리 코드.
  *  칸에 '6일:B-10,7일:B-14' 처럼 날짜 꼬리표가 있으면 그 날짜 것이 우선. 꼬리표 없는 코드는 새 배치안(11-07~) 코드로 봄.
  *  새 배치안 날짜(11-07~): 칸의 코드가 새 약도에 있으면 그 코드, 없으면 번호로 정해진 자리(byNo, 코드 = 층글자-부스번호).
- *  예전 배치안 날짜(11-06): 칸의 코드가 번호 자리(자동 채움 값)와 다르고 예전 약도에 있으면 그 코드, 아니면 예전 배치안 표(byNo)의 자리. */
+ *  예전 배치안 날짜(11-06): 그날 자리표(byNo, 6일 부스 탭 내보내기 기준)가 먼저 — 칸의 코드는 새 배치안용이라 보지 않음. 자리표에 없는 부스만 칸의 코드(예전 약도에 있을 때). */
 function dayCodeOf(raw, no, day) {
   const ms = mapset(day), cur = MAPSETS[MAPSETS.length - 1];
   const toks = String(raw || '').split(/[,;|\/]+/).map(s => s.trim()).filter(Boolean);
@@ -955,8 +955,8 @@ function dayCodeOf(raw, no, day) {
   if (tagged) return tagged;
   const auto = (cur.byNo || {})[String(no)] || '';
   if (ms === cur) return (bare && cur.pos[bare]) ? bare : (auto || bare); // 새 배치안: 칸의 코드가 새 약도에 있으면 그 코드, 없으면 번호 자리
-  if (bare && bare !== auto && (ms.pos[bare] || /^[OB13]$/.test(bare))) return bare; // 예전 배치안: 자동 채움 값이 아닌 코드는 예전 코드로 봄
-  return (ms.byNo || {})[String(no)] || '';
+  const his = (ms.byNo || {})[String(no)] || ''; // 예전 배치안 날짜(6일): 그날 자리표(6일 부스 탭 내보내기)가 기준 — 칸의 코드는 새 배치안용이라 보지 않음
+  return his || ((bare && bare !== auto && (ms.pos[bare] || /^[OB13]$/.test(bare))) ? bare : ''); // 자리표에 없는 부스(새로 생긴 부스)만 칸의 코드
 }
 /** 보는 날짜 기준으로 부스의 pos(약도 자리 코드)·floor(진행 층)를 맞춤 — applyDay 가 날짜마다 호출 */
 function applyDayPlace(b, day) {
