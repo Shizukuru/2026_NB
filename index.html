@@ -248,9 +248,11 @@ tr:last-child td{border-bottom:0}
 .tv-body{flex:1;min-height:0;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:minmax(0,1fr);gap:0 1.6vw}
 .tv-col{display:grid;grid-template-rows:auto repeat(var(--rows,26),minmax(0,1fr));min-height:0}
 .tv-row{display:grid;grid-template-columns:2.4em minmax(0,1fr) 3.6em repeat(var(--cols,5),4.2em);gap:.35em;align-items:center;border-bottom:1px solid var(--line);min-height:0;overflow:hidden;padding:.1em 0;line-height:1.2}
-@media (max-width:1500px){.tv-row{grid-template-columns:2.4em minmax(0,1fr) 3em repeat(var(--cols,5),3.8em)}} /* 작은 TV: '참여 중' 열만큼 시간대 칸을 좁혀 부스 이름 칸 폭 유지 */
+@media (max-width:1500px){.tv-row{grid-template-columns:2.4em minmax(0,1fr) 3em repeat(var(--cols,5),3.8em)}}
+.tv-col.many .tv-row{grid-template-columns:2.2em minmax(0,1fr) 2.9em repeat(var(--cols,12),3.15em);gap:.22em}.tv-col.many .tv-row .tc{font-size:.94em}.tv-col.many .tv-row.head .tc.tt{font-size:1.02em;letter-spacing:-.04em}
+@media (max-width:1500px){.tv-col.many .tv-row{grid-template-columns:2em minmax(0,1fr) 2.5em repeat(var(--cols,12),2.85em);gap:.18em}} /* 작은 TV: '참여 중' 열만큼 시간대 칸을 좁혀 부스 이름 칸 폭 유지 */
 .tv-row.head{border-bottom:2px solid var(--line);color:var(--fg-muted);font-size:.85em;letter-spacing:.06em}
-.tv-row.head .tc{text-align:center}
+.tv-row.head .tc{text-align:center}.tv-row.head{overflow:visible;background:var(--surface-2,rgba(0,0,0,.04));border-radius:.4em .4em 0 0}.tv-row.head .tc.tt{color:var(--fg);font-weight:800;font-size:1.12em;letter-spacing:-.03em;white-space:nowrap;overflow:visible;min-height:1.5em}
 .tv-row.head .tc.now{background:var(--mark);color:var(--mark-ink);border-radius:.4em;font-weight:700}
 .tv-no{font-family:var(--font-display);font-size:1.35em;color:var(--accent);text-align:right}
 .tv-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;min-width:0}
@@ -263,7 +265,7 @@ tr:last-child td{border-bottom:0}
 .tv-desc{font-size:.72em;font-weight:400;color:var(--fg-muted);margin-top:.06em}
 .tc{text-align:center;border-radius:.4em;font-weight:700;line-height:1.1;padding:0;align-self:stretch;display:flex;align-items:center;justify-content:center;min-height:1.6em}
 .tc.ok{background:var(--ok-soft);color:var(--ok)} .tc.warn{background:var(--warn-soft);color:var(--warn)} .tc.full{background:var(--full-soft);color:var(--full)} .tc.past{background:var(--surface-2);color:var(--fg-muted);font-weight:400}
-.tc.pj{background:#FFF1C2;color:#6B4E00} .tc.pj.off{background:transparent;color:var(--fg-muted);font-weight:400} .tv-row.head .tc.pj{background:transparent;color:var(--fg-muted)}
+.tc.pj{background:#FFF1C2;color:#6B4E00} .tc.pj.off{background:transparent;color:var(--fg-muted);font-weight:400} .tv-row.head .tc.pj{background:transparent;color:var(--fg-muted);white-space:nowrap;letter-spacing:-.06em;font-size:.82em}
 .tc.na{color:var(--line)}
 .tc.now{outline:2px solid var(--mark);outline-offset:-2px}
 .tv-always{grid-column:3/-1;background:var(--neutral-soft);color:var(--fg-muted);border-radius:.4em;padding:.1em .8em;align-self:stretch;display:flex;align-items:center;justify-content:space-between;font-size:.9em}
@@ -3038,7 +3040,7 @@ function updateTV() {
   const now = kstNow();
   const booths = (S.status.booths || []).slice().sort((a, b) => a.no - b.no);
   const allTv = allSlots(booths.filter(b => b.mode === CLASS));
-  const TV_MAX = 7; // TV 한 화면에 보여줄 시간대 수. 더 많으면 '지금'부터 7개(행사일 전에는 처음 7개)
+  const TV_MAX = 12; // TV 한 화면에 보여줄 시간대 수 (2026-11-06: 7 → 12, 하루 12개 시간대를 모두 · 지난 시간대는 '종료'). 더 많으면 '지금'부터
   let slots = allTv;
   if (allTv.length > TV_MAX) {
     let idx = allTv.findIndex(s => phaseOf(s, now) !== 'past');
@@ -3052,8 +3054,8 @@ function updateTV() {
   const half = Math.ceil(booths.length / 2);
   const cols = [booths.slice(0, half), booths.slice(half)];
   const rowsPerCol = Math.max(half, 1);
-  $('[data-tv-body]').innerHTML = cols.map(col => `<div class="tv-col" style="--rows:${rowsPerCol};--cols:${slots.length}">
-    <div class="tv-row head"><span></span><span>부스</span><span class="tc pj" title="지금 진행 중인 수업에 출석한 어린이">참여 중</span>${slots.map(s => `<span class="tc${phaseOf(s, now) === 'now' ? ' now' : ''}">${esc(shortTime(s))}</span>`).join('')}</div>
+  $('[data-tv-body]').innerHTML = cols.map(col => `<div class="tv-col${slots.length > 8 ? ' many' : ''}" style="--rows:${rowsPerCol};--cols:${slots.length}">
+    <div class="tv-row head"><span></span><span>부스</span><span class="tc pj" title="지금 진행 중인 수업에 출석한 어린이">참여 중</span>${slots.map(s => `<span class="tc tt${phaseOf(s, now) === 'now' ? ' now' : ''}">${esc(shortTime(s).replace(/^0(?=\d)/, ''))}</span>`).join('')}</div>
     ${col.map(b => `<div class="tv-row"><span class="tv-no${zc(b.floor)}">${b.no}</span>${S.tvDesc === true && b.desc ? `<span class="tv-name two"><span>${esc(b.name)}<small>${esc(b.org)}${b.pos ? ' · ' + esc(b.pos) : b.floor ? ' · ' + esc(b.floor) : ''}</small></span><span class="tv-desc">${esc(String(b.desc).replace(/\s+/g, ' '))}</span></span>` : `<span class="tv-name">${esc(b.name)}<small>${esc(b.org)}${b.pos ? ' · ' + esc(b.pos) : b.floor ? ' · ' + esc(b.floor) : ''}</small></span>`}${b.state ? `<span class="tv-always tv-bst"><span>⛔ 오늘 ${BST_T[b.state]}</span><span>다른 부스를 이용해 주세요</span></span>` : b.mode === ONSITE ? `<span class="tv-always"><span>현장접수 · 예약 없이 부스에서 접수</span><span class="tv-alw-n">${congHTML(b)}<span class="j">참여 <b>${alwaysCounts(b).joined}</b></span></span></span>` : b.mode === ALWAYS ? `<span class="tv-always"><span class="tv-alw-t">상시운영 · 등록 후 선착순 진행</span><span class="tv-alw-n">${congHTML(b, true)}${alwaysCheck() ? `<span class="w">방문 대기자 <b>${alwaysCounts(b).wait}</b></span>` : ''}<span class="j">누적 참여 <b>${alwaysCounts(b).joined}</b></span></span></span>` : tvLiveCell(b, now) + slots.map(s => {
       if ((b.slots || []).indexOf(s) === -1) return `<span class="tc na">·</span>`;
       const i = slotInfo(b, s, now);
