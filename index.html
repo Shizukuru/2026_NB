@@ -242,6 +242,7 @@ tr:last-child td{border-bottom:0}
 .tv-title{font-family:var(--font-display);color:var(--accent);font-size:2.6em;line-height:1.05}
 .tv-sub{color:var(--fg-muted);font-size:1.05em;margin-top:.3em;display:flex;gap:1.5em;flex-wrap:wrap}
 .tv-pt{display:flex;flex-direction:row;gap:.5em;align-self:center;white-space:nowrap}.tv-pt:empty{display:none}.tv-pt .stat{display:block;background:var(--accent-soft);border:0;border-radius:.6em;padding:.3em .8em .35em;min-width:6.4em}.tv-pt .stat .k{font-size:.95em;color:var(--accent);font-weight:700;line-height:1.2}.tv-pt .stat .v{font-family:var(--font-display);font-size:2.3em;font-weight:700;margin:0;line-height:1.05;font-variant-numeric:tabular-nums}.tv-pt .stat .v small{font-family:var(--font-body);font-size:.42em;margin-left:.15em;font-weight:600}.tv-pt .ps-sub{font-size:.4em!important;margin:.15em 0 0!important;display:block!important;font-family:var(--font-body);line-height:1.2}@media (max-width:1500px){.tv-pt .stat{min-width:5.6em;padding:.25em .65em .3em}.tv-pt .stat .v{font-size:2em}}
+.tv-sub .tv-half{background:#1E2A44;color:#fff;padding:.1em .8em;border-radius:999px;font-weight:700}
 .tv-sub .now{background:var(--mark);color:var(--mark-ink);padding:.1em .7em;border-radius:999px;font-weight:600}
 .tv-clock{font-family:var(--font-display);font-size:4.2em;line-height:1;letter-spacing:.02em;font-variant-numeric:tabular-nums;display:inline-block;min-width:4.6em;text-align:right} /* 2026-11-02: 숫자 폭이 매초 바뀌어 왼쪽 현황이 흔들리던 것 — 폭 고정 */
 .tv-upd{color:var(--fg-muted);text-align:right;font-size:.95em}
@@ -3041,16 +3042,23 @@ function updateTV() {
   const booths = (S.status.booths || []).slice().sort((a, b) => a.no - b.no);
   const allTv = allSlots(booths.filter(b => b.mode === CLASS));
   const TV_MAX = 12; // TV 한 화면에 보여줄 시간대 수 (2026-11-06: 7 → 12, 하루 12개 시간대를 모두 · 지난 시간대는 '종료'). 더 많으면 '지금'부터
-  let slots = allTv;
-  if (allTv.length > TV_MAX) {
-    let idx = allTv.findIndex(s => phaseOf(s, now) !== 'past');
-    if (idx < 0) idx = allTv.length - TV_MAX;
-    idx = Math.max(0, Math.min(idx, allTv.length - TV_MAX));
-    slots = allTv.slice(idx, idx + TV_MAX);
+  // 2026-11-06: 오전·오후 나눠서 표시 — 오전 시간대가 하나라도 남아 있으면 오전, 다 끝나면 오후 (?page=tv&hv=am|pm 로 고정 가능)
+  const ss = sessions() || {};
+  const isPm = s => ss.pm && (ss.pm.slots || []).length ? (ss.pm.slots || []).indexOf(s) > -1 : (parseSlot(s) || {}).start >= 13 * 60;
+  const amS = allTv.filter(s => !isPm(s)), pmS = allTv.filter(isPm);
+  let hv = S.tvHalf || (amS.length && amS.some(s => phaseOf(s, now) !== 'past') ? 'am' : 'pm');
+  if (hv === 'am' && !amS.length) hv = 'pm'; if (hv === 'pm' && !pmS.length) hv = 'am';
+  const halfAll = amS.length && pmS.length ? (hv === 'am' ? amS : pmS) : allTv;
+  let slots = halfAll;
+  if (halfAll.length > TV_MAX) {
+    let idx = halfAll.findIndex(s => phaseOf(s, now) !== 'past');
+    if (idx < 0) idx = halfAll.length - TV_MAX;
+    idx = Math.max(0, Math.min(idx, halfAll.length - TV_MAX));
+    slots = halfAll.slice(idx, idx + TV_MAX);
   }
   const cur = currentSlot(S.status.defaultSlots, now);
   $('[data-tv-title]').textContent = (S.status.event || {}).name || '';
-  $('[data-tv-sub]').innerHTML = `<span>부스 예약 현황 · 칸의 숫자는 잔여 좌석(예약 가능) · 참여 중 = 지금 수업에 출석한 어린이</span>${sessionPillsHTML()}${cur.now ? `<span class="now">지금 ${esc(cur.now)} 진행 중</span>` : cur.next ? `<span>다음 시간대 ${esc(cur.next)}</span>` : ''}${allTv.length > slots.length ? `<span>표시 ${esc(shortTime(slots[0]))}~${esc(slots[slots.length - 1].split(/[~\-–—]/).pop().trim())} (전체 ${allTv.length}개 중 ${slots.length}개, 시간이 지나면 자동으로 넘어감)</span>` : ''}`;
+  $('[data-tv-sub]').innerHTML = `<span>부스 예약 현황 · 칸의 숫자는 잔여 좌석(예약 가능) · 참여 중 = 지금 수업에 출석한 어린이</span>${sessionPillsHTML()}${cur.now ? `<span class="now">지금 ${esc(cur.now)} 진행 중</span>` : cur.next ? `<span>다음 시간대 ${esc(cur.next)}</span>` : ''}${halfAll !== allTv ? `<span class="tv-half">${hv === 'am' ? '☀️ 오전' : '🌇 오후'} 시간표</span>` : ''}${halfAll.length > slots.length ? `<span>표시 ${esc(shortTime(slots[0]))}~${esc(slots[slots.length - 1].split(/[~\-–—]/).pop().trim())} (${halfAll.length}개 중 ${slots.length}개, 시간이 지나면 자동으로 넘어감)</span>` : ''}`;
   const half = Math.ceil(booths.length / 2);
   const cols = [booths.slice(0, half), booths.slice(half)];
   const rowsPerCol = Math.max(half, 1);
@@ -3671,7 +3679,7 @@ async function bootstrap() {
     if (p.booth) { S.admin.f.booth = String(Number(p.booth)); S.admin.tab = 'list'; S.admin.staff = true; } // 강사 모드: 예약 공개 패널(총괄 전용)은 숨김
     else if (p.staff) { S.admin.staffPick = true; S.admin.staff = true; } // ?page=admin&staff=1 → 부스 고르기 + PIN
   }
-  else if (p.page === 'tv') { S.view = 'tv'; if (p.desc === '1') S.tvDesc = true; /* TV 현황판 소개 줄: 기본 끔(2026-10-23), ?page=tv&desc=1 이면 켬 */ if (p.mode === 'intro') { S.tvIntro = true; S.tvSec = Math.max(4, Math.min(60, Number(p.sec) || 8)); if (p.booth) S.tvIdx = Math.max(0, tviList().findIndex(x => x.no === Number(p.booth))); } }
+  else if (p.page === 'tv') { S.view = 'tv'; if (p.desc === '1') S.tvDesc = true; if (p.half === 'am' || p.half === 'pm') S.tvHalf = p.half; /* 2026-11-06 오전·오후 고정 */ /* TV 현황판 소개 줄: 기본 끔(2026-10-23), ?page=tv&desc=1 이면 켬 */ if (p.mode === 'intro') { S.tvIntro = true; S.tvSec = Math.max(4, Math.min(60, Number(p.sec) || 8)); if (p.booth) S.tvIdx = Math.max(0, tviList().findIndex(x => x.no === Number(p.booth))); } }
   else if (p.page === 'qr') S.view = 'qr';
   else if (p.page === 'my') S.view = 'my';
   else if (p.page === 'guide') S.view = 'guide';
