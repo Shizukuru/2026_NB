@@ -2894,8 +2894,7 @@ function renderList(d, now) {
     if (f.at) list = list.filter(r => regBucket(r) === f.at);
   } else f.at = '';
   const slotOrder = s => { const t = parseSlot(s); return t ? t.start : 9999; };
-  if (alw && f.sort === 'recent') list = list.slice().sort((a, b) => String(a.time).localeCompare(String(b.time))); // 상시운영은 등록 순(먼저 온 사람 위)
-  else if (f.sort === 'recent') list = list.slice().reverse();
+  if (f.sort === 'recent') list = list.slice().reverse();
   else if (f.sort === 'booth') list.sort((a, b) => a.booth - b.booth || slotOrder(a.slot) - slotOrder(b.slot) || a.no.localeCompare(b.no));
   else if (f.sort === 'name') list.sort((a, b) => a.name.localeCompare(b.name, 'ko'));
   S.admin.lastList = list;
