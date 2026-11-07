@@ -3299,7 +3299,7 @@ function flowStepsHTML() {
 const SIGN_REMIND = '✍️ 체험할 때 <b>부스의 종이 서명부</b>에 꼭 서명해 주세요 (부스마다).';
 /** force=true: 하단 [이용 안내] 로 다시 보기 (닫기 가능). 아니면 처음 방문 때 동의해야 닫힘 */
 // ───────── 행사 중 공지 팝업 (2026-11-07 지역주민 맞춤 교육 프로그램) ─────────
-// 그날(서버 기준 오늘)에만 첫 화면 띠 + 자동 팝업(이용 안내 동의 뒤, 홈페이지를 새로 열 때마다 · [오늘 그만 보기] 누르면 그날은 안 뜸). ?promo=1 이면 날짜와 상관없이 미리 보기. 끝나면 PROMO.day 를 지난 날로 두거나 블록을 지우면 됨.
+// 그날(서버 기준 오늘)에만 첫 화면 띠 + 휴대폰마다 한 번 자동 팝업(이용 안내 동의 뒤). ?promo=1 이면 날짜와 상관없이 미리 보기. 끝나면 PROMO.day 를 지난 날로 두거나 블록을 지우면 됨.
 const PROMO = { id: 'promo-1107-ai', day: '2026-11-07', endMin: 15 * 60,
   title: 'AI와 함께, 슬기로운 생활탐구', tag: '지역주민 맞춤 교육 프로그램 · 무료',
   sess: [{ k: 'am', t: '오전 10:00~12:00', s: 600, e: 720, name: '① 위기 순간, 생명을 지키는 응급처치', d: '심폐소생술(CPR) 실습 · 자동심장충격기(AED) 사용법 · 기도폐쇄 등 주요 응급처치' },
@@ -3326,14 +3326,14 @@ function showPromo() {
     <div class="pr-sess">${PROMO.sess.map(s => `<div class="pr-s ${s.k}${n === s ? ' on' : ''}"><span class="t">${esc(s.t)}${n === s ? (kstNow().min >= s.s ? ' · 지금 진행 중' : ' · 곧 시작') : ''}</span><b>${esc(s.name)}</b><small>${esc(s.d)}</small></div>`).join('')}</div>
     <dl><dt>장소</dt><dd><b>${esc(PROMO.place)}</b></dd><dt>대상</dt><dd>${esc(PROMO.who)}</dd><dt>문의</dt><dd><a href="tel:${attr(PROMO.tel.replace(/-/g, ''))}">${esc(PROMO.tel)}</a></dd></dl>
     <details><summary>안내 포스터 보기</summary><img src="${PROMO.img}" alt="AI와 함께, 슬기로운 생활탐구 안내 포스터" loading="lazy"></details>
-  </div><div class="row"><button type="button" class="btn" data-action="promo-stop">오늘 그만 보기</button><button type="button" class="btn primary" data-action="promo-close">닫기</button></div></div>`;
+  </div><div class="row"><button type="button" class="btn primary" data-action="promo-close">확인</button></div></div>`;
   document.body.appendChild(el);
-  try { sessionStorage.setItem('promoShown', PROMO.id); } catch (x) { } // 닫기 = 이 창을 열어 둔 동안은 다시 안 뜸(새로 열면 다시)
+  try { localStorage.setItem('promoSeen', PROMO.id); } catch (x) { }
 }
 function maybeShowPromo() {
   if (!promoOn() || !isVisitorView() || !guideAgreed() || $('#guide-modal') || $('#result-modal') || $('#promo-modal') || $('.modal')) return;
-  let stop = '', shown = ''; try { stop = localStorage.getItem('promoStop') || ''; shown = sessionStorage.getItem('promoShown') || ''; } catch (x) { }
-  if (!promoForce() && (stop === PROMO.id + '|' + todayStr() || shown === PROMO.id)) return; // [오늘 그만 보기] 누른 휴대폰은 오늘 안 뜸
+  let seen = ''; try { seen = localStorage.getItem('promoSeen') || ''; } catch (x) { }
+  if (seen === PROMO.id && !promoForce()) return;
   showPromo();
 }
 function showGuide(force) {
@@ -3600,7 +3600,6 @@ document.addEventListener('click', e => {
   if (a === 'howto') { e.preventDefault(); closeModal(); go('guide'); return; }
   if (a === 'promo-open') { e.preventDefault(); showPromo(); return; }
   if (a === 'promo-close') { const m = $('#promo-modal'); if (m) m.remove(); return; }
-  if (a === 'promo-stop') { try { localStorage.setItem('promoStop', PROMO.id + '|' + todayStr()); } catch (x) { } const m = $('#promo-modal'); if (m) m.remove(); toast('오늘은 다시 띄우지 않아요. 첫 화면 📢 띠에서 언제든 다시 볼 수 있어요.'); return; }
   if (a === 'kid-paste') { showKidPaste(); return; }
   if (a === 'kid-paste-add') {
     const grades = gradeList();
