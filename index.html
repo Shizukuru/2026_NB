@@ -3298,7 +3298,7 @@ function showGuide(force) {
     <div class="what">${esc((S.status.event || {}).name || '')} 부스 예약 이용 안내</div>
     ${pTotalHTML() ? `<div class="guide-pt"><div class="flow-h">지금 참여 현황 <small>(시간대 수 · 1분마다 새로)</small></div><section class="stats pstats" data-ptotal>${pTotalHTML()}</section></div>` : ''}
     <div class="guide-body">${guideItemsHTML()}</div>
-    ${must ? `<div class="guide-oks"><label class="chk guide-ok"><input type="checkbox" id="guidesign"><span>접수처 <b>종이 등록부에 서명</b>했어요</span></label>
+    ${must ? `<div class="guide-oks"><label class="chk guide-ok"><input type="checkbox" id="guidesign"><span>2층 접수처 <b>리플렛을</b>수령했어요</span></label>
       <label class="chk guide-ok"><input type="checkbox" id="guideok"><span>위 안내(<b>홍보 촬영 초상권</b> 포함)를 확인했고 동의합니다</span></label></div>
       <div class="row"><button type="button" class="btn primary big" data-action="guide-agree" disabled>동의하고 시작하기</button></div>`
       : `<div class="row"><button type="button" class="btn primary" data-action="guide-close">닫기</button><button type="button" class="btn" data-action="howto">자세한 사용 안내 보기</button></div>`}
