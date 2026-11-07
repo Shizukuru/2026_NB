@@ -235,6 +235,9 @@ tr:last-child td{border-bottom:0}
 .pill.ok{background:var(--ok-soft);color:var(--ok)} .pill.wait{background:var(--warn-soft);color:var(--warn)} .pill.cancel{background:var(--surface-2);color:var(--fg-muted)}
 .filter-note{font-size:13px;background:var(--accent-soft);color:var(--accent);padding:6px 10px;border-radius:8px;display:inline-flex;gap:8px;align-items:center}
 .filter-note button{background:none;border:0;color:inherit;text-decoration:underline;padding:0}
+.at-chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:8px 0 4px}.at-chips .lab{font-size:12.5px;font-weight:800;color:var(--fg-muted);margin-right:2px}
+.at-chips button{border:1.5px solid var(--line);background:var(--surface);color:var(--fg);border-radius:999px;padding:6px 11px;font-size:13.5px;font-weight:700;cursor:pointer}.at-chips button small{font-weight:600;color:var(--fg-muted);font-size:11.5px}
+.at-chips button.on{background:#2F5FC4;border-color:#2F5FC4;color:#fff}.at-chips button.on small{color:rgba(255,255,255,.85)}.at-chips button.now{box-shadow:0 0 0 2px #FFD54A inset}.at-chips .opn{border-style:dashed}.at-chips .opn.on{background:var(--ok);border-color:var(--ok)}
 
 /* ── TV ── */
 .tv{height:calc(100vh - var(--chrome,0px));display:flex;flex-direction:column;padding:1vh 1.4vw;gap:.8vh;overflow:hidden;font-size:clamp(11px,1.55vh,22px)}
@@ -1014,7 +1017,7 @@ const S = {
   status: BOOT.status || { booths: [], defaultSlots: [], event: {}, updatedAt: '' },
   f: { region: '', field: '', mode: '', floor: '', q: '', avail: false }, // 전체 보기 필터 (avail = 지금 예약 가능한 부스만)
   map: { key: '', hl: null, zoom: 0 }, // 층별 배치도: 보고 있는 도면, 강조할 부스, 확대 배율(0=화면 폭에 맞게 자동)
-  admin: { pin: '', data: null, tab: 'matrix', f: { q: '', status: '', att: '', booth: '', slot: '', sort: 'recent' }, err: '', lastList: [] },
+  admin: { pin: '', data: null, tab: 'matrix', f: { q: '', status: '', att: '', booth: '', slot: '', sort: 'recent', at: '' }, err: '', lastList: [] },
   qr: { target: 'status', per: '2', region: '' },
   my: { name: '', phone: '', list: null, busy: false, confirm: '', rate: '', rateScore: 0, rateBusy: false },
   rsv: { booth: null, slot: null, busy: false, reqId: '', retry: null, privacy: false, leader: false, rosterFound: false, self: (function () { try { return localStorage.getItem('rsvself') === '1'; } catch (x) { return false; } })() }, // self = 학생 본인 등록 모드 (이 휴대폰에 기억) // 부스 페이지의 예약 진행 상태 (leader = 위 이름은 인솔자, 예약 명단에서 제외)
@@ -2853,6 +2856,10 @@ function attButtons(r, big) {
     `<button type="button" class="a${a === '결석' ? ' on' : ''}" data-action="att" data-res="${attr(r.no)}" data-booth="${r.booth}" data-state="${a === '결석' ? '' : '결석'}"${dis} title="${a === '결석' ? '다시 누르면 미처리로' : '결석 처리'}">결석</button></span>`;
 }
 function attMeta(r) { const a = r.att || (r.checkin ? '출석' : ''); if (!a) return ''; return esc((r.attTime ? r.attTime + ' ' : '') + (r.attBy || '')); }
+/** 상시운영 명단: 등록 시각(r.time 'MM-dd HH:mm')을 30분 칸으로 — '10:00' = 10:00~10:29 */
+function regBucket(r) { const m = /(\d{1,2}):(\d{2})\s*$/.exec(String(r.time || '')); if (!m) return ''; return String(m[1]).padStart(2, '0') + ':' + (+m[2] < 30 ? '00' : '30'); }
+function bucketLabel(k) { const [hh, mm] = k.split(':').map(Number); const e = hh * 60 + mm + 30; return k + '~' + String(Math.floor(e / 60)).padStart(2, '0') + ':' + String(e % 60).padStart(2, '0'); }
+function alwaysListOn(d) { const f = S.admin.f; if (f.slot === ALWAYS) return true; const b = f.booth && (d.booths || []).find(x => String(x.no) === f.booth); return !!(b && b.mode === ALWAYS && (!f.slot || f.slot === ALWAYS)); }
 function renderList(d, now) {
   const f = S.admin.f;
   const booths = d.booths || [];
@@ -2874,8 +2881,21 @@ function renderList(d, now) {
   let list = (d.reservations || []).filter(r => sameDayRes(r) &&
     (!f.status || r.status === f.status) && attMatch(r) && (!f.booth || String(r.booth) === f.booth) && (!f.slot || r.slot === f.slot) &&
     (!q || r.name.toLowerCase().indexOf(q) > -1 || (r.guardian || '').toLowerCase().indexOf(q) > -1 || r.no.toLowerCase() === q || (qn && r.no.replace(/-/g, '').indexOf(qn) === 0) || (!qn && qd.length >= 3 && r.phone.replace(/\D/g, '').indexOf(qd) > -1) || r.org.toLowerCase().indexOf(q) > -1));
+  const alw = alwaysListOn(d);
+  let atChips = '';
+  if (alw) { // 상시운영: 등록 시각 30분 칸별로 골라 보기 (방문 출석 체크용)
+    const cnt = {}, open = {}; list.forEach(r => { const k = regBucket(r); if (!k) return; cnt[k] = (cnt[k] || 0) + 1; if (r.status === ST.OK && !attOf(r)) open[k] = (open[k] || 0) + 1; });
+    const keys = Object.keys(cnt).sort();
+    if (f.at && !cnt[f.at]) f.at = '';
+    const nowK = String(Math.floor(now.min / 60)).padStart(2, '0') + ':' + (now.min % 60 < 30 ? '00' : '30');
+    atChips = keys.length ? `<div class="at-chips"><span class="lab">등록 시각</span><button type="button" class="${!f.at ? 'on' : ''}" data-action="at-pick" data-at="">전체 <small>${list.length}</small></button>` +
+      keys.map(k => `<button type="button" class="${f.at === k ? 'on' : ''}${k === nowK ? ' now' : ''}" data-action="at-pick" data-at="${k}">${bucketLabel(k)} <small>${cnt[k]}${open[k] ? ' · 출석 전 ' + open[k] : ''}</small></button>`).join('') +
+      `<button type="button" class="opn${f.att === 'open' ? ' on' : ''}" data-action="at-open">출석 전만 보기</button></div>` : '';
+    if (f.at) list = list.filter(r => regBucket(r) === f.at);
+  } else f.at = '';
   const slotOrder = s => { const t = parseSlot(s); return t ? t.start : 9999; };
-  if (f.sort === 'recent') list = list.slice().reverse();
+  if (alw && f.sort === 'recent') list = list.slice().sort((a, b) => String(a.time).localeCompare(String(b.time))); // 상시운영은 등록 순(먼저 온 사람 위)
+  else if (f.sort === 'recent') list = list.slice().reverse();
   else if (f.sort === 'booth') list.sort((a, b) => a.booth - b.booth || slotOrder(a.slot) - slotOrder(b.slot) || a.no.localeCompare(b.no));
   else if (f.sort === 'name') list.sort((a, b) => a.name.localeCompare(b.name, 'ko'));
   S.admin.lastList = list;
@@ -2895,6 +2915,7 @@ function renderList(d, now) {
     const b = booths.find(x => String(x.no) === f.booth);
     noteHost.innerHTML = `<div class="filter-note">${b ? esc(b.no + '. ' + b.name) : ''} ${f.slot ? esc(f.slot) : ''} 명단 <button type="button" data-action="clear-filter">전체 보기</button>${b ? `<button type="button" class="walkin" data-action="walkin" data-booth="${b.no}" title="예약 없이 온 학생을 이 부스 명단에 바로 넣고 출석 처리">＋ 현장 등록</button>` : ''}</div>` + (b ? bstCtrlHTML(b) : '') + (b && b.mode !== CLASS && !b.state ? congCtrlHTML(b) : '') + bulk;
   } else noteHost.innerHTML = '';
+  if (atChips) noteHost.insertAdjacentHTML('beforeend', atChips);
   const listHost = $('[data-list]');
   if ($('#app').classList.contains('narrow')) {
     // 휴대폰: 강사가 엄지로 체크인하기 좋은 카드형
@@ -3655,7 +3676,9 @@ document.addEventListener('click', e => {
   else if (a === 'logout') { S.admin.pin = ''; S.admin.data = null; try { sessionStorage.removeItem('pin'); localStorage.removeItem('opPreview'); } catch (x) { } render(); }
   else if (a === 'preview-off') { try { localStorage.removeItem('opPreview'); } catch (x) { } applyDay(); $('#app').dataset.view = ''; render(); toast('미리보기를 끝냈습니다 — 방문객처럼 오늘만 보여요'); }
   else if (a === 'pick') { adminMark(); S.admin.f.booth = act.dataset.booth; S.admin.f.slot = act.dataset.slot; S.admin.f.status = ''; S.admin.tab = 'list'; $$('[data-tab]').forEach(t => t.classList.toggle('on', t.dataset.tab === 'list')); $$('[data-panel]').forEach(p => { p.hidden = p.dataset.panel !== 'list'; }); renderList(S.admin.data, kstNow()); adminPushed(); { const lp = $('[data-panel="list"]'); if (lp) window.scrollTo(0, Math.max(0, lp.getBoundingClientRect().top + window.scrollY - 70)); } }
-  else if (a === 'clear-filter') { S.admin.f.booth = ''; S.admin.f.slot = ''; renderList(S.admin.data, kstNow()); }
+  else if (a === 'clear-filter') { S.admin.f.booth = ''; S.admin.f.slot = ''; S.admin.f.at = ''; renderList(S.admin.data, kstNow()); }
+  else if (a === 'at-pick') { S.admin.f.at = act.dataset.at || ''; renderList(S.admin.data, kstNow()); }
+  else if (a === 'at-open') { S.admin.f.att = S.admin.f.att === 'open' ? '' : 'open'; renderList(S.admin.data, kstNow()); }
   else if (a === 'print') { try { window.print(); } catch (x) { toast('브라우저 메뉴에서 인쇄(Ctrl+P)해 주세요'); } }
   else if (a === 'geo-mode') { setGeo(act.dataset.on === '1'); }
   else if (a === 'rate-ping') { ratePingAsk(); }
@@ -3707,7 +3730,7 @@ document.addEventListener('change', async e => {
   if (t.id === 'favail') { S.f.avail = t.checked; updateHome(); return; }
   if (t.id === 'astatus') { S.admin.f.status = t.value; renderList(S.admin.data, kstNow()); return; }
   if (t.id === 'aatt') { S.admin.f.att = t.value; renderList(S.admin.data, kstNow()); return; }
-  if (t.id === 'abooth') { S.admin.f.booth = t.value; renderList(S.admin.data, kstNow()); return; }
+  if (t.id === 'abooth') { S.admin.f.booth = t.value; S.admin.f.at = ''; renderList(S.admin.data, kstNow()); return; }
   if (t.id === 'aslot') { S.admin.f.slot = t.value; renderList(S.admin.data, kstNow()); return; }
   if (t.id === 'asort') { S.admin.f.sort = t.value; renderList(S.admin.data, kstNow()); return; }
   if (t.id === 'qrper' || t.id === 'qrregion') { updateQR(); return; }
